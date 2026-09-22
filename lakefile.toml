@@ -1,0 +1,10 @@
+name = "logics"
+version = "0.1.0"
+defaultTargets = ["logics"]
+
+[[lean_lib]]
+name = "Logics"
+
+[[lean_exe]]
+name = "logics"
+root = "Main"
