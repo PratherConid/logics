@@ -130,3 +130,30 @@ theorem peirceOrImpOrForm_valid_chain (v : Nat → Fin 3) : peirceOrImpOrForm.ev
 theorem excludedMiddleForm_nvalid_three :
     (excludedMiddleForm (.var 0)).eval (fun _ => (1 : Fin 3)) ≠ ⊤ := by decide
 
+open HeytingAlgebra in
+/-- `PeirceOrImpOrF'` still reaches the top value in the three value chain. -/
+theorem peirceOrImpOr'_top_three : ∀ a b : Fin 3,
+    (((a ⇨ b) ⇨ a) ⇨ a) ⊔ ((b ⇨ a) ⇨ (neg b ⊔ a)) = ⊤ := by decide
+
+theorem peirceOrImpOrForm'_valid_three (v : Nat → Fin 3) :
+    peirceOrImpOrForm'.eval v = ⊤ := peirceOrImpOr'_top_three (v 0) (v 1)
+
+open HeytingAlgebra in
+/-- But it already misses it in the four value chain, at `a = 2`, `b = 1`, where
+every unswapped combined principle of this file still reaches the top. -/
+theorem peirceOrImpOr'_not_top_four :
+    ((((2 : Fin 4) ⇨ 1) ⇨ 2) ⇨ 2) ⊔ (((1 : Fin 4) ⇨ 2) ⇨ (neg 1 ⊔ 2)) ≠ ⊤ := by decide
+
+open HeytingAlgebra in
+/-- `DeMorganOrLukasiewiczF` reaches the top value throughout the fork. -/
+theorem demorganOrLuk_top_fork : ∀ a b : Fork,
+    (neg (neg a ⊓ neg b) ⇨ (a ⊔ b)) ⊔ ((neg a ⇨ neg b) ⇨ (b ⇨ a)) = ⊤ := by decide
+
+theorem demorganOrLukForm_valid_fork (v : Nat → Fork) : demorganOrLukForm.eval v = ⊤ :=
+  demorganOrLuk_top_fork (v 0) (v 1)
+
+/-- `PeirceOrImpOrF'` does not: it drops to `m` at `a = m`, `b = x`, where the
+two incomparable elements fail to join up to the top. -/
+theorem peirceOrImpOrForm'_nvalid_fork :
+    peirceOrImpOrForm'.eval (fun n => if n = 0 then Fork.m else Fork.x) ≠ ⊤ := by decide
+

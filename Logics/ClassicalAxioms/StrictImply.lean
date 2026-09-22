@@ -62,3 +62,16 @@ theorem em_nderiv_peirceOrImpOr :
     ¬ DerivesFromSchema peirceOrImpOrForm (excludedMiddleForm (.var 0)) := fun h =>
   excludedMiddleForm_nvalid_three (DerivesFromSchema.valid peirceOrImpOrForm_valid_chain h _)
 
+/-- Strong as it is, `PeirceOrImpOrF'` still does not reach excluded middle: it
+holds throughout `Fin 3`, where excluded middle does not. -/
+theorem em_nderiv_peirceOrImpOr' :
+    ¬ DerivesFromSchema peirceOrImpOrForm' (excludedMiddleForm (.var 0)) := fun h =>
+  excludedMiddleForm_nvalid_three (DerivesFromSchema.valid peirceOrImpOrForm'_valid_three h _)
+
+/-- The step from `DeMorganOrLukasiewiczF` up to `PeirceOrImpOrF'` is strict: no
+instantiation of the former derives the latter, since the fork validates every
+instance of the former and refutes one of the latter. -/
+theorem peirceOrImpOr'_nderiv_demorganOrLuk :
+    ¬ DerivesFromSchema demorganOrLukForm peirceOrImpOrForm' := fun h =>
+  peirceOrImpOrForm'_nvalid_fork (DerivesFromSchema.valid demorganOrLukForm_valid_fork h _)
+

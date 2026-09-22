@@ -58,6 +58,111 @@ theorem sup_cases {a b c d : α} (h : c ⊑ a ⊔ b) (ha : a ⊓ c ⊑ d) (hb : 
 
 end HeytingAlgebra
 
+/-! ## Upward closed sets of a frame
+
+Every preordered set of points gives rise to a Heyting algebra: its upward
+closed subsets, ordered by inclusion.  This is the construction behind every
+concrete algebra in this file, and it is also the Kripke reading of the
+connectives, with points as states of knowledge and an element as the set of
+states at which a proposition holds.  Only reflexivity and transitivity are
+used; antisymmetry of the points plays no part.
+
+The converse, that every finite Heyting algebra is isomorphic to the upward
+closed sets of its poset of join irreducible elements, is Birkhoff's
+representation theorem and is not formalised here. -/
+
+/-- A frame: points carrying a preorder. -/
+class Frame (P : Type u) where
+  le : P → P → Prop
+  le_refl (p : P) : le p p
+  le_trans {p q r : P} : le p q → le q r → le p r
+
+infix:50 " ≼ " => Frame.le
+
+/-- An upward closed set of frame points: once a point is in, everything later
+is in.  This is exactly persistence of truth along the order. -/
+structure Upset (P : Type u) [Frame P] where
+  mem : P → Prop
+  upward {p q : P} : p ≼ q → mem p → mem q
+
+namespace Upset
+
+variable {P : Type u} [Frame P]
+
+/-- Two upward closed sets with the same points are equal. -/
+theorem ext {U V : Upset P} (h : ∀ p, U.mem p ↔ V.mem p) : U = V := by
+  obtain ⟨u, hu⟩ := U
+  obtain ⟨v, hv⟩ := V
+  have : u = v := funext fun p => propext (h p)
+  subst this
+  rfl
+
+instance : PartialOrder (Upset P) where
+  le U V := ∀ p, U.mem p → V.mem p
+  le_refl _ _ h := h
+  le_trans h₁ h₂ p hp := h₂ p (h₁ p hp)
+  le_antisymm h₁ h₂ := ext fun p => ⟨h₁ p, h₂ p⟩
+
+instance : Lattice (Upset P) where
+  inf U V := ⟨fun p => U.mem p ∧ V.mem p,
+              fun h hp => ⟨U.upward h hp.1, V.upward h hp.2⟩⟩
+  sup U V := ⟨fun p => U.mem p ∨ V.mem p,
+              fun h hp => hp.elim (fun x => Or.inl (U.upward h x))
+                                  (fun y => Or.inr (V.upward h y))⟩
+  inf_le_left _ _ _ hp := hp.1
+  inf_le_right _ _ _ hp := hp.2
+  le_inf h₁ h₂ p hp := ⟨h₁ p hp, h₂ p hp⟩
+  le_sup_left _ _ _ hp := Or.inl hp
+  le_sup_right _ _ _ hp := Or.inr hp
+  sup_le h₁ h₂ p hp := hp.elim (h₁ p) (h₂ p)
+
+instance : BoundedLattice (Upset P) where
+  top := ⟨fun _ => True, fun _ _ => trivial⟩
+  bot := ⟨fun _ => False, fun _ h => h.elim⟩
+  le_top _ _ _ := trivial
+  bot_le _ _ h := h.elim
+
+/-- `U ⇨ V` holds at `p` when every later point in `U` is also in `V`.  Looking
+forward along the order is what makes this upward closed, and it is why
+implication in a Kripke model quantifies over future states. -/
+instance : HeytingAlgebra (Upset P) where
+  himp U V := ⟨fun p => ∀ q, p ≼ q → U.mem q → V.mem q,
+               fun hpq hp r hqr hu => hp r (Frame.le_trans hpq hqr) hu⟩
+  himp_adj U V W := by
+    constructor
+    · intro h p hu q hpq hv
+      exact h q ⟨U.upward hpq hu, hv⟩
+    · intro h p hp
+      exact h p hp.1 p (Frame.le_refl p) hp.2
+
+/-! ### A worked frame
+
+Reading `Fin n` as a linear frame recovers the chains, and shows the
+construction is not vacuous: the proposition true only at the later of two
+states is never refuted, so its negation is empty and excluded middle fails. -/
+
+instance frameFin {n : Nat} : Frame (Fin n) where
+  le a b := a.val ≤ b.val
+  le_refl a := Nat.le_refl a.val
+  le_trans h₁ h₂ := Nat.le_trans h₁ h₂
+
+/-- The proposition holding only at the later of two states. -/
+def later : Upset (Fin 2) where
+  mem p := p.val = 1
+  upward {p q} h hp := by
+    have h' : p.val ≤ q.val := h
+    have := q.isLt
+    omega
+
+theorem later_em_fails : later ⊔ HeytingAlgebra.neg later ≠ (⊤ : Upset (Fin 2)) := by
+  intro h
+  have h0 : (later ⊔ HeytingAlgebra.neg later).mem 0 := by rw [h]; trivial
+  cases h0 with
+  | inl hl => exact Nat.noConfusion hl
+  | inr hn => exact hn 1 (Nat.zero_le 1) rfl
+
+end Upset
+
 /-! ## The language -/
 
 /-- Propositional formulas over variables indexed by `Nat`. -/
@@ -420,3 +525,94 @@ theorem x_y_incomparable : ¬ le x y ∧ ¬ le y x := by decide
 theorem em_fails : sup x (himp x bot) ≠ top := by decide
 
 end Diamond
+
+/-! ## The fork
+
+The five element algebra of upward closed subsets of the three point frame with
+a root and two incomparable points above it.  Unlike the diamond it has no top
+point, and that is what separates it from the diamond as a countermodel: the
+join of the two incomparable elements falls short of the top. -/
+
+inductive Fork where
+  | bot | x | y | m | top
+  deriving DecidableEq, Repr
+
+namespace Fork
+
+instance decForallFork (p : Fork → Prop) [DecidablePred p] : Decidable (∀ a, p a) :=
+  if h : p bot ∧ p x ∧ p y ∧ p m ∧ p top then
+    isTrue (by
+      obtain ⟨h1, h2, h3, h4, h5⟩ := h
+      intro a
+      cases a
+      · exact h1
+      · exact h2
+      · exact h3
+      · exact h4
+      · exact h5)
+  else
+    isFalse (fun hall => h ⟨hall _, hall _, hall _, hall _, hall _⟩)
+
+/-- The bit mask of the upward closed set each element names. -/
+def mask : Fork → Nat
+  | bot => 0 | x => 2 | y => 4 | m => 6 | top => 7
+
+def ofMask (n : Nat) : Fork :=
+  if n = 0 then bot else if n = 2 then x else if n = 4 then y
+  else if n = 6 then m else top
+
+/-- The principal upward closed set of each of the three frame points. -/
+def upset : Nat → Nat
+  | 0 => 7 | 1 => 2 | _ => 4
+
+abbrev le (a b : Fork) : Prop := mask a &&& mask b = mask a
+abbrev inf (a b : Fork) : Fork := ofMask (mask a &&& mask b)
+abbrev sup (a b : Fork) : Fork := ofMask (mask a ||| mask b)
+abbrev himp (a b : Fork) : Fork :=
+  ofMask ((List.range 3).foldl
+    (fun acc q => if upset q &&& mask a &&& (7 ^^^ mask b) = 0 then acc ||| (1 <<< q) else acc) 0)
+
+theorem le_refl' : ∀ a, le a a := by decide
+theorem le_trans' : ∀ a b c, le a b → le b c → le a c := by decide
+theorem le_antisymm' : ∀ a b, le a b → le b a → a = b := by decide
+theorem le_top' : ∀ a, le a top := by decide
+theorem bot_le' : ∀ a, le bot a := by decide
+theorem inf_le_left' : ∀ a b, le (inf a b) a := by decide
+theorem inf_le_right' : ∀ a b, le (inf a b) b := by decide
+theorem le_inf' : ∀ a b c, le a b → le a c → le a (inf b c) := by decide
+theorem le_sup_left' : ∀ a b, le a (sup a b) := by decide
+theorem le_sup_right' : ∀ a b, le b (sup a b) := by decide
+theorem sup_le' : ∀ a b c, le a c → le b c → le (sup a b) c := by decide
+theorem himp_adj' : ∀ a b c, le (inf a b) c ↔ le a (himp b c) := by decide
+
+instance : PartialOrder Fork where
+  le := le
+  le_refl := le_refl'
+  le_trans := le_trans' _ _ _
+  le_antisymm := le_antisymm' _ _
+
+instance : Lattice Fork where
+  inf := inf
+  sup := sup
+  inf_le_left := inf_le_left'
+  inf_le_right := inf_le_right'
+  le_inf := le_inf' _ _ _
+  le_sup_left := le_sup_left'
+  le_sup_right := le_sup_right'
+  sup_le := sup_le' _ _ _
+
+instance : BoundedLattice Fork where
+  top := top
+  bot := bot
+  le_top := le_top'
+  bot_le := bot_le'
+
+instance : HeytingAlgebra Fork where
+  himp := himp
+  himp_adj := himp_adj'
+
+/-- The two incomparable elements join to `m`, which is not the top.  This is
+the shape the diamond lacks. -/
+theorem sup_x_y : sup x y = m ∧ m ≠ top := by decide
+
+end Fork

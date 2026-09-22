@@ -279,3 +279,35 @@ theorem pierceOrLukF_peirceOrImpOrF (a b : Prop) :
     cases hLuk (fun hn => absurd hn hnn) hab
     case inl ha => exact Or.inr (hab ha)
     case inr hna => exact Or.inl hna
+
+theorem emFa_peirceOrImpOrF' (a b : Prop) : ExcludedMiddleF a → PeirceOrImpOrF' a b :=
+  fun hEx => Or.inl (cmF_peirceF a b (emF_cmF a hEx))
+
+theorem emFb_peirceOrImpOrF' (a b : Prop) : ExcludedMiddleF b → PeirceOrImpOrF' a b :=
+  fun hEx => Or.inr (emF_ImpOrF b a hEx)
+
+/-- Swapping `ImpOrF`'s arguments makes the principle strong enough to reach
+`DeMorganOrLukasiewiczF`, which the unswapped version cannot.  The shift is to
+the three way disjunction `a ∨ b ∨ (b → a)`, whose every case settles the
+target: `a` and `b` give De Morgan's conclusion, and `b → a` is Lukasiewicz's.
+Peirce reaches that disjunction because its premise `(A → a) → A` is provable
+there, and `ImpOrF` because `a → A` is. -/
+theorem peirceOrImpOrF'_demorganOrLukF (a b : Prop) :
+    PeirceOrImpOrF' (a ∨ b ∨ (b → a)) a → DeMorganOrLukasiewiczF a b := by
+  intro h
+  have key : (a ∨ b ∨ (b → a)) → DeMorganOrLukasiewiczF a b := by
+    intro hA
+    cases hA
+    case inl ha => exact Or.inl (fun _ => Or.inl ha)
+    case inr hbr =>
+      cases hbr
+      case inl hb => exact Or.inl (fun _ => Or.inr hb)
+      case inr hba => exact Or.inr (fun _ => hba)
+  cases h
+  case inl hPc =>
+    exact key (hPc (fun hAa => Or.inr (Or.inr (fun hb => hAa (Or.inr (Or.inl hb))))))
+  case inr hIO =>
+    cases hIO (fun ha => Or.inl ha)
+    case inl hna => exact Or.inr (fun hn hb => absurd hb (hn hna))
+    case inr hA => exact key hA
+
