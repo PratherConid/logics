@@ -78,38 +78,80 @@ theorem emF_lukF (a b : Prop) : ExcludedMiddleF a → LukasiewiczF a b := by
   case inl ha => exact ha
   case inr hna => exact False.elim (hn hna hb)
 
+theorem notF_lukF (a b : Prop) : ¬ b → LukasiewiczF a b := fun hnb _ hb => absurd hb hnb
+
 def PierceOrLukasiewiczF := fun (a b : Prop) => (((a → b) → a) → a) ∨ ((¬ a → ¬ b) → (b → a))
 
-theorem emF_pierceOrLukF (a b : Prop) : ExcludedMiddleF a → PierceOrLukasiewiczF a b := by
-  intro hEx; exact Or.inl (cmF_peirceF a b (emF_cmF a hEx))
+theorem emF_pierceOrLukF (a b : Prop) : ExcludedMiddleF a → PierceOrLukasiewiczF a b :=
+  fun hEx => Or.inr (emF_lukF a b hEx)
 
-theorem emF_pierceOrLukF' (a b : Prop) : ExcludedMiddleF b → PierceOrLukasiewiczF a b := by
-  intro hEx
-  cases hEx
-  case inl hb => exact Or.inl (fun hi => hi (fun _ => hb))
-  case inr hnb => exact Or.inr (fun _ hb => False.elim (hnb hb))
+theorem emF_pierceOrLukF' (a b : Prop) : ExcludedMiddleF b → PierceOrLukasiewiczF a b :=
+  fun hEx => hEx.elim (fun hb => Or.inl (fun hi => hi (fun _ => hb)))
+    (fun hnb => Or.inr (notF_lukF a b hnb))
 
 def DeMOrLukasiewiczF := fun (a b : Prop) => (¬ (¬ a ∧ ¬ b) → a ∨ b) ∨ ((¬ a → ¬ b) → (b → a))
 
-theorem emF_demOrLukF (a b : Prop) : ExcludedMiddleF a → DeMOrLukasiewiczF a b := by
-  intro hEx; exact Or.inr (emF_lukF a b hEx)
+theorem emF_demOrLukF (a b : Prop) : ExcludedMiddleF a → DeMOrLukasiewiczF a b :=
+  fun hEx => Or.inr (emF_lukF a b hEx)
 
-theorem emF_demOrLukF' (a b : Prop) : ExcludedMiddleF b → DeMOrLukasiewiczF a b := by
-  intro hEx
-  cases hEx
-  case inl hb => exact Or.inl (fun _ => Or.inr hb)
-  case inr hnb => exact Or.inr (fun _ hb => False.elim (hnb hb))
+theorem emF_demOrLukF' (a b : Prop) : ExcludedMiddleF b → DeMOrLukasiewiczF a b :=
+  fun hEx => hEx.elim (fun hb => Or.inl (fun _ => Or.inr hb))
+    (fun hnb => Or.inr (notF_lukF a b hnb))
 
 def ImpOrOrLukasiewiczF := fun (a b : Prop) => ((a → b) → (¬ a ∨ b)) ∨ ((¬ a → ¬ b) → (b → a))
 
-theorem emF_impOrOrLukF (a b : Prop) : ExcludedMiddleF a → ImpOrOrLukasiewiczF a b := by
-  intro hEx; exact Or.inl (emF_ImpOrF a b hEx)
+theorem emF_impOrOrLukF (a b : Prop) : ExcludedMiddleF a → ImpOrOrLukasiewiczF a b :=
+  fun hEx => Or.inr (emF_lukF a b hEx)
 
-theorem emF_impOrOrLukF' (a b : Prop) : ExcludedMiddleF b → ImpOrOrLukasiewiczF a b := by
-  intro hEx
-  cases hEx
-  case inl hb => exact Or.inl (fun _ => Or.inr hb)
-  case inr hnb => exact Or.inr (fun _ hb => False.elim (hnb hb))
+theorem emF_impOrOrLukF' (a b : Prop) : ExcludedMiddleF b → ImpOrOrLukasiewiczF a b :=
+  fun hEx => hEx.elim (fun hb => Or.inl (fun _ => Or.inr hb))
+    (fun hnb => Or.inr (notF_lukF a b hnb))
+
+/-! ## `DeMOrLukasiewiczF` and `ImpOrOrLukasiewiczF` are interderivable
+
+Neither implies the other at the same arguments, but each one at a shifted
+instance gives the other.  The shifts are `b := ¬ a ∨ b` one way and
+`b := a ∨ b` the other; in both cases the De Morgan or `ImpOrF` disjunct
+collapses to a three way disjunction, and the Lukasiewicz disjunct transfers
+because its premise is available once `b` is assumed. -/
+
+theorem demOrLukF_impOrOrLukF (a b : Prop) :
+    DeMOrLukasiewiczF a (¬ a ∨ b) → ImpOrOrLukasiewiczF a b := by
+  intro h
+  cases h
+  case inl hDeM =>
+    have hpre : ¬ (¬ a ∧ ¬ (¬ a ∨ b)) := fun hc => hc.right (Or.inl hc.left)
+    refine Or.inl ?_
+    intro hab
+    cases hDeM hpre
+    case inl ha => exact Or.inr (hab ha)
+    case inr hnab => exact hnab
+  case inr hLuk =>
+    refine Or.inr ?_
+    intro hnn hb
+    have hnna : ¬ ¬ a := fun hna => hnn hna hb
+    exact hLuk (fun hna => absurd hna hnna) (Or.inr hb)
+
+theorem impOrOrLukF_demOrLukF (a b : Prop) :
+    ImpOrOrLukasiewiczF a (a ∨ b) → DeMOrLukasiewiczF a b := by
+  intro h
+  cases h
+  case inl hIO =>
+    cases hIO Or.inl
+    case inl hna =>
+      refine Or.inr ?_
+      intro hnn hb
+      exact absurd hb (hnn hna)
+    case inr hab => exact Or.inl (fun _ => hab)
+  case inr hLuk =>
+    refine Or.inr ?_
+    intro hnn hb
+    have hpre : ¬ a → ¬ (a ∨ b) := by
+      intro hna hab
+      cases hab
+      case inl ha => exact hna ha
+      case inr hb' => exact hnn hna hb'
+    exact hLuk hpre (Or.inr hb)
 
 /-! ## Underivability, formally
 
@@ -150,14 +192,18 @@ theorem peirce_not_derivable :
 
 /-! ## The tables, as theorems
 
-The same three truth values also measure how strong the three combined
-principles of this file are.  Each of the next three theorems says that its
-principle reaches the top value for *every* pair of truth values, so every way
-of instantiating it does too.  `em_not_top` says excluded middle does not.
+The same three truth values also measure how strong the combined principles of
+this file are.  Each of the next two theorems says that its principle reaches
+the top value for *every* pair of truth values, so every way of instantiating it
+does too.  `em_not_top` says excluded middle does not.
 
 Together they show the combined principles are genuinely weaker than excluded
 middle: were excluded middle derivable from any instance of them, soundness
-would force it to reach the top value as well, and it does not. -/
+would force it to reach the top value as well, and it does not.
+
+`ImpOrOrLukasiewiczF` needs no theorem of its own here.  It is interderivable
+with `DeMOrLukasiewiczF`, by an argument that uses nothing classical, so it
+reaches the top value in exactly the algebras where `DeMOrLukasiewiczF` does. -/
 
 open HeytingAlgebra in
 /-- `PierceOrLukasiewiczF`, every instance. -/
@@ -172,12 +218,6 @@ theorem deMOrLuk_top (a b : Fin 3) :
   revert a b; decide
 
 open HeytingAlgebra in
-/-- `ImpOrOrLukasiewiczF`, every instance. -/
-theorem impOrOrLuk_top (a b : Fin 3) :
-    ((a ⇨ b) ⇨ (neg a ⊔ b)) ⊔ ((neg a ⇨ neg b) ⇨ (b ⇨ a)) = ⊤ := by
-  revert a b; decide
-
-open HeytingAlgebra in
 /-- `ExcludedMiddleF`, by contrast, is not `⊤` throughout: it drops to `m`. -/
 theorem em_not_top : ∃ a : Fin 3, a ⊔ neg a ≠ ⊤ :=
   ⟨1, Chain.em_fails (by decide) (by decide)⟩
@@ -189,10 +229,11 @@ other; more values do.  `Fin 4` adds a second undecided value, `0 ⊏ 1 ⊏ 2 �
 and there the principles part company.
 
 The Peirce version still reaches the top value everywhere, in `Fin 4` and in
-`Fin 5`.  The other two do not: both drop below the top at the single
-assignment `a = 1`, `b = 2`.  So the Peirce version keeps working however many
-intermediate values are added, while the De Morgan and `ImpOrF` versions stop
-working as soon as there are two of them.
+`Fin 5`.  The De Morgan version does not: it drops below the top at the single
+assignment `a = 1`, `b = 2`, and so, being interderivable with it, does the
+`ImpOrF` version.  So the Peirce version keeps working however many intermediate
+values are added, while the other two stop working as soon as there are two of
+them.
 
 Excluded middle, meanwhile, still fails in all of these.  It fails in `Fin k`
 for every `k` greater than two, since any value strictly between the bottom and
@@ -225,12 +266,5 @@ open HeytingAlgebra in
 /-- `DeMOrLukasiewiczF`, by contrast, drops to `q` at `a = p`, `b = q`. -/
 theorem deMOrLuk_not_top_four :
     (neg (neg (1 : Fin 4) ⊓ neg 2) ⇨ ((1 : Fin 4) ⊔ 2))
-      ⊔ ((neg 1 ⇨ neg 2) ⇨ ((2 : Fin 4) ⇨ 1)) ≠ ⊤ := by
-  decide
-
-open HeytingAlgebra in
-/-- And so does `ImpOrOrLukasiewiczF`, at the same instance. -/
-theorem impOrOrLuk_not_top_four :
-    (((1 : Fin 4) ⇨ 2) ⇨ (neg (1 : Fin 4) ⊔ 2))
       ⊔ ((neg 1 ⇨ neg 2) ⇨ ((2 : Fin 4) ⇨ 1)) ≠ ⊤ := by
   decide
