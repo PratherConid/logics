@@ -15,7 +15,8 @@ from itertools import product
 import heyting as H
 
 COMBINED = ["PierceOrLuk", "PierceOrLuk'", "DeMorganOrLuk",
-            "DeMorganOrLuk'", "ImpOrOrLuk", "ImpOrOrLuk'"]
+            "DeMorganOrLuk'", "ImpOrOrLuk", "ImpOrOrLuk'",
+            "PeirceOrImpOr", "PeirceOrImpOr'"]
 
 
 def table_over_named_frames() -> None:

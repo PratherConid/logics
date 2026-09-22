@@ -106,3 +106,27 @@ theorem impOrOrLukForm'_valid_chain (v : Nat → Fin 4) : impOrOrLukForm'.eval v
 /-- `DeMorganOrLukasiewiczF` already fails in the four value chain. -/
 theorem demorganOrLukForm_nvalid_four :
     demorganOrLukForm.eval (fun n => if n = 0 then (1 : Fin 4) else 2) ≠ ⊤ := by decide
+
+open HeytingAlgebra in
+/-- `PeirceOrImpOrF` reaches the top value in every chain, by the two cases that
+serve the other chain results: `a ⊑ b` sends Peirce to the top, and `b ⊑ a`
+sends `ImpOrF` there, since then `a ⇨ b` is `b` and `b ⊑ ¬a ⊔ b`. -/
+theorem peirceOrImpOr_top_chain {n : Nat} (a b : Fin (n + 1)) :
+    (((a ⇨ b) ⇨ a) ⇨ a) ⊔ ((a ⇨ b) ⇨ (neg a ⊔ b)) = ⊤ := by
+  by_cases hab : a.val ≤ b.val
+  · have h1 : (a ⇨ b) = ⊤ := (Chain.himp_eq_top_iff a b).mpr hab
+    have h2 : (((a ⇨ b) ⇨ a) ⇨ a) = ⊤ := by
+      rw [h1]; exact (Chain.himp_eq_top_iff _ _).mpr (Chain.himp_top_left_le a)
+    rw [h2, BoundedLattice.top_sup]
+  · have hne : (a ⇨ b) = b := Chain.himp_eq_of_not_le hab
+    have h1 : ((a ⇨ b) ⇨ (neg a ⊔ b)) = ⊤ := by
+      rw [hne]; exact (Chain.himp_eq_top_iff _ _).mpr (Lattice.le_sup_right (neg a) b)
+    rw [h1, BoundedLattice.sup_top]
+
+theorem peirceOrImpOrForm_valid_chain (v : Nat → Fin 3) : peirceOrImpOrForm.eval v = ⊤ :=
+  peirceOrImpOr_top_chain (v 0) (v 1)
+
+/-- Excluded middle, by contrast, misses the top value already in `Fin 3`. -/
+theorem excludedMiddleForm_nvalid_three :
+    (excludedMiddleForm (.var 0)).eval (fun _ => (1 : Fin 3)) ≠ ⊤ := by decide
+

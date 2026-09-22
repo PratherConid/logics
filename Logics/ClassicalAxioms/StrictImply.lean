@@ -56,3 +56,9 @@ theorem demorganOrLuk_nderiv_impOrOrLuk' :
     ¬ DerivesFromSchema impOrOrLukForm' demorganOrLukForm := fun h =>
   demorganOrLukForm_nvalid_four (DerivesFromSchema.valid impOrOrLukForm'_valid_chain h _)
 
+/-- No instantiation of `PeirceOrImpOrF` derives excluded middle: it reaches the
+top value throughout `Fin 3`, where excluded middle does not. -/
+theorem em_nderiv_peirceOrImpOr :
+    ¬ DerivesFromSchema peirceOrImpOrForm (excludedMiddleForm (.var 0)) := fun h =>
+  excludedMiddleForm_nvalid_three (DerivesFromSchema.valid peirceOrImpOrForm_valid_chain h _)
+

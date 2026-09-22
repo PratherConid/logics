@@ -36,6 +36,8 @@ def LukasiewiczF := fun a b : Prop => (¬ a → ¬ b) → (b → a)
 
 def PierceOrLukasiewiczF := fun (a b : Prop) => (((a → b) → a) → a) ∨ ((¬ a → ¬ b) → (b → a))
 
+def PeirceOrImpOrF := fun (a b : Prop) => (((a → b) → a) → a) ∨ ((a → b) → (¬ a ∨ b))
+
 def DeMorganOrLukasiewiczF := fun (a b : Prop) => (¬ (¬ a ∧ ¬ b) → a ∨ b) ∨ ((¬ a → ¬ b) → (b → a))
 
 def ImpOrOrLukasiewiczF := fun (a b : Prop) => ((a → b) → (¬ a ∨ b)) ∨ ((¬ a → ¬ b) → (b → a))
@@ -78,3 +80,5 @@ def pierceOrLukForm' : Form := .or (peirceForm (.var 0) (.var 1)) (lukForm (.var
 def demorganOrLukForm' : Form := .or (demorganForm (.var 0) (.var 1)) (lukForm (.var 1) (.var 0))
 
 def impOrOrLukForm' : Form := .or (impOrForm (.var 0) (.var 1)) (lukForm (.var 1) (.var 0))
+
+def peirceOrImpOrForm : Form := .or (peirceForm (.var 0) (.var 1)) (impOrForm (.var 0) (.var 1))

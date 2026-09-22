@@ -17,12 +17,14 @@ Usage:  python find_instantiation.py SOURCE TARGET [--depth 2] [--sweep 5]
 from __future__ import annotations
 
 import argparse
+import random
 import sys
 
 import heyting as H
 
 # small and highly discriminating, used to cut the candidate set down fast
-PRUNE_FRAMES = ["3-chain", "diamond", "fork(1,1)", "4-chain", "fork(2,2)"]
+PRUNE_FRAMES = ["discriminating", "3-chain", "diamond", "fork(1,1)",
+                "4-chain", "fork(2,2)"]
 
 
 def prune(source: H.Principle, target: H.Principle, depth: int) -> set[tuple[str, str]]:
@@ -44,10 +46,22 @@ def prune(source: H.Principle, target: H.Principle, depth: int) -> set[tuple[str
 
 
 def confirm(candidates: set[tuple[str, str]], source: H.Principle,
-            target: H.Principle, depth: int, max_points: int) -> set[tuple[str, str]]:
-    """Recheck candidates against every poset up to ``max_points`` points."""
+            target: H.Principle, depth: int, max_points: int,
+            random_count: int = 0, seed: int = 20260922) -> set[tuple[str, str]]:
+    """Recheck candidates against every poset up to ``max_points`` points, then
+    against random larger ones.
+
+    The random stage is not decoration.  A candidate can survive every poset on
+    five points and still fail on six, so a search confirmed only up to five is
+    not evidence for anything.
+    """
     survivors = set(candidates)
-    for poset in H.posets_upto(max_points):
+    frames = list(H.posets_upto(max_points))
+    if random_count:
+        rng = random.Random(seed)
+        for size in (6, 7):
+            frames += list(H.random_posets(size, random_count, rng))
+    for poset in frames:
         alg = H.Algebra(poset)
         for a, b in alg.pairs():
             lib = H.term_library(alg, a, b, depth=depth)
@@ -66,6 +80,8 @@ def main() -> None:
     parser.add_argument("--depth", type=int, default=2, help="term library depth")
     parser.add_argument("--sweep", type=int, default=4,
                         help="confirm over all posets up to this many points")
+    parser.add_argument("--random", type=int, default=60,
+                        help="also confirm over this many random 6 and 7 point posets")
     parser.add_argument("--list", action="store_true", help="list principle names")
     args = parser.parse_args()
 

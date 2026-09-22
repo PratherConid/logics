@@ -229,3 +229,53 @@ theorem impOrOrLukF'_pierceOrLukF (a b : Prop) :
     intro hnn hb
     have hpre : ¬ a → ¬ (a ∨ b) := fun hna hab => hab.elim hna (fun hb' => hnn hna hb')
     exact hLuk hpre (Or.inr hb)
+
+theorem emFa_peirceOrImpOrF (a b : Prop) : ExcludedMiddleF a → PeirceOrImpOrF a b :=
+  fun hEx => Or.inl (cmF_peirceF a b (emF_cmF a hEx))
+
+theorem emFb_peirceOrImpOrF (a b : Prop) : ExcludedMiddleF b → PeirceOrImpOrF a b :=
+  fun hEx => Or.inr (fun hab => hEx.elim Or.inr (fun hnb => Or.inl (fun ha => hnb (hab ha))))
+
+/-- Shifting the second argument to `a ∧ b` turns `PeirceOrImpOrF` into
+`PierceOrLukasiewiczF`.  Peirce transfers because `a → a ∧ b` and `a → b` say
+the same thing under the assumption `a`, and `ImpOrF` transfers because its own
+premise is available once `b` is assumed, as Lukasiewicz's conclusion does. -/
+theorem peirceOrImpOrF_pierceOrLukF (a b : Prop) :
+    PeirceOrImpOrF a (a ∧ b) → PierceOrLukasiewiczF a b := by
+  intro h
+  cases h
+  case inl hPc =>
+    refine Or.inl ?_
+    intro hi
+    exact hPc (fun hand => hi (fun ha => (hand ha).2))
+  case inr hIO =>
+    refine Or.inr ?_
+    intro hn hb
+    cases hIO (fun ha => ⟨ha, hb⟩)
+    case inl hna => exact absurd hb (hn hna)
+    case inr hab => exact hab.1
+
+/-- The converse, which needs a deeper shift: `PeirceOrImpOrF` at `a` and `b`
+comes from `PierceOrLukasiewiczF` at excluded middle on `a` and at `a → b`.
+
+Both disjuncts turn on `(a ∨ ¬ a) → (a → b)` being interderivable with `a → b`,
+which collapses Peirce's premise to `(a → b) → (a ∨ ¬ a)`; Peirce then hands
+back excluded middle on `a`, and Lukasiewicz hands back the same thing because
+its own premise is free, `¬ (a ∨ ¬ a)` being absurd. -/
+theorem pierceOrLukF_peirceOrImpOrF (a b : Prop) :
+    PierceOrLukasiewiczF (a ∨ ¬ a) (a → b) → PeirceOrImpOrF a b := by
+  intro h
+  have hnn : ¬ ¬ (a ∨ ¬ a) := fun hn => hn (Or.inr (fun ha => hn (Or.inl ha)))
+  cases h
+  case inl hPc =>
+    refine Or.inl ?_
+    intro hi
+    cases hPc (fun hAB => Or.inl (hi (fun ha => hAB (Or.inl ha) ha)))
+    case inl ha => exact ha
+    case inr hna => exact hi (fun ha => absurd ha hna)
+  case inr hLuk =>
+    refine Or.inr ?_
+    intro hab
+    cases hLuk (fun hn => absurd hn hnn) hab
+    case inl ha => exact Or.inr (hab ha)
+    case inr hna => exact Or.inl hna

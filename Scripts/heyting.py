@@ -114,15 +114,19 @@ def weak_excluded_middle(H: Algebra, a: Element, b: Element) -> Element:
     return H.neg(a) | H.neg(H.neg(a))
 
 
-def combined(left: Principle, *, swap: bool) -> Principle:
-    """``left(a, b)`` joined with Lukasiewicz, swapping the latter's arguments
-    when ``swap``.  This is the shape shared by all six combined principles."""
+def disjoin(left: Principle, right: Principle, *, swap_right: bool = False) -> Principle:
+    """The pointwise join of two principles, optionally swapping the right
+    one's arguments.  Every combined principle studied here has this shape."""
 
     def principle(H: Algebra, a: Element, b: Element) -> Element:
-        right = lukasiewicz(H, b, a) if swap else lukasiewicz(H, a, b)
-        return left(H, a, b) | right
+        return left(H, a, b) | (right(H, b, a) if swap_right else right(H, a, b))
 
     return principle
+
+
+def combined(left: Principle, *, swap: bool) -> Principle:
+    """``left(a, b)`` joined with Lukasiewicz, at swapped arguments if ``swap``."""
+    return disjoin(left, lukasiewicz, swap_right=swap)
 
 
 PRINCIPLES: dict[str, Principle] = {
@@ -132,6 +136,8 @@ PRINCIPLES: dict[str, Principle] = {
     "DeMorganOrLuk'": combined(de_morgan, swap=True),
     "ImpOrOrLuk": combined(imp_or, swap=False),
     "ImpOrOrLuk'": combined(imp_or, swap=True),
+    "PeirceOrImpOr": disjoin(peirce, imp_or),
+    "PeirceOrImpOr'": disjoin(peirce, imp_or, swap_right=True),
     "ExcludedMiddle": excluded_middle,
     "WeakExcludedMiddle": weak_excluded_middle,
 }
@@ -161,6 +167,12 @@ def fork(*branches: int) -> Poset:
 #: Root, two incomparable middle points, a top: the ``Diamond`` of Heyting.lean.
 DIAMOND = Poset({0: {0, 1, 2, 3}, 1: {1, 3}, 2: {2, 3}, 3: {3}})
 
+#: A seven point frame whose algebra has 15 elements.  It survives nothing:
+#: several instantiations that hold on every poset up to five points fail here,
+#: so it belongs in any prune or confirmation set.
+DISCRIMINATING = Poset({0: {0}, 1: {1}, 2: {0, 1, 2, 3, 4, 5, 6}, 3: {3},
+                        4: {0, 3, 4}, 5: {1, 3, 5}, 6: {0, 1, 3, 4, 5, 6}})
+
 NAMED_FRAMES: dict[str, Poset] = {
     "1-chain": chain(1),
     "2-chain": chain(2),
@@ -171,6 +183,7 @@ NAMED_FRAMES: dict[str, Poset] = {
     "fork(1,1,1)": fork(1, 1, 1),
     "fork(2,2)": fork(2, 2),
     "diamond": DIAMOND,
+    "discriminating": DISCRIMINATING,
 }
 
 
