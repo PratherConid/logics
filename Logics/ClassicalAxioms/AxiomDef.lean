@@ -62,6 +62,23 @@ def Pierce₁₂OrLukasiewicz₂₁F := fun (a b : Prop) => (((a → b) → a) �
 
 def ImpOr₁₂OrLukasiewicz₂₁F := fun (a b : Prop) => ((a → b) → (¬ a ∨ b)) ∨ ((¬ b → ¬ a) → (a → b))
 
+/-! Mixing a one argument principle with a two argument one.  The pairing is
+only interesting when the two argument principle is taken at `(b, a)`: at
+`(a, b)` the one argument disjunct already implies it and the disjunction
+collapses. -/
+
+def Em₁OrPeirce₂₁F := fun (a b : Prop) => (a ∨ ¬ a) ∨ (((b → a) → b) → b)
+
+def NotNot₁OrPeirce₂₁F := fun (a b : Prop) => (¬ ¬ a → a) ∨ (((b → a) → b) → b)
+
+def CM₁OrPeirce₂₁F := fun (a b : Prop) => ((¬ a → a) → a) ∨ (((b → a) → b) → b)
+
+def Em₁OrLuk₂₁F := fun (a b : Prop) => (a ∨ ¬ a) ∨ ((¬ b → ¬ a) → (a → b))
+
+def NotNot₁OrLuk₂₁F := fun (a b : Prop) => (¬ ¬ a → a) ∨ ((¬ b → ¬ a) → (a → b))
+
+def CM₁OrLuk₂₁F := fun (a b : Prop) => ((¬ a → a) → a) ∨ ((¬ b → ¬ a) → (a → b))
+
 /-! ### The same principles as formulas
 
 Each of the seven basic principles becomes a formula former, taking the
@@ -106,3 +123,21 @@ def impOr₁₂OrLuk₁₂Form : Form := .or (impOrForm (.var 0) (.var 1)) (lukF
 def pierce₁₂OrLuk₂₁Form : Form := .or (peirceForm (.var 0) (.var 1)) (lukForm (.var 1) (.var 0))
 
 def impOr₁₂OrLuk₂₁Form : Form := .or (impOrForm (.var 0) (.var 1)) (lukForm (.var 1) (.var 0))
+
+def em₁OrPeirce₂₁Form : Form :=
+  .or (excludedMiddleForm (.var 0)) (peirceForm (.var 1) (.var 0))
+
+def notNot₁OrPeirce₂₁Form : Form :=
+  .or (notNotForm (.var 0)) (peirceForm (.var 1) (.var 0))
+
+def cm₁OrPeirce₂₁Form : Form :=
+  .or (consequentiaMirabilisForm (.var 0)) (peirceForm (.var 1) (.var 0))
+
+def em₁OrLuk₂₁Form : Form :=
+  .or (excludedMiddleForm (.var 0)) (lukForm (.var 1) (.var 0))
+
+def notNot₁OrLuk₂₁Form : Form :=
+  .or (notNotForm (.var 0)) (lukForm (.var 1) (.var 0))
+
+def cm₁OrLuk₂₁Form : Form :=
+  .or (consequentiaMirabilisForm (.var 0)) (lukForm (.var 1) (.var 0))

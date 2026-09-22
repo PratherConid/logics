@@ -416,3 +416,99 @@ theorem luk₁₂OrLuk₂₁F_impOr₁₂OrLuk₂₁F (a b : Prop) :
     case inl ha => exact Or.inr (hab ha)
     case inr hna => exact Or.inl hna
 
+/-! ### One argument principles joined with two argument ones
+
+Each of the six sits at a level the hierarchy already has, and the theorems
+below are what places it there: a cycle of derivations through a known member
+of that level, so that every principle on the cycle proves every other.
+
+`Em₁OrLuk₂₁F`, `NotNot₁OrLuk₂₁F` and `CM₁OrLuk₂₁F` are reached from
+`DeMorgan₁₂OrLukasiewicz₁₂F` and return to it through
+`Pierce₁₂OrLukasiewicz₂₁F`, which the file already shows equivalent to it.
+`CM₁OrPeirce₂₁F` and `NotNot₁OrPeirce₂₁F` form a second cycle to the same
+level.  `Em₁OrPeirce₂₁F` is one level up, interderivable with
+`Peirce₁₂OrImpOr₂₁F`. -/
+
+theorem demorgan₁₂OrLuk₁₂F_em₁OrLuk₂₁F (a b : Prop) :
+    DeMorgan₁₂OrLukasiewicz₁₂F (a → b) a → Em₁OrLuk₂₁F a b := by
+  intro h
+  cases h
+  case inl hDeM =>
+    cases hDeM (fun hc => hc.left (fun ha => absurd ha hc.right))
+    case inl hab => exact Or.inr (fun _ => hab)
+    case inr ha => exact Or.inl (Or.inl ha)
+  case inr hLuk =>
+    refine Or.inr ?_
+    intro hba ha
+    exact hLuk (fun hn ha' => hba (fun hb => hn (fun _ => hb)) ha') ha ha
+
+theorem em₁OrLuk₂₁F_notNot₁OrLuk₂₁F (a b : Prop) :
+    Em₁OrLuk₂₁F a b → NotNot₁OrLuk₂₁F a b :=
+  fun h => h.elim (fun hEm => Or.inl (emF_notNotF a hEm)) Or.inr
+
+theorem notNot₁OrLuk₂₁F_cm₁OrLuk₂₁F (a b : Prop) :
+    NotNot₁OrLuk₂₁F a b → CM₁OrLuk₂₁F a b :=
+  fun h => h.elim (fun hn => Or.inl (notNotF_cmF a hn)) Or.inr
+
+theorem cm₁OrLuk₂₁F_pierce₁₂OrLuk₂₁F (a b : Prop) :
+    CM₁OrLuk₂₁F a b → Pierce₁₂OrLukasiewicz₂₁F a b :=
+  fun h => h.elim (fun hc => Or.inl (cmF_peirceF a b hc)) Or.inr
+
+/-- The shift to `b ∨ (b → a)` makes De Morgan's premise provable, and in the
+Lukasiewicz case the implication `B → a` supplies `b → a` through its own left
+injection, which is what closes it. -/
+theorem demorgan₁₂OrLuk₁₂F_cm₁OrPeirce₂₁F (a b : Prop) :
+    DeMorgan₁₂OrLukasiewicz₁₂F a (b ∨ (b → a)) → CM₁OrPeirce₂₁F a b := by
+  intro h
+  have hnnB : ¬ ¬ (b ∨ (b → a)) := fun hn => hn (Or.inr (fun hb => absurd (Or.inl hb) hn))
+  cases h
+  case inl hDeM =>
+    cases hDeM (fun hc => hnnB hc.right)
+    case inl ha => exact Or.inl (fun _ => ha)
+    case inr hB =>
+      cases hB
+      case inl hb => exact Or.inr (fun _ => hb)
+      case inr hba => exact Or.inr (fun hi => hi hba)
+  case inr hLuk =>
+    refine Or.inl ?_
+    intro hcm
+    have hnn : ¬ ¬ a := fun hna => hna (hcm hna)
+    have g : (b ∨ (b → a)) → a := hLuk (fun hna => absurd hna hnn)
+    exact g (Or.inr (fun hb => g (Or.inl hb)))
+
+theorem cm₁OrPeirce₂₁F_notNot₁OrPeirce₂₁F (a b : Prop) :
+    CM₁OrPeirce₂₁F a b → NotNot₁OrPeirce₂₁F a b :=
+  fun h => h.elim (fun hc => Or.inl (cmF_notNotF a hc)) Or.inr
+
+theorem notNot₁OrPeirce₂₁F_cm₁OrPeirce₂₁F (a b : Prop) :
+    NotNot₁OrPeirce₂₁F a b → CM₁OrPeirce₂₁F a b :=
+  fun h => h.elim (fun hn => Or.inl (notNotF_cmF a hn)) Or.inr
+
+theorem cm₁OrPeirce₂₁F_pierce₁₂OrLuk₂₁F (a b : Prop) :
+    CM₁OrPeirce₂₁F b a → Pierce₁₂OrLukasiewicz₂₁F a b := by
+  intro h
+  cases h
+  case inl hcm => exact Or.inr (fun hba ha => hcm (fun hnb => absurd ha (hba hnb)))
+  case inr hPc => exact Or.inl hPc
+
+theorem em₁OrPeirce₂₁F_peirce₁₂OrImpOr₂₁F (a b : Prop) :
+    Em₁OrPeirce₂₁F b a → Peirce₁₂OrImpOr₂₁F a b :=
+  fun h => h.elim (fun hEm => Or.inr (emF_ImpOrF b a hEm)) Or.inl
+
+theorem peirce₁₂OrImpOr₂₁F_em₁OrPeirce₂₁F (a b : Prop) :
+    Peirce₁₂OrImpOr₂₁F (a ∨ b) a → Em₁OrPeirce₂₁F a b := by
+  intro h
+  cases h
+  case inl hPc =>
+    refine Or.inr ?_
+    intro hi
+    cases hPc (fun hx => Or.inr (hi (fun hb => hx (Or.inr hb))))
+    case inl ha => exact hi (fun _ => ha)
+    case inr hb => exact hb
+  case inr hIO =>
+    cases hIO Or.inl
+    case inl hna => exact Or.inl (Or.inr hna)
+    case inr hab =>
+      cases hab
+      case inl ha => exact Or.inl (Or.inl ha)
+      case inr hb => exact Or.inr (fun _ => hb)
