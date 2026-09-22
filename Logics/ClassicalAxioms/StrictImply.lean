@@ -11,18 +11,64 @@ The first three theorems apply this to bare intuitionistic logic, where the
 three element chain refutes excluded middle, double negation elimination and
 Peirce's law outright.
 
-The last two say something stronger, about a principle assumed as an *axiom
+The rest say something stronger, about a principle assumed as an *axiom
 schema*.  `DerivesFromSchema X p` holds when some finite list of substitution
 instances of `X` derives `p`, and `DerivesFromSchema.valid` says an algebra
 validating `X` validates everything the schema derives.  So a single algebra
-validating `X` but not `p` rules out every instantiation of `X` at once, which
-is what "strictly weaker" needs.  Together with the derivations in
-`Logics/ClassicalAxioms/Implication.lean`, they place the combined principles in
-a strict chain:
+validating `X` but refuting `p` rules out every instantiation of `X` at once,
+which is what "strictly weaker" needs.
 
-`DeMorganOrLukasiewiczF ⊋ ImpOrOrLukasiewiczF' ⊋ PierceOrLukasiewiczF`
+## The hierarchy
 
-with the diamond separating the lower step and the four value chain the upper.
+Writing `⊋` for "derives, but is not derived by", the derivations in
+`Logics/ClassicalAxioms/Implication.lean` and the non-derivations here place
+every combined principle of this development in a chain of four strict steps:
+
+```
+  ExcludedMiddleF ≡ PierceOrDeMorganF ≡ DeMorganOrImpOrF ≡ ImpOrOrImpOrF'
+    ⊋  PeirceOrImpOrF'
+    ⊋  DeMorganOrLukasiewiczF ≡ ImpOrOrLukasiewiczF ≡ PierceOrLukasiewiczF'
+    ⊋  ImpOrOrLukasiewiczF' ≡ LukasiewiczOrLukasiewiczF'
+    ⊋  PierceOrLukasiewiczF   ≡ PeirceOrImpOrF
+    ⊋  PierceOrPierceF'
+```
+
+Not every such disjunction is intermediate.  `PierceOrDeMorganF` and
+`DeMorganOrImpOrF` avoid Lukasiewicz, and both land back on excluded middle: at
+arguments built from `a ∨ ¬ a` each of their disjuncts collapses to it on its
+own.  Every principle that stays below the top has `LukasiewiczF` as one
+disjunct, or else pairs Peirce with `ImpOrF`, the two weakest of the four.
+
+Each `≡` is a pair of derivations at shifted instances, not an identity: the
+principles so related are different formulas that prove each other.  Swapping
+Lukasiewicz's arguments in the Peirce principle lands inside a class; doing it
+in the `ImpOrF` principle drops a level; swapping `ImpOrF`'s own arguments in
+`PeirceOrImpOrF` climbs three.
+
+## The separating algebras
+
+Each step is witnessed by one algebra, which validates every instance of the
+weaker principle and refutes one instance of the stronger.  All four are built
+in `Logics/Heyting.lean`.
+
+| step                                         | algebra   | theorem                             |
+| -------------------------------------------- | --------- | ----------------------------------- |
+| `ExcludedMiddleF` over `PeirceOrImpOrF'`     | `Fin 3`   | `em_nderiv_peirceOrImpOr'`          |
+| `PeirceOrImpOrF'` over `DeMorganOrLukasiewiczF` | `Fork` | `peirceOrImpOr'_nderiv_demorganOrLuk` |
+| `DeMorganOrLukasiewiczF` over `ImpOrOrLukasiewiczF'` | `Fin 4` | `demorganOrLuk_nderiv_impOrOrLuk'` |
+| `ImpOrOrLukasiewiczF'` over `PierceOrLukasiewiczF` | `Diamond` | `impOrOrLuk'_nderiv_pierceOrLuk` |
+
+The shape of each algebra is what it contributes.  The chains `Fin 3` and
+`Fin 4` are linear, and length is what tells the lower principles apart:
+everything in the bottom two classes survives every chain, while the De Morgan
+class dies once a chain has two intermediate values.  The `Diamond` and the
+`Fork` are not linear, and they differ from each other in one respect: the
+diamond has a top point above its two incomparable middles, so there the join
+of those middles reaches the top, and in the fork it does not.  That single
+difference is why the fork separates the step the diamond cannot.
+
+`em_nderiv_peirceOrImpOr` records the bottom of the chain against the top
+directly, rather than by composing the four steps.
 -/
 
 /-- Excluded middle is not derivable in intuitionistic propositional logic. -/

@@ -20,9 +20,10 @@ swapped `ImpOrF` version between two others.  In each case the shift makes the
 left disjunct's own premise provable, so that disjunct collapses to a bare
 disjunction whose cases can be dispatched separately.
 
-Transposition is the third pattern, and it is trivial: `DeMorganNotAndNotF` is
-symmetric in its arguments, so swapping Lukasiewicz's only transposes the whole
-principle.
+Swapping an argument is the third pattern, and it does not always change
+anything: for a principle whose left disjunct is symmetric the swap merely
+transposes it, while for the others it moves the principle to a different
+strength.
 -/
 
 theorem ImpOrF_em (a : Prop) : ImpOrF a a → ExcludedMiddleF a := by
@@ -177,26 +178,6 @@ theorem pierceOrLukF'_demorganOrLukF (a b : Prop) :
     have hnna : ¬ ¬ a := fun hna => hnn hna hb
     exact hLuk (fun hna => absurd hna hnna) (Or.inl hb)
 
-/-- `DeMorganNotAndNotF` is symmetric in its two arguments, so swapping
-Lukasiewicz's arguments only transposes the whole principle. -/
-theorem demorganOrLukF_demorganOrLukF' (a b : Prop) :
-    DeMorganOrLukasiewiczF b a → DeMorganOrLukasiewiczF' a b := by
-  intro h
-  cases h
-  case inl hDeM => exact Or.inl (fun hn => (hDeM (fun hc => hn ⟨hc.right, hc.left⟩)).symm)
-  case inr hLuk => exact Or.inr hLuk
-
-theorem demorganOrLukF'_demorganOrLukF (a b : Prop) :
-    DeMorganOrLukasiewiczF' a b → DeMorganOrLukasiewiczF b a := by
-  intro h
-  cases h
-  case inl hDeM => exact Or.inl (fun hn => (hDeM (fun hc => hn ⟨hc.right, hc.left⟩)).symm)
-  case inr hLuk => exact Or.inr hLuk
-
-theorem demorganOrLukF'_pierceOrLukF' (a b : Prop) :
-    DeMorganOrLukasiewiczF' a b → PierceOrLukasiewiczF' a b :=
-  fun h => demorganOrLukF_pierceOrLukF' a b (demorganOrLukF'_demorganOrLukF a b h)
-
 theorem demorganOrLukF_impOrOrLukF' (a b : Prop) :
     DeMorganOrLukasiewiczF (a → b) a → ImpOrOrLukasiewiczF' a b := by
   intro h
@@ -310,4 +291,128 @@ theorem peirceOrImpOrF'_demorganOrLukF (a b : Prop) :
     cases hIO (fun ha => Or.inl ha)
     case inl hna => exact Or.inr (fun hn hb => absurd hb (hn hna))
     case inr hA => exact key hA
+
+theorem emFa_pierceOrDeMorganF (a b : Prop) :
+    ExcludedMiddleF a → PierceOrDeMorganF a b :=
+  fun hEx => Or.inl (cmF_peirceF a b (emF_cmF a hEx))
+
+/-- Joining Peirce with De Morgan rather than with Lukasiewicz gives excluded
+middle back, so `PierceOrDeMorganF` is not an intermediate principle at all.
+At `a ∨ ¬ a` against its own negation both disjuncts collapse: Peirce becomes
+`ConsequentiaMirabilisF` there, which is excluded middle, and De Morgan's
+premise becomes provable, leaving `(a ∨ ¬ a) ∨ ¬ (a ∨ ¬ a)` whose second case
+is absurd. -/
+theorem pierceOrDeMorganF_emF (a : Prop) :
+    PierceOrDeMorganF (a ∨ ¬ a) (¬ (a ∨ ¬ a)) → ExcludedMiddleF a := by
+  intro h
+  have hnn : ¬ ¬ (a ∨ ¬ a) := fun hn => hn (Or.inr (fun ha => hn (Or.inl ha)))
+  cases h
+  case inl hPc => exact cmF_emF a (peirceF_cmF (a ∨ ¬ a) hPc)
+  case inr hDeM =>
+    cases hDeM (fun hc => hc.right hc.left)
+    case inl hX => exact hX
+    case inr hnX => exact absurd hnX hnn
+
+theorem emFa_demorganOrImpOrF (a b : Prop) :
+    ExcludedMiddleF a → DeMorganOrImpOrF a b :=
+  fun hEx => Or.inr (emF_ImpOrF a b hEx)
+
+/-- Joining De Morgan with `ImpOrF` is classical too, and needs no shift beyond
+taking both arguments to be `a ∨ ¬ a`.  There De Morgan's premise is provable
+and its conclusion is the disjunction itself, while `ImpOrF` at equal arguments
+is excluded middle by `ImpOrF_em`. -/
+theorem demorganOrImpOrF_emF (a : Prop) :
+    DeMorganOrImpOrF (a ∨ ¬ a) (a ∨ ¬ a) → ExcludedMiddleF a := by
+  intro h
+  have hnn : ¬ ¬ (a ∨ ¬ a) := fun hn => hn (Or.inr (fun ha => hn (Or.inl ha)))
+  cases h
+  case inl hDeM => exact (hDeM (fun hc => hnn hc.left)).elim id id
+  case inr hIO =>
+    cases ImpOrF_em (a ∨ ¬ a) hIO
+    case inl hX => exact hX
+    case inr hnX => exact absurd hnX hnn
+
+/-! ### The self disjunctions
+
+A principle joined with its own transpose.  Where each lands depends entirely
+on which principle is doubled. -/
+
+theorem emFa_pierceOrPierceF' (a b : Prop) :
+    ExcludedMiddleF a → PierceOrPierceF' a b :=
+  fun hEx => Or.inl (cmF_peirceF a b (emF_cmF a hEx))
+
+/-- Doubling Peirce gives the weakest principle here, below even
+`PierceOrLukasiewiczF`.  At `a ∨ b` against `a → b` each source disjunct
+supplies one half of the target: Peirce's premise is provable once `(a → b) → a`
+is assumed, and Lukasiewicz's once `(b → a) → b` is. -/
+theorem pierceOrLukF_pierceOrPierceF' (a b : Prop) :
+    PierceOrLukasiewiczF (a ∨ b) (a → b) → PierceOrPierceF' a b := by
+  intro h
+  cases h
+  case inl hPc =>
+    refine Or.inl ?_
+    intro hi
+    cases hPc (fun hAB => Or.inl (hi (fun ha => hAB (Or.inl ha) ha)))
+    case inl ha => exact ha
+    case inr hb => exact hi (fun _ => hb)
+  case inr hLuk =>
+    refine Or.inr ?_
+    intro hi
+    have hab : a → b := fun ha => hi (fun _ => ha)
+    have hpre : ¬ (a ∨ b) → ¬ (a → b) :=
+      fun hn _ => hn (Or.inr (hi (fun hb => absurd (Or.inr hb) hn)))
+    cases hLuk hpre hab
+    case inl ha => exact hi (fun _ => ha)
+    case inr hb => exact hb
+
+theorem emFa_impOrOrImpOrF' (a b : Prop) :
+    ExcludedMiddleF a → ImpOrOrImpOrF' a b :=
+  fun hEx => Or.inl (emF_ImpOrF a b hEx)
+
+/-- Doubling `ImpOrF` is classical, and at equal arguments needs no work at
+all: `ImpOrF a a` is already excluded middle. -/
+theorem impOrOrImpOrF'_emF (a : Prop) : ImpOrOrImpOrF' a a → ExcludedMiddleF a :=
+  fun h => h.elim (ImpOrF_em a) (ImpOrF_em a)
+
+theorem emFa_lukOrLukF' (a b : Prop) :
+    ExcludedMiddleF a → LukasiewiczOrLukasiewiczF' a b :=
+  fun hEx => Or.inl (emF_lukF a b hEx)
+
+/-- Doubling Lukasiewicz lands on `ImpOrOrLukasiewiczF'`, one level above the
+bottom.  The shift to `a ∧ b` makes `ImpOrF`'s premise available under `b` and
+turns Lukasiewicz's conclusion into `a → b`. -/
+theorem impOrOrLukF'_lukOrLukF' (a b : Prop) :
+    ImpOrOrLukasiewiczF' a (a ∧ b) → LukasiewiczOrLukasiewiczF' a b := by
+  intro h
+  cases h
+  case inl hIO =>
+    refine Or.inl ?_
+    intro hn hb
+    cases hIO (fun ha => ⟨ha, hb⟩)
+    case inl hna => exact absurd hb (hn hna)
+    case inr hab => exact hab.1
+  case inr hLuk =>
+    refine Or.inr ?_
+    intro hba ha
+    exact (hLuk (fun k ha' => hba (fun hb => k ⟨ha', hb⟩) ha') ha).2
+
+/-- The converse, at `a → b` against excluded middle on `a`.  Both source
+disjuncts have a premise that is free because `¬ (a ∨ ¬ a)` is absurd, and the
+`a` assumed by the target is what supplies `a ∨ ¬ a` in the first case. -/
+theorem lukOrLukF'_impOrOrLukF' (a b : Prop) :
+    LukasiewiczOrLukasiewiczF' (a → b) (a ∨ ¬ a) → ImpOrOrLukasiewiczF' a b := by
+  intro h
+  have hnnY : ¬ ¬ (a ∨ ¬ a) := fun hn => hn (Or.inr (fun ha => hn (Or.inl ha)))
+  cases h
+  case inl hL =>
+    refine Or.inr ?_
+    intro hba ha
+    have hnn : ¬ ¬ (a → b) := fun hn => hba (fun hb => hn (fun _ => hb)) ha
+    exact hL (fun hnx => absurd hnx hnn) (Or.inl ha) ha
+  case inr hL =>
+    refine Or.inl ?_
+    intro hab
+    cases hL (fun hnY => absurd hnY hnnY) hab
+    case inl ha => exact Or.inr (hab ha)
+    case inr hna => exact Or.inl hna
 
