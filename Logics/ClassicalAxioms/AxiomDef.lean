@@ -22,6 +22,10 @@ once, which is what statements about a whole schema require.
 
 def ExcludedMiddleF := fun (a : Prop) => a ∨ ¬a
 
+def EmAOrNotBF := fun (a b : Prop) => a ∨ ¬ b ∨ ¬ (b → a)
+
+def EmAOrBF := fun (a b : Prop) => a ∨ b ∨ ¬ (¬ b → a)
+
 def PeirceF := fun a b : Prop => ((a → b) → a) → a
 
 def NotNotF := fun a : Prop => ¬ ¬ a → a
@@ -86,6 +90,12 @@ formulas to be substituted for its arguments.  These are the building blocks;
 they are parameterised because they are used at many different arguments. -/
 
 def excludedMiddleForm (p : Form) : Form := .or p (Form.neg p)
+
+def emAOrNotBForm (p q : Form) : Form :=
+  .or p (.or (Form.neg q) (Form.neg (.imp q p)))
+
+def emAOrBForm (p q : Form) : Form :=
+  .or p (.or q (Form.neg (.imp (Form.neg q) p)))
 
 def peirceForm (p q : Form) : Form := .imp (.imp (.imp p q) p) p
 

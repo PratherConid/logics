@@ -22,14 +22,17 @@ which is what "strictly weaker" needs.
 
 Writing `⊋` for "derives, but is not derived by", the derivations in
 `Logics/ClassicalAxioms/Implication.lean` and the non-derivations here place
-every combined principle of this development in a chain of four strict steps:
+every combined principle of this development in a chain of five strict steps:
 
 ```
-  ExcludedMiddleF ≡ Pierce₁₂OrDeMorgan₁₂F ≡ DeMorgan₁₂OrImpOr₁₂F ≡ ImpOr₁₂OrImpOr₂₁F
-    ⊋  Peirce₁₂OrImpOr₂₁F
+  ExcludedMiddleF ≡ EmAOrNotBF ≡ EmAOrBF
+                  ≡ Pierce₁₂OrDeMorgan₁₂F ≡ DeMorgan₁₂OrImpOr₁₂F ≡ ImpOr₁₂OrImpOr₂₁F
+    ⊋  Peirce₁₂OrImpOr₂₁F ≡ Em₁OrPeirce₂₁F
     ⊋  DeMorgan₁₂OrLukasiewicz₁₂F ≡ ImpOr₁₂OrLukasiewicz₁₂F ≡ Pierce₁₂OrLukasiewicz₂₁F
+       ≡ Em₁OrLuk₂₁F ≡ NotNot₁OrLuk₂₁F ≡ CM₁OrLuk₂₁F
+       ≡ NotNot₁OrPeirce₂₁F ≡ CM₁OrPeirce₂₁F
     ⊋  ImpOr₁₂OrLukasiewicz₂₁F ≡ Lukasiewicz₁₂OrLukasiewicz₂₁F
-    ⊋  Pierce₁₂OrLukasiewicz₁₂F   ≡ Peirce₁₂OrImpOr₁₂F
+    ⊋  Pierce₁₂OrLukasiewicz₁₂F ≡ Peirce₁₂OrImpOr₁₂F
     ⊋  Pierce₁₂OrPierce₂₁F
 ```
 
@@ -39,11 +42,31 @@ arguments built from `a ∨ ¬ a` each of their disjuncts collapses to it on its
 own.  Every principle that stays below the top has `LukasiewiczF` as one
 disjunct, or else pairs Peirce with `ImpOrF`, the two weakest of the four.
 
+`EmAOrNotBF` and `EmAOrBF` reach the top by a different route.  Neither of
+their disjuncts implies excluded middle; instead a substitution makes one of
+the three *refutable*, and the remaining two are excluded middle exactly.
+`EmAOrNotBF` needs its arguments aligned, at `b := a`, while `EmAOrBF` gives
+way to the constant `b := False`.
+
 Each `≡` is a pair of derivations at shifted instances, not an identity: the
 principles so related are different formulas that prove each other.  Swapping
 Lukasiewicz's arguments in the Peirce principle lands inside a class; doing it
 in the `ImpOrF` principle drops a level; swapping `ImpOrF`'s own arguments in
 `Peirce₁₂OrImpOr₁₂F` climbs three.
+
+Joining a one-argument axiom to a two-argument one adds nothing new, but it
+does not always collapse.  At the *same* argument it does: excluded middle,
+double negation and consequentia mirabilis at `a` each imply `PeirceF a b`,
+`ImpOrF a b` and `LukasiewiczF a b`, so the disjunction is the two-argument
+principle again.  Crossed, at `(b, a)`, they do not, and the six
+`Em₁`, `NotNot₁` and `CM₁` principles above are the result.
+
+Two families never produce anything below the top.  A disjunction of two
+one-argument axioms is classical, since taking both arguments to be the same
+proposition collapses it to a single one; and a *conjunction* of any of these
+is classical too, being at least as strong as each conjunct, every one of which
+is already excluded middle.  Only disjunction, and only with a two-argument
+axiom on at least one side, leaves room below.
 
 ## The separating algebras
 

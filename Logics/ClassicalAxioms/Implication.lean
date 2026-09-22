@@ -92,6 +92,50 @@ theorem emF_lukF (a b : Prop) : ExcludedMiddleF a → LukasiewiczF a b := by
 
 theorem notF_lukF (a b : Prop) : ¬ b → LukasiewiczF a b := fun hnb _ hb => absurd hb hnb
 
+/-- `EmAOrNotBF` is excluded middle: at `b := a` its third disjunct `¬ (a → a)`
+is refutable, leaving the first two. -/
+theorem emAOrNotBF_emF (a : Prop) : EmAOrNotBF a a → ExcludedMiddleF a := by
+  intro h
+  cases h
+  case inl ha => exact Or.inl ha
+  case inr h2 =>
+    cases h2
+    case inl hna => exact Or.inr hna
+    case inr hn => exact absurd (id : a → a) hn
+
+/-- The converse needs excluded middle at *both* arguments, one for each of the
+two ways the split can fail to reach `a`. -/
+theorem emF_emAOrNotBF (a b : Prop) :
+    ExcludedMiddleF a → ExcludedMiddleF b → EmAOrNotBF a b := by
+  intro hA hB
+  cases hA
+  case inl ha => exact Or.inl ha
+  case inr hna =>
+    cases hB
+    case inl hb => exact Or.inr (Or.inr (fun h => hna (h hb)))
+    case inr hnb => exact Or.inr (Or.inl hnb)
+
+/-- `EmAOrBF` is excluded middle too, collapsing at `b := False`: there `¬ b`
+is provable, so `¬ b → a` is `a` and the third disjunct is `¬ a`. -/
+theorem emAOrBF_emF (a : Prop) : EmAOrBF a False → ExcludedMiddleF a := by
+  intro h
+  cases h
+  case inl ha => exact Or.inl ha
+  case inr h2 =>
+    cases h2
+    case inl hf => exact hf.elim
+    case inr hn => exact Or.inr (fun ha => hn (fun _ => ha))
+
+theorem emF_emAOrBF (a b : Prop) :
+    ExcludedMiddleF a → ExcludedMiddleF b → EmAOrBF a b := by
+  intro hA hB
+  cases hA
+  case inl ha => exact Or.inl ha
+  case inr hna =>
+    cases hB
+    case inl hb => exact Or.inr (Or.inl hb)
+    case inr hnb => exact Or.inr (Or.inr (fun h => hna (h hnb)))
+
 theorem emFa_pierce₁₂OrLuk₁₂F (a b : Prop) : ExcludedMiddleF a → Pierce₁₂OrLukasiewicz₁₂F a b :=
   fun hEx => Or.inr (emF_lukF a b hEx)
 
