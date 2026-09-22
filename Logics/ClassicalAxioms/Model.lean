@@ -12,7 +12,8 @@ Two families of algebra are enough for everything below.  The chains `Fin k`
 order their values `0 ⊏ 1 ⊏ ⋯`, with the middle values meaning "neither
 established nor refuted"; negating any of them lands on the bottom, since
 nothing refutes them, which is why excluded middle already misses the top in
-`Fin 3`.  The `Diamond` is the smallest algebra that is *not* a chain: its two
+`Fin 3`.  `KiteUp 1 1`, the diamond, is the smallest algebra that is *not* a
+chain: its two
 middle values `x` and `y` are incomparable.
 
 The pattern that emerges is that the four combined principles fall into three
@@ -90,15 +91,15 @@ theorem demorganOrLuk_not_top_four :
 
 open HeytingAlgebra in
 /-- `PierceOrLukasiewiczF` holds throughout the diamond, which is not a chain. -/
-theorem pierceOrLuk_top_diamond : ∀ a b : Diamond,
+theorem pierceOrLuk_top_diamond : ∀ a b : KiteUp 1 1,
     (((a ⇨ b) ⇨ a) ⇨ a) ⊔ ((neg a ⇨ neg b) ⇨ (b ⇨ a)) = ⊤ := by decide
 
-theorem pierceOrLukForm_valid (v : Nat → Diamond) : pierceOrLukForm.eval v = ⊤ :=
+theorem pierceOrLukForm_valid (v : Nat → KiteUp 1 1) : pierceOrLukForm.eval v = ⊤ :=
   pierceOrLuk_top_diamond (v 0) (v 1)
 
 /-- `ImpOrOrLukasiewiczF'` does not: it drops below the top at `a = x`, `b = e`. -/
 theorem impOrOrLukForm'_nvalid_diamond :
-    impOrOrLukForm'.eval (fun n => if n = 0 then Diamond.x else Diamond.e) ≠ ⊤ := by decide
+    impOrOrLukForm'.eval (fun n => if n = 0 then (KiteUp.tails 0 1 : KiteUp 1 1) else KiteUp.tails 1 1) ≠ ⊤ := by decide
 
 theorem impOrOrLukForm'_valid_chain (v : Nat → Fin 4) : impOrOrLukForm'.eval v = ⊤ :=
   impOrOrLuk'_top_chain (v 0) (v 1)
@@ -123,9 +124,6 @@ theorem peirceOrImpOr_top_chain {n : Nat} (a b : Fin (n + 1)) :
       rw [hne]; exact (Chain.himp_eq_top_iff _ _).mpr (Lattice.le_sup_right (neg a) b)
     rw [h1, BoundedLattice.sup_top]
 
-theorem peirceOrImpOrForm_valid_chain (v : Nat → Fin 3) : peirceOrImpOrForm.eval v = ⊤ :=
-  peirceOrImpOr_top_chain (v 0) (v 1)
-
 /-- Excluded middle, by contrast, misses the top value already in `Fin 3`. -/
 theorem excludedMiddleForm_nvalid_three :
     (excludedMiddleForm (.var 0)).eval (fun _ => (1 : Fin 3)) ≠ ⊤ := by decide
@@ -146,14 +144,33 @@ theorem peirceOrImpOr'_not_top_four :
 
 open HeytingAlgebra in
 /-- `DeMorganOrLukasiewiczF` reaches the top value throughout the fork. -/
-theorem demorganOrLuk_top_fork : ∀ a b : Fork,
+theorem demorganOrLuk_top_fork : ∀ a b : ForkUp 1 1,
     (neg (neg a ⊓ neg b) ⇨ (a ⊔ b)) ⊔ ((neg a ⇨ neg b) ⇨ (b ⇨ a)) = ⊤ := by decide
 
-theorem demorganOrLukForm_valid_fork (v : Nat → Fork) : demorganOrLukForm.eval v = ⊤ :=
+theorem demorganOrLukForm_valid_fork (v : Nat → ForkUp 1 1) : demorganOrLukForm.eval v = ⊤ :=
   demorganOrLuk_top_fork (v 0) (v 1)
 
-/-- `PeirceOrImpOrF'` does not: it drops to `m` at `a = m`, `b = x`, where the
-two incomparable elements fail to join up to the top. -/
+/-- `PeirceOrImpOrF'` does not: it drops short at `a = tails 0 0`,
+`b = tails 0 1`, where the two incomparable elements fail to join to the top. -/
 theorem peirceOrImpOrForm'_nvalid_fork :
-    peirceOrImpOrForm'.eval (fun n => if n = 0 then Fork.m else Fork.x) ≠ ⊤ := by decide
+    peirceOrImpOrForm'.eval (fun n => if n = 0 then (ForkUp.tails 0 0 : ForkUp 1 1) else ForkUp.tails 0 1) ≠ ⊤ := by decide
+
+open HeytingAlgebra in
+/-- `PierceOrPierceF'` reaches the top value throughout the kite. -/
+theorem pierceOrPierce'_top_kite : ∀ a b : KiteUp 1 2,
+    (((a ⇨ b) ⇨ a) ⇨ a) ⊔ (((b ⇨ a) ⇨ b) ⇨ b) = ⊤ := by decide
+
+theorem pierceOrPierceForm'_valid_kite (v : Nat → KiteUp 1 2) :
+    pierceOrPierceForm'.eval v = ⊤ := pierceOrPierce'_top_kite (v 0) (v 1)
+
+/-- `PierceOrLukasiewiczF` does not: it drops below the top at `a = m5`,
+`b = m3`, the two elements the uneven paths pull apart. -/
+theorem pierceOrLukForm_nvalid_kite :
+    pierceOrLukForm.eval (fun n => if n = 0 then (KiteUp.tails 1 1 : KiteUp 1 2) else KiteUp.tails 0 2) ≠ ⊤ := by decide
+
+/-- Even `PierceOrPierceF'`, the weakest principle of this development, misses
+the top value in the tall fork, at `a = m1`, `b = m2` -- the two branch tips. -/
+theorem pierceOrPierceForm'_nvalid_tallFork :
+    pierceOrPierceForm'.eval (fun n => if n = 0 then (ForkUp.tails 1 2 : ForkUp 2 2) else ForkUp.tails 2 1) ≠ ⊤ := by
+  decide
 

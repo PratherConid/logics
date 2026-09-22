@@ -7,9 +7,9 @@ Soundness, read backwards, turns the measurements of the previous file into
 underivability: anything with a proof takes the top value under every
 valuation, so a formula that misses the top value somewhere has no proof.
 
-The first three theorems apply this to bare intuitionistic logic, where the
-three element chain refutes excluded middle, double negation elimination and
-Peirce's law outright.
+The first theorem applies this to bare intuitionistic logic, where the tall
+fork refutes `PierceOrPierceF'` outright.  One such statement covers the whole
+development, because every other principle here derives that one.
 
 The rest say something stronger, about a principle assumed as an *axiom
 schema*.  `DerivesFromSchema X p` holds when some finite list of substitution
@@ -54,41 +54,33 @@ in `Logics/Heyting.lean`.
 | step                                         | algebra   | theorem                             |
 | -------------------------------------------- | --------- | ----------------------------------- |
 | `ExcludedMiddleF` over `PeirceOrImpOrF'`     | `Fin 3`   | `em_nderiv_peirceOrImpOr'`          |
-| `PeirceOrImpOrF'` over `DeMorganOrLukasiewiczF` | `Fork` | `peirceOrImpOr'_nderiv_demorganOrLuk` |
+| `PeirceOrImpOrF'` over `DeMorganOrLukasiewiczF` | `ForkUp 1 1` | `peirceOrImpOr'_nderiv_demorganOrLuk` |
 | `DeMorganOrLukasiewiczF` over `ImpOrOrLukasiewiczF'` | `Fin 4` | `demorganOrLuk_nderiv_impOrOrLuk'` |
-| `ImpOrOrLukasiewiczF'` over `PierceOrLukasiewiczF` | `Diamond` | `impOrOrLuk'_nderiv_pierceOrLuk` |
+| `ImpOrOrLukasiewiczF'` over `PierceOrLukasiewiczF` | `KiteUp 1 1` | `impOrOrLuk'_nderiv_pierceOrLuk` |
+| `PierceOrLukasiewiczF` over `PierceOrPierceF'` | `KiteUp 1 2` | `pierceOrLuk_nderiv_pierceOrPierce'` |
 
 The shape of each algebra is what it contributes.  The chains `Fin 3` and
-`Fin 4` are linear, and length is what tells the lower principles apart:
-everything in the bottom two classes survives every chain, while the De Morgan
-class dies once a chain has two intermediate values.  The `Diamond` and the
-`Fork` are not linear, and they differ from each other in one respect: the
-diamond has a top point above its two incomparable middles, so there the join
-of those middles reaches the top, and in the fork it does not.  That single
-difference is why the fork separates the step the diamond cannot.
-
-`em_nderiv_peirceOrImpOr` records the bottom of the chain against the top
-directly, rather than by composing the four steps.
+`Fin 4` are linear, and length is what tells the middle principles apart: the
+lower classes survive every chain, while the De Morgan class dies once a chain
+has two intermediate values.  The other three are not linear, and each differs
+from the next in one parameter.  All three are `ForkUp m n` or `KiteUp m n`: a
+root with two branches of the given lengths, the kite closing them off with a
+tip.  `KiteUp 1 1` has that tip above its two incomparable middles, so the join
+of those middles reaches the top; `ForkUp 1 1` has no tip, so it does not, and
+that is why the fork separates the step the kite cannot.  `KiteUp 1 2` has a
+tip again but reaches it by paths of different lengths, and that unevenness is
+what the bottom step needs.
 -/
 
-/-- Excluded middle is not derivable in intuitionistic propositional logic. -/
-theorem em_nderiv : ¬ ([] ⊢ .or (.var 0) (Form.neg (.var 0))) := by
+/-- Nothing in this development is a theorem of bare intuitionistic logic.  It
+is enough to say so for `PierceOrPierceF'`, since every other principle here
+derives it: the fork with two long branches refutes it, so no derivation from no hypotheses
+exists. -/
+theorem pierceOrPierceF'_nderiv : ¬ ([] ⊢ pierceOrPierceForm') := by
   intro d
-  have h := Derives.valid_of_derives d (Fin 3) (fun _ => (1 : Fin 3))
-  exact absurd h (by decide)
-
-/-- Double negation elimination is not derivable either. -/
-theorem dne_nderiv : ¬ ([] ⊢ .imp (Form.neg (Form.neg (.var 0))) (.var 0)) := by
-  intro d
-  have h := Derives.valid_of_derives d (Fin 3) (fun _ => (1 : Fin 3))
-  exact absurd h (by decide)
-
-/-- Nor is Peirce's law, the `PeirceF` of this file. -/
-theorem peirce_nderiv :
-    ¬ ([] ⊢ .imp (.imp (.imp (.var 0) (.var 1)) (.var 0)) (.var 0)) := by
-  intro d
-  have h := Derives.valid_of_derives d (Fin 3) (fun n => if n = 0 then 1 else 0)
-  exact absurd h (by decide)
+  exact pierceOrPierceForm'_nvalid_tallFork
+    (Derives.valid_of_derives d (ForkUp 2 2)
+      (fun n => if n = 0 then (ForkUp.tails 1 2 : ForkUp 2 2) else ForkUp.tails 2 1))
 
 /-- Strictness below: no instantiation of `PierceOrLukasiewiczF` derives
 `ImpOrOrLukasiewiczF'`. -/
@@ -102,12 +94,6 @@ theorem demorganOrLuk_nderiv_impOrOrLuk' :
     ¬ DerivesFromSchema impOrOrLukForm' demorganOrLukForm := fun h =>
   demorganOrLukForm_nvalid_four (DerivesFromSchema.valid impOrOrLukForm'_valid_chain h _)
 
-/-- No instantiation of `PeirceOrImpOrF` derives excluded middle: it reaches the
-top value throughout `Fin 3`, where excluded middle does not. -/
-theorem em_nderiv_peirceOrImpOr :
-    ¬ DerivesFromSchema peirceOrImpOrForm (excludedMiddleForm (.var 0)) := fun h =>
-  excludedMiddleForm_nvalid_three (DerivesFromSchema.valid peirceOrImpOrForm_valid_chain h _)
-
 /-- Strong as it is, `PeirceOrImpOrF'` still does not reach excluded middle: it
 holds throughout `Fin 3`, where excluded middle does not. -/
 theorem em_nderiv_peirceOrImpOr' :
@@ -120,4 +106,11 @@ instance of the former and refutes one of the latter. -/
 theorem peirceOrImpOr'_nderiv_demorganOrLuk :
     ¬ DerivesFromSchema demorganOrLukForm peirceOrImpOrForm' := fun h =>
   peirceOrImpOrForm'_nvalid_fork (DerivesFromSchema.valid demorganOrLukForm_valid_fork h _)
+
+/-- The bottom step is strict too: no instantiation of `PierceOrPierceF'`
+derives `PierceOrLukasiewiczF`, since the kite validates every instance of the
+former and refutes one of the latter. -/
+theorem pierceOrLuk_nderiv_pierceOrPierce' :
+    ¬ DerivesFromSchema pierceOrPierceForm' pierceOrLukForm := fun h =>
+  pierceOrLukForm_nvalid_kite (DerivesFromSchema.valid pierceOrPierceForm'_valid_kite h _)
 

@@ -135,6 +135,9 @@ instance : HeytingAlgebra (Upset P) where
     · intro h p hp
       exact h p hp.1 p (Frame.le_refl p) hp.2
 
+/-- The upward closed set of everything above a point. -/
+def up (p : P) : Upset P := ⟨fun q => p ≼ q, fun h hp => Frame.le_trans hp h⟩
+
 /-! ### A worked frame
 
 Reading `Fin n` as a linear frame recovers the chains, and shows the
@@ -429,190 +432,355 @@ theorem em_fails {a : Fin (n + 1)} (h₀ : 0 < a.val) (hn : a.val < n) :
 
 end Chain
 
-/-! ## The diamond
+/-! ## Forks and kites of arbitrary shape
 
-Not every Heyting algebra is a chain.  The diamond is the six element algebra of
-upward closed subsets of the four point frame with a root, two incomparable
-middle points `x` and `y`, and a top.  Each element is coded by the bit mask of
-the set of frame points it names, which makes the operations computable and the
-axioms decidable. -/
+The concrete algebras above are particular cases of two families, each given by
+the lengths of two chains.  A *fork* is a root with two branches hanging above
+it; a *kite* is the same with a further point above both, closing them into two
+paths from bottom to top.  Taking upward closed sets of these frames gives the
+corresponding Heyting algebras, with no axioms left to check: `Upset` has
+supplied them already.
 
-inductive Diamond where
-  | bot | e | x | y | m | top
+These are the general constructions.  The mask based `Diamond`, `Fork`, `Kite`
+and `TallFork` remain the computable presentations of four of their instances,
+since membership here is `Prop` valued and so out of reach of `decide`. -/
+
+/-- A root with two branches, of lengths `m` and `n`. -/
+inductive ForkPoint (m n : Nat) where
+  | root
+  | left : Fin m → ForkPoint m n
+  | right : Fin n → ForkPoint m n
+
+namespace ForkPoint
+
+def le : ForkPoint m n → ForkPoint m n → Prop
+  | root, _ => True
+  | left i, left j => i.val ≤ j.val
+  | right i, right j => i.val ≤ j.val
+  | _, _ => False
+
+instance : Frame (ForkPoint m n) where
+  le := le
+  le_refl p := by cases p <;> simp [le]
+  le_trans {p q r} h₁ h₂ := by
+    cases p <;> cases q <;> cases r <;> simp_all [le] <;> omega
+
+end ForkPoint
+
+/-- A root and a tip, joined by two paths through chains of lengths `m` and `n`. -/
+inductive KitePoint (m n : Nat) where
+  | root
+  | left : Fin m → KitePoint m n
+  | right : Fin n → KitePoint m n
+  | tip
+
+namespace KitePoint
+
+def le : KitePoint m n → KitePoint m n → Prop
+  | root, _ => True
+  | _, tip => True
+  | left i, left j => i.val ≤ j.val
+  | right i, right j => i.val ≤ j.val
+  | _, _ => False
+
+instance : Frame (KitePoint m n) where
+  le := le
+  le_refl p := by cases p <;> simp [le]
+  le_trans {p q r} h₁ h₂ := by
+    cases p <;> cases q <;> cases r <;> simp_all [le] <;> omega
+
+end KitePoint
+
+/-- Excluded middle fails in every fork with a branch: the proposition true
+from the first left point onwards is refuted exactly on the right branch, so
+the join of the two misses the root. -/
+theorem forkPoint_em_fails {m n : Nat} :
+    letI U : Upset (ForkPoint (m + 1) n) := Upset.up (ForkPoint.left 0)
+    U ⊔ HeytingAlgebra.neg U ≠ (⊤ : Upset (ForkPoint (m + 1) n)) := by
+  intro h
+  have hroot : (Upset.up (ForkPoint.left (0 : Fin (m + 1)))
+      ⊔ HeytingAlgebra.neg (Upset.up (ForkPoint.left (0 : Fin (m + 1))))).mem
+      (ForkPoint.root : ForkPoint (m + 1) n) := by rw [h]; trivial
+  cases hroot with
+  | inl hu => exact hu
+  | inr hn => exact hn (ForkPoint.left 0) trivial (Nat.le_refl 0)
+
+/-! ## Forks by their upsets
+
+The mask encodings above are hand written instances of one construction.  An
+upward closed set of a fork either contains the root, and is then everything,
+or omits it, and then the two branches are independent: each contributes a
+tail, named by the index where it starts.  So the algebra is a pair of indices
+with a top adjoined, which is decidable without any enumeration. -/
+
+/-- An upward closed set of the fork with branches of lengths `m` and `n`.
+Either everything, or -- since omitting the root frees the two branches -- a
+tail of each, named by the index where it starts (`m`/`n` meaning empty). -/
+inductive ForkUp (m n : Nat) where
+  | all
+  | tails : Fin (m + 1) → Fin (n + 1) → ForkUp m n
   deriving DecidableEq, Repr
 
-namespace Diamond
+namespace ForkUp
+variable {m n : Nat}
 
-instance decForallDiamond (p : Diamond → Prop) [DecidablePred p] : Decidable (∀ a, p a) :=
-  if h : p bot ∧ p e ∧ p x ∧ p y ∧ p m ∧ p top then
-    isTrue (by
-      obtain ⟨h1, h2, h3, h4, h5, h6⟩ := h
-      intro a
-      cases a
-      · exact h1
-      · exact h2
-      · exact h3
-      · exact h4
-      · exact h5
-      · exact h6)
-  else
-    isFalse (fun hall => h ⟨hall _, hall _, hall _, hall _, hall _, hall _⟩)
+instance (p : ForkUp m n → Prop) [DecidablePred p] : Decidable (∀ x, p x) :=
+  if h : p .all ∧ ∀ i j, p (.tails i j) then
+    isTrue (by intro x; cases x with | all => exact h.1 | tails i j => exact h.2 i j)
+  else isFalse (fun hall => h ⟨hall _, fun _ _ => hall _⟩)
 
-/-- The bit mask of the upward closed set each element names. -/
-def mask : Diamond → Nat
-  | bot => 0 | e => 8 | x => 10 | y => 12 | m => 14 | top => 15
+/-- Index-wise maximum and minimum, staying inside `Fin (k + 1)`. -/
+def mx (i j : Fin (k + 1)) : Fin (k + 1) := ⟨max i.val j.val, by omega⟩
+def mn (i j : Fin (k + 1)) : Fin (k + 1) := ⟨min i.val j.val, by omega⟩
 
-def ofMask (n : Nat) : Diamond :=
-  if n = 0 then bot else if n = 8 then e else if n = 10 then x
-  else if n = 12 then y else if n = 14 then m else top
+/-- Bigger index means smaller tail, so the order on indices is reversed. -/
+def le : ForkUp m n → ForkUp m n → Prop
+  | _, .all => True
+  | .all, .tails _ _ => False
+  | .tails i j, .tails i' j' => i'.val ≤ i.val ∧ j'.val ≤ j.val
 
-/-- The principal upward closed set of each of the four frame points. -/
-def upset : Nat → Nat
-  | 0 => 15 | 1 => 10 | 2 => 12 | _ => 8
+def inf : ForkUp m n → ForkUp m n → ForkUp m n
+  | .all, y => y
+  | x, .all => x
+  | .tails i j, .tails i' j' => .tails (mx i i') (mx j j')
 
-abbrev le (a b : Diamond) : Prop := mask a &&& mask b = mask a
-abbrev inf (a b : Diamond) : Diamond := ofMask (mask a &&& mask b)
-abbrev sup (a b : Diamond) : Diamond := ofMask (mask a ||| mask b)
-/-- `a ⇨ b` collects the frame points whose whole upward closed set meets `a`
-only inside `b`. -/
-abbrev himp (a b : Diamond) : Diamond :=
-  ofMask ((List.range 4).foldl
-    (fun acc q => if upset q &&& mask a &&& (15 ^^^ mask b) = 0 then acc ||| (1 <<< q) else acc) 0)
+def sup : ForkUp m n → ForkUp m n → ForkUp m n
+  | .all, _ => .all
+  | _, .all => .all
+  | .tails i j, .tails i' j' => .tails (mn i i') (mn j j')
 
-theorem le_refl' : ∀ a, le a a := by decide
-theorem le_trans' : ∀ a b c, le a b → le b c → le a c := by decide
-theorem le_antisymm' : ∀ a b, le a b → le b a → a = b := by decide
-theorem le_top' : ∀ a, le a top := by decide
-theorem bot_le' : ∀ a, le bot a := by decide
-theorem inf_le_left' : ∀ a b, le (inf a b) a := by decide
-theorem inf_le_right' : ∀ a b, le (inf a b) b := by decide
-theorem le_inf' : ∀ a b c, le a b → le a c → le a (inf b c) := by decide
-theorem le_sup_left' : ∀ a b, le a (sup a b) := by decide
-theorem le_sup_right' : ∀ a b, le b (sup a b) := by decide
-theorem sup_le' : ∀ a b c, le a c → le b c → le (sup a b) c := by decide
-theorem himp_adj' : ∀ a b c, le (inf a b) c ↔ le a (himp b c) := by decide
+/-- `U ⇨ V` keeps a branch's tail only where `U`'s already lies inside `V`'s;
+when that holds on both branches the root survives and the result is `all`. -/
+def himp : ForkUp m n → ForkUp m n → ForkUp m n
+  | _, .all => .all
+  | .all, y => y
+  | .tails i j, .tails i' j' =>
+      if i'.val ≤ i.val ∧ j'.val ≤ j.val then .all
+      else .tails (if i'.val ≤ i.val then 0 else i') (if j'.val ≤ j.val then 0 else j')
 
-instance : PartialOrder Diamond where
+/-! Point-wise equations.  Unfolding the definitions with `simp` splits the
+matches and leaves absurd side goals, so each case is recorded separately. -/
+
+@[simp] theorem le_all (a : ForkUp m n) : le a .all := by cases a <;> trivial
+@[simp] theorem le_all_tails (i : Fin (m + 1)) (j : Fin (n + 1)) :
+    le (.all : ForkUp m n) (.tails i j) ↔ False := Iff.rfl
+@[simp] theorem le_tails (i i' : Fin (m + 1)) (j j' : Fin (n + 1)) :
+    le (.tails i j : ForkUp m n) (.tails i' j') ↔ (i'.val ≤ i.val ∧ j'.val ≤ j.val) := Iff.rfl
+
+@[simp] theorem inf_all_left (y : ForkUp m n) : inf .all y = y := rfl
+@[simp] theorem inf_all_right (x : ForkUp m n) : inf x .all = x := by cases x <;> rfl
+@[simp] theorem inf_tails (i i' : Fin (m + 1)) (j j' : Fin (n + 1)) :
+    inf (.tails i j : ForkUp m n) (.tails i' j') = .tails (mx i i') (mx j j') := rfl
+
+@[simp] theorem sup_all_left (y : ForkUp m n) : sup .all y = .all := rfl
+@[simp] theorem sup_all_right (x : ForkUp m n) : sup x .all = .all := by cases x <;> rfl
+@[simp] theorem sup_tails (i i' : Fin (m + 1)) (j j' : Fin (n + 1)) :
+    sup (.tails i j : ForkUp m n) (.tails i' j') = .tails (mn i i') (mn j j') := rfl
+
+@[simp] theorem himp_all_right (x : ForkUp m n) : himp x .all = .all := by cases x <;> rfl
+@[simp] theorem himp_all_left (y : ForkUp m n) : himp .all y = y := by cases y <;> rfl
+@[simp] theorem himp_tails (i i' : Fin (m + 1)) (j j' : Fin (n + 1)) :
+    himp (.tails i j : ForkUp m n) (.tails i' j')
+      = if i'.val ≤ i.val ∧ j'.val ≤ j.val then .all
+        else .tails (if i'.val ≤ i.val then 0 else i') (if j'.val ≤ j.val then 0 else j') := rfl
+
+theorem le_refl' (a : ForkUp m n) : le a a := by cases a <;> simp
+theorem le_trans' {a b c : ForkUp m n} : le a b → le b c → le a c := by
+  cases a <;> cases b <;> cases c <;> simp_all <;> omega
+theorem le_antisymm' {a b : ForkUp m n} : le a b → le b a → a = b := by
+  cases a <;> cases b <;> simp_all <;> intros <;>
+    exact ⟨Fin.ext (by omega), Fin.ext (by omega)⟩
+theorem inf_le_left' (a b : ForkUp m n) : le (inf a b) a := by
+  cases a <;> cases b <;> simp [mx] <;> omega
+theorem inf_le_right' (a b : ForkUp m n) : le (inf a b) b := by
+  cases a <;> cases b <;> simp [mx] <;> omega
+theorem le_inf' {a b c : ForkUp m n} : le a b → le a c → le a (inf b c) := by
+  cases a <;> cases b <;> cases c <;> simp_all [mx] <;> omega
+theorem le_sup_left' (a b : ForkUp m n) : le a (sup a b) := by
+  cases a <;> cases b <;> simp [mn] <;> omega
+theorem le_sup_right' (a b : ForkUp m n) : le b (sup a b) := by
+  cases a <;> cases b <;> simp [mn] <;> omega
+theorem sup_le' {a b c : ForkUp m n} : le a c → le b c → le (sup a b) c := by
+  cases a <;> cases b <;> cases c <;> simp_all [mn] <;> omega
+theorem himp_adj' (a b c : ForkUp m n) : le (inf a b) c ↔ le a (himp b c) := by
+  cases a <;> cases b <;> cases c <;> simp [mx] <;>
+    (repeat' split) <;> simp_all <;> omega
+
+instance : PartialOrder (ForkUp m n) where
   le := le
   le_refl := le_refl'
-  le_trans := le_trans' _ _ _
-  le_antisymm := le_antisymm' _ _
+  le_trans := le_trans'
+  le_antisymm := le_antisymm'
 
-instance : Lattice Diamond where
+instance : Lattice (ForkUp m n) where
   inf := inf
   sup := sup
   inf_le_left := inf_le_left'
   inf_le_right := inf_le_right'
-  le_inf := le_inf' _ _ _
+  le_inf := le_inf'
   le_sup_left := le_sup_left'
   le_sup_right := le_sup_right'
-  sup_le := sup_le' _ _ _
+  sup_le := sup_le'
 
-instance : BoundedLattice Diamond where
-  top := top
-  bot := bot
-  le_top := le_top'
-  bot_le := bot_le'
+instance : BoundedLattice (ForkUp m n) where
+  top := .all
+  bot := .tails (Fin.last m) (Fin.last n)
+  le_top := le_all
+  bot_le a := by
+    cases a with
+    | all => trivial
+    | tails i j =>
+      have h1 := i.isLt; have h2 := j.isLt
+      exact ⟨by simp only [Fin.val_last]; omega, by simp only [Fin.val_last]; omega⟩
 
-instance : HeytingAlgebra Diamond where
+instance : HeytingAlgebra (ForkUp m n) where
   himp := himp
   himp_adj := himp_adj'
 
-/-- The diamond is not a chain: `x` and `y` are incomparable. -/
-theorem x_y_incomparable : ¬ le x y ∧ ¬ le y x := by decide
+end ForkUp
 
-/-- Nor is it classical. -/
-theorem em_fails : sup x (himp x bot) ≠ top := by decide
+/-! ## Kites by their upsets
 
-end Diamond
+A kite is a fork closed off by a tip above both branches.  Its upward closed
+sets are the fork's, each now carrying the tip along, plus one more: the tip
+alone, which the branches reach without being reached. -/
 
-/-! ## The fork
-
-The five element algebra of upward closed subsets of the three point frame with
-a root and two incomparable points above it.  Unlike the diamond it has no top
-point, and that is what separates it from the diamond as a countermodel: the
-join of the two incomparable elements falls short of the top. -/
-
-inductive Fork where
-  | bot | x | y | m | top
+/-- An upward closed set of the kite with paths of lengths `m` and `n`:
+everything, or a tail of each branch together with the tip, or nothing.  The
+extra case is the tip, which the branches can reach without being reached. -/
+inductive KiteUp (m n : Nat) where
+  | all
+  | tails : Fin (m + 1) → Fin (n + 1) → KiteUp m n
+  | empty
   deriving DecidableEq, Repr
 
-namespace Fork
+namespace KiteUp
+variable {m n : Nat}
 
-instance decForallFork (p : Fork → Prop) [DecidablePred p] : Decidable (∀ a, p a) :=
-  if h : p bot ∧ p x ∧ p y ∧ p m ∧ p top then
+open ForkUp (mx mn)
+
+instance (p : KiteUp m n → Prop) [DecidablePred p] : Decidable (∀ x, p x) :=
+  if h : p .all ∧ p .empty ∧ ∀ i j, p (.tails i j) then
     isTrue (by
-      obtain ⟨h1, h2, h3, h4, h5⟩ := h
-      intro a
-      cases a
-      · exact h1
-      · exact h2
-      · exact h3
-      · exact h4
-      · exact h5)
-  else
-    isFalse (fun hall => h ⟨hall _, hall _, hall _, hall _, hall _⟩)
+      intro x
+      cases x with
+      | all => exact h.1
+      | tails i j => exact h.2.2 i j
+      | empty => exact h.2.1)
+  else isFalse (fun hall => h ⟨hall _, hall _, fun _ _ => hall _⟩)
 
-/-- The bit mask of the upward closed set each element names. -/
-def mask : Fork → Nat
-  | bot => 0 | x => 2 | y => 4 | m => 6 | top => 7
+def le : KiteUp m n → KiteUp m n → Prop
+  | _, .all => True
+  | .empty, _ => True
+  | .all, _ => False
+  | .tails _ _, .empty => False
+  | .tails i j, .tails i' j' => i'.val ≤ i.val ∧ j'.val ≤ j.val
 
-def ofMask (n : Nat) : Fork :=
-  if n = 0 then bot else if n = 2 then x else if n = 4 then y
-  else if n = 6 then m else top
+def inf : KiteUp m n → KiteUp m n → KiteUp m n
+  | .all, y => y
+  | x, .all => x
+  | .empty, _ => .empty
+  | _, .empty => .empty
+  | .tails i j, .tails i' j' => .tails (mx i i') (mx j j')
 
-/-- The principal upward closed set of each of the three frame points. -/
-def upset : Nat → Nat
-  | 0 => 7 | 1 => 2 | _ => 4
+def sup : KiteUp m n → KiteUp m n → KiteUp m n
+  | .all, _ => .all
+  | _, .all => .all
+  | .empty, y => y
+  | x, .empty => x
+  | .tails i j, .tails i' j' => .tails (mn i i') (mn j j')
 
-abbrev le (a b : Fork) : Prop := mask a &&& mask b = mask a
-abbrev inf (a b : Fork) : Fork := ofMask (mask a &&& mask b)
-abbrev sup (a b : Fork) : Fork := ofMask (mask a ||| mask b)
-abbrev himp (a b : Fork) : Fork :=
-  ofMask ((List.range 3).foldl
-    (fun acc q => if upset q &&& mask a &&& (7 ^^^ mask b) = 0 then acc ||| (1 <<< q) else acc) 0)
+/-- The branch condition is the fork's; the tip goes along with the branches,
+and the root survives only when both tails already lie inside. -/
+def himp : KiteUp m n → KiteUp m n → KiteUp m n
+  | _, .all => .all
+  | .all, y => y
+  | .empty, _ => .all
+  | .tails _ _, .empty => .empty
+  | .tails i j, .tails i' j' =>
+      if i'.val ≤ i.val ∧ j'.val ≤ j.val then .all
+      else .tails (if i'.val ≤ i.val then 0 else i') (if j'.val ≤ j.val then 0 else j')
 
-theorem le_refl' : ∀ a, le a a := by decide
-theorem le_trans' : ∀ a b c, le a b → le b c → le a c := by decide
-theorem le_antisymm' : ∀ a b, le a b → le b a → a = b := by decide
-theorem le_top' : ∀ a, le a top := by decide
-theorem bot_le' : ∀ a, le bot a := by decide
-theorem inf_le_left' : ∀ a b, le (inf a b) a := by decide
-theorem inf_le_right' : ∀ a b, le (inf a b) b := by decide
-theorem le_inf' : ∀ a b c, le a b → le a c → le a (inf b c) := by decide
-theorem le_sup_left' : ∀ a b, le a (sup a b) := by decide
-theorem le_sup_right' : ∀ a b, le b (sup a b) := by decide
-theorem sup_le' : ∀ a b c, le a c → le b c → le (sup a b) c := by decide
-theorem himp_adj' : ∀ a b c, le (inf a b) c ↔ le a (himp b c) := by decide
+@[simp] theorem le_all (a : KiteUp m n) : le a .all := by cases a <;> trivial
+@[simp] theorem le_empty_left (a : KiteUp m n) : le .empty a := by cases a <;> trivial
+@[simp] theorem le_all_tails (i : Fin (m + 1)) (j : Fin (n + 1)) :
+    le (.all : KiteUp m n) (.tails i j) ↔ False := Iff.rfl
+@[simp] theorem le_all_empty : le (.all : KiteUp m n) .empty ↔ False := Iff.rfl
+@[simp] theorem le_tails_empty (i : Fin (m + 1)) (j : Fin (n + 1)) :
+    le (.tails i j : KiteUp m n) .empty ↔ False := Iff.rfl
+@[simp] theorem le_tails (i i' : Fin (m + 1)) (j j' : Fin (n + 1)) :
+    le (.tails i j : KiteUp m n) (.tails i' j') ↔ (i'.val ≤ i.val ∧ j'.val ≤ j.val) := Iff.rfl
 
-instance : PartialOrder Fork where
+@[simp] theorem inf_all_left (y : KiteUp m n) : inf .all y = y := rfl
+@[simp] theorem inf_all_right (x : KiteUp m n) : inf x .all = x := by cases x <;> rfl
+@[simp] theorem inf_empty_left (y : KiteUp m n) : inf .empty y = .empty := by cases y <;> rfl
+@[simp] theorem inf_empty_right (x : KiteUp m n) : inf x .empty = .empty := by cases x <;> rfl
+@[simp] theorem inf_tails (i i' : Fin (m + 1)) (j j' : Fin (n + 1)) :
+    inf (.tails i j : KiteUp m n) (.tails i' j') = .tails (mx i i') (mx j j') := rfl
+
+@[simp] theorem sup_all_left (y : KiteUp m n) : sup .all y = .all := rfl
+@[simp] theorem sup_all_right (x : KiteUp m n) : sup x .all = .all := by cases x <;> rfl
+@[simp] theorem sup_empty_left (y : KiteUp m n) : sup .empty y = y := by cases y <;> rfl
+@[simp] theorem sup_empty_right (x : KiteUp m n) : sup x .empty = x := by cases x <;> rfl
+@[simp] theorem sup_tails (i i' : Fin (m + 1)) (j j' : Fin (n + 1)) :
+    sup (.tails i j : KiteUp m n) (.tails i' j') = .tails (mn i i') (mn j j') := rfl
+
+@[simp] theorem himp_all_right (x : KiteUp m n) : himp x .all = .all := by cases x <;> rfl
+@[simp] theorem himp_all_left (y : KiteUp m n) : himp .all y = y := by cases y <;> rfl
+@[simp] theorem himp_empty_left (y : KiteUp m n) : himp .empty y = .all := by cases y <;> rfl
+@[simp] theorem himp_tails_empty (i : Fin (m + 1)) (j : Fin (n + 1)) :
+    himp (.tails i j : KiteUp m n) .empty = .empty := rfl
+@[simp] theorem himp_tails (i i' : Fin (m + 1)) (j j' : Fin (n + 1)) :
+    himp (.tails i j : KiteUp m n) (.tails i' j')
+      = if i'.val ≤ i.val ∧ j'.val ≤ j.val then .all
+        else .tails (if i'.val ≤ i.val then 0 else i') (if j'.val ≤ j.val then 0 else j') := rfl
+
+theorem le_refl' (a : KiteUp m n) : le a a := by cases a <;> simp
+theorem le_trans' {a b c : KiteUp m n} : le a b → le b c → le a c := by
+  cases a <;> cases b <;> cases c <;> simp_all <;> omega
+theorem le_antisymm' {a b : KiteUp m n} : le a b → le b a → a = b := by
+  cases a <;> cases b <;> simp_all <;> intros <;>
+    exact ⟨Fin.ext (by omega), Fin.ext (by omega)⟩
+theorem inf_le_left' (a b : KiteUp m n) : le (inf a b) a := by
+  cases a <;> cases b <;> simp [mx] <;> omega
+theorem inf_le_right' (a b : KiteUp m n) : le (inf a b) b := by
+  cases a <;> cases b <;> simp [mx] <;> omega
+theorem le_inf' {a b c : KiteUp m n} : le a b → le a c → le a (inf b c) := by
+  cases a <;> cases b <;> cases c <;> simp_all [mx] <;> omega
+theorem le_sup_left' (a b : KiteUp m n) : le a (sup a b) := by
+  cases a <;> cases b <;> simp [mn] <;> omega
+theorem le_sup_right' (a b : KiteUp m n) : le b (sup a b) := by
+  cases a <;> cases b <;> simp [mn] <;> omega
+theorem sup_le' {a b c : KiteUp m n} : le a c → le b c → le (sup a b) c := by
+  cases a <;> cases b <;> cases c <;> simp_all [mn] <;> omega
+theorem himp_adj' (a b c : KiteUp m n) : le (inf a b) c ↔ le a (himp b c) := by
+  cases a <;> cases b <;> cases c <;> simp [mx] <;>
+    (repeat' split) <;> simp_all <;> omega
+
+instance : PartialOrder (KiteUp m n) where
   le := le
   le_refl := le_refl'
-  le_trans := le_trans' _ _ _
-  le_antisymm := le_antisymm' _ _
+  le_trans := le_trans'
+  le_antisymm := le_antisymm'
 
-instance : Lattice Fork where
+instance : Lattice (KiteUp m n) where
   inf := inf
   sup := sup
   inf_le_left := inf_le_left'
   inf_le_right := inf_le_right'
-  le_inf := le_inf' _ _ _
+  le_inf := le_inf'
   le_sup_left := le_sup_left'
   le_sup_right := le_sup_right'
-  sup_le := sup_le' _ _ _
+  sup_le := sup_le'
 
-instance : BoundedLattice Fork where
-  top := top
-  bot := bot
-  le_top := le_top'
-  bot_le := bot_le'
+instance : BoundedLattice (KiteUp m n) where
+  top := .all
+  bot := .empty
+  le_top := le_all
+  bot_le := le_empty_left
 
-instance : HeytingAlgebra Fork where
+instance : HeytingAlgebra (KiteUp m n) where
   himp := himp
   himp_adj := himp_adj'
 
-/-- The two incomparable elements join to `m`, which is not the top.  This is
-the shape the diamond lacks. -/
-theorem sup_x_y : sup x y = m ∧ m ≠ top := by decide
-
-end Fork
+end KiteUp
