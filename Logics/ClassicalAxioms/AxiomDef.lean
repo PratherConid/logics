@@ -34,33 +34,33 @@ def ConsequentiaMirabilisF := fun a : Prop => (¬ a → a) → a
 
 def LukasiewiczF := fun a b : Prop => (¬ a → ¬ b) → (b → a)
 
-def PierceOrPierceF' := fun (a b : Prop) => (((a → b) → a) → a) ∨ (((b → a) → b) → b)
+def Pierce₁₂OrPierce₂₁F := fun (a b : Prop) => (((a → b) → a) → a) ∨ (((b → a) → b) → b)
 
-def ImpOrOrImpOrF' := fun (a b : Prop) =>
+def ImpOr₁₂OrImpOr₂₁F := fun (a b : Prop) =>
   ((a → b) → (¬ a ∨ b)) ∨ ((b → a) → (¬ b ∨ a))
 
-def LukasiewiczOrLukasiewiczF' := fun (a b : Prop) =>
+def Lukasiewicz₁₂OrLukasiewicz₂₁F := fun (a b : Prop) =>
   ((¬ a → ¬ b) → (b → a)) ∨ ((¬ b → ¬ a) → (a → b))
 
-def PierceOrDeMorganF := fun (a b : Prop) =>
+def Pierce₁₂OrDeMorgan₁₂F := fun (a b : Prop) =>
   (((a → b) → a) → a) ∨ (¬ (¬ a ∧ ¬ b) → a ∨ b)
 
-def DeMorganOrImpOrF := fun (a b : Prop) =>
+def DeMorgan₁₂OrImpOr₁₂F := fun (a b : Prop) =>
   (¬ (¬ a ∧ ¬ b) → a ∨ b) ∨ ((a → b) → (¬ a ∨ b))
 
-def PeirceOrImpOrF := fun (a b : Prop) => (((a → b) → a) → a) ∨ ((a → b) → (¬ a ∨ b))
+def Peirce₁₂OrImpOr₁₂F := fun (a b : Prop) => (((a → b) → a) → a) ∨ ((a → b) → (¬ a ∨ b))
 
-def PeirceOrImpOrF' := fun (a b : Prop) => (((a → b) → a) → a) ∨ ((b → a) → (¬ b ∨ a))
+def Peirce₁₂OrImpOr₂₁F := fun (a b : Prop) => (((a → b) → a) → a) ∨ ((b → a) → (¬ b ∨ a))
 
-def PierceOrLukasiewiczF := fun (a b : Prop) => (((a → b) → a) → a) ∨ ((¬ a → ¬ b) → (b → a))
+def Pierce₁₂OrLukasiewicz₁₂F := fun (a b : Prop) => (((a → b) → a) → a) ∨ ((¬ a → ¬ b) → (b → a))
 
-def DeMorganOrLukasiewiczF := fun (a b : Prop) => (¬ (¬ a ∧ ¬ b) → a ∨ b) ∨ ((¬ a → ¬ b) → (b → a))
+def DeMorgan₁₂OrLukasiewicz₁₂F := fun (a b : Prop) => (¬ (¬ a ∧ ¬ b) → a ∨ b) ∨ ((¬ a → ¬ b) → (b → a))
 
-def ImpOrOrLukasiewiczF := fun (a b : Prop) => ((a → b) → (¬ a ∨ b)) ∨ ((¬ a → ¬ b) → (b → a))
+def ImpOr₁₂OrLukasiewicz₁₂F := fun (a b : Prop) => ((a → b) → (¬ a ∨ b)) ∨ ((¬ a → ¬ b) → (b → a))
 
-def PierceOrLukasiewiczF' := fun (a b : Prop) => (((a → b) → a) → a) ∨ ((¬ b → ¬ a) → (a → b))
+def Pierce₁₂OrLukasiewicz₂₁F := fun (a b : Prop) => (((a → b) → a) → a) ∨ ((¬ b → ¬ a) → (a → b))
 
-def ImpOrOrLukasiewiczF' := fun (a b : Prop) => ((a → b) → (¬ a ∨ b)) ∨ ((¬ b → ¬ a) → (a → b))
+def ImpOr₁₂OrLukasiewicz₂₁F := fun (a b : Prop) => ((a → b) → (¬ a ∨ b)) ∨ ((¬ b → ¬ a) → (a → b))
 
 /-! ### The same principles as formulas
 
@@ -83,26 +83,26 @@ def consequentiaMirabilisForm (p : Form) : Form := .imp (.imp (Form.neg p) p) p
 
 def lukForm (p q : Form) : Form := .imp (.imp (Form.neg p) (Form.neg q)) (.imp q p)
 
-def pierceOrPierceForm' : Form := .or (peirceForm (.var 0) (.var 1)) (peirceForm (.var 1) (.var 0))
+def pierce₁₂OrPierce₂₁Form : Form := .or (peirceForm (.var 0) (.var 1)) (peirceForm (.var 1) (.var 0))
 
-def impOrOrImpOrForm' : Form := .or (impOrForm (.var 0) (.var 1)) (impOrForm (.var 1) (.var 0))
+def impOr₁₂OrImpOr₂₁Form : Form := .or (impOrForm (.var 0) (.var 1)) (impOrForm (.var 1) (.var 0))
 
-def lukOrLukForm' : Form := .or (lukForm (.var 0) (.var 1)) (lukForm (.var 1) (.var 0))
+def luk₁₂OrLuk₂₁Form : Form := .or (lukForm (.var 0) (.var 1)) (lukForm (.var 1) (.var 0))
 
-def pierceOrDeMorganForm : Form := .or (peirceForm (.var 0) (.var 1)) (demorganForm (.var 0) (.var 1))
+def pierce₁₂OrDeMorgan₁₂Form : Form := .or (peirceForm (.var 0) (.var 1)) (demorganForm (.var 0) (.var 1))
 
-def demorganOrImpOrForm : Form := .or (demorganForm (.var 0) (.var 1)) (impOrForm (.var 0) (.var 1))
+def demorgan₁₂OrImpOr₁₂Form : Form := .or (demorganForm (.var 0) (.var 1)) (impOrForm (.var 0) (.var 1))
 
-def peirceOrImpOrForm : Form := .or (peirceForm (.var 0) (.var 1)) (impOrForm (.var 0) (.var 1))
+def peirce₁₂OrImpOr₁₂Form : Form := .or (peirceForm (.var 0) (.var 1)) (impOrForm (.var 0) (.var 1))
 
-def peirceOrImpOrForm' : Form := .or (peirceForm (.var 0) (.var 1)) (impOrForm (.var 1) (.var 0))
+def peirce₁₂OrImpOr₂₁Form : Form := .or (peirceForm (.var 0) (.var 1)) (impOrForm (.var 1) (.var 0))
 
-def pierceOrLukForm : Form := .or (peirceForm (.var 0) (.var 1)) (lukForm (.var 0) (.var 1))
+def pierce₁₂OrLuk₁₂Form : Form := .or (peirceForm (.var 0) (.var 1)) (lukForm (.var 0) (.var 1))
 
-def demorganOrLukForm : Form := .or (demorganForm (.var 0) (.var 1)) (lukForm (.var 0) (.var 1))
+def demorgan₁₂OrLuk₁₂Form : Form := .or (demorganForm (.var 0) (.var 1)) (lukForm (.var 0) (.var 1))
 
-def impOrOrLukForm : Form := .or (impOrForm (.var 0) (.var 1)) (lukForm (.var 0) (.var 1))
+def impOr₁₂OrLuk₁₂Form : Form := .or (impOrForm (.var 0) (.var 1)) (lukForm (.var 0) (.var 1))
 
-def pierceOrLukForm' : Form := .or (peirceForm (.var 0) (.var 1)) (lukForm (.var 1) (.var 0))
+def pierce₁₂OrLuk₂₁Form : Form := .or (peirceForm (.var 0) (.var 1)) (lukForm (.var 1) (.var 0))
 
-def impOrOrLukForm' : Form := .or (impOrForm (.var 0) (.var 1)) (lukForm (.var 1) (.var 0))
+def impOr₁₂OrLuk₂₁Form : Form := .or (impOrForm (.var 0) (.var 1)) (lukForm (.var 1) (.var 0))
