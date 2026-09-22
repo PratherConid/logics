@@ -192,10 +192,12 @@ theorem peirce_not_derivable :
 
 /-! ## The tables, as theorems
 
-The same three truth values also measure how strong the combined principles of
-this file are.  Each of the next two theorems says that its principle reaches
-the top value for *every* pair of truth values, so every way of instantiating it
-does too.  `em_not_top` says excluded middle does not.
+The same truth values also measure how strong the combined principles of this
+file are.  Each of the next two theorems says that its principle reaches the top
+value for *every* pair of truth values, so every way of instantiating it does
+too.  The Peirce version needs no bound on how many values there are, so it is
+stated for all of them at once; the De Morgan version is stated for three.
+`em_not_top` says excluded middle does not reach the top value.
 
 Together they show the combined principles are genuinely weaker than excluded
 middle: were excluded middle derivable from any instance of them, soundness
@@ -206,10 +208,22 @@ with `DeMOrLukasiewiczF`, by an argument that uses nothing classical, so it
 reaches the top value in exactly the algebras where `DeMOrLukasiewiczF` does. -/
 
 open HeytingAlgebra in
-/-- `PierceOrLukasiewiczF`, every instance. -/
-theorem pierceOrLuk_top (a b : Fin 3) :
+/-- `PierceOrLukasiewiczF` reaches the top value at every instance in *every*
+chain, whatever its length.  The two cases are exactly the two disjuncts: when
+`a ⊑ b` the Peirce disjunct reaches the top, and otherwise `b ⊑ a`, which sends
+Lukasiewicz's conclusion `b ⇨ a` to the top. -/
+theorem pierceOrLuk_top_chain {n : Nat} (a b : Fin (n + 1)) :
     (((a ⇨ b) ⇨ a) ⇨ a) ⊔ ((neg a ⇨ neg b) ⇨ (b ⇨ a)) = ⊤ := by
-  revert a b; decide
+  by_cases hab : a.val ≤ b.val
+  · have h1 : (a ⇨ b) = ⊤ := (Chain.himp_eq_top_iff a b).mpr hab
+    have h2 : (((a ⇨ b) ⇨ a) ⇨ a) = ⊤ := by
+      rw [h1]
+      exact (Chain.himp_eq_top_iff _ _).mpr (Chain.himp_top_left_le a)
+    rw [h2, BoundedLattice.top_sup]
+  · have h1 : (b ⇨ a) = ⊤ := (Chain.himp_eq_top_iff b a).mpr (by omega)
+    have h2 : ((neg a ⇨ neg b) ⇨ (b ⇨ a)) = ⊤ := by
+      rw [h1]; exact Chain.himp_top_right _
+    rw [h2, BoundedLattice.sup_top]
 
 open HeytingAlgebra in
 /-- `DeMOrLukasiewiczF`, every instance. -/
@@ -228,12 +242,12 @@ Three truth values do not separate the three combined principles from each
 other; more values do.  `Fin 4` adds a second undecided value, `0 ⊏ 1 ⊏ 2 ⊏ 3`,
 and there the principles part company.
 
-The Peirce version still reaches the top value everywhere, in `Fin 4` and in
-`Fin 5`.  The De Morgan version does not: it drops below the top at the single
-assignment `a = 1`, `b = 2`, and so, being interderivable with it, does the
-`ImpOrF` version.  So the Peirce version keeps working however many intermediate
-values are added, while the other two stop working as soon as there are two of
-them.
+The Peirce version still reaches the top value everywhere; that is
+`pierceOrLuk_top_chain` above, which covers chains of every length at once.  The
+De Morgan version does not: it drops below the top at the single assignment
+`a = 1`, `b = 2`, and so, being interderivable with it, does the `ImpOrF`
+version.  So the Peirce version keeps working however many intermediate values
+are added, while the other two stop working as soon as there are two of them.
 
 Excluded middle, meanwhile, still fails in all of these.  It fails in `Fin k`
 for every `k` greater than two, since any value strictly between the bottom and
@@ -249,18 +263,6 @@ open HeytingAlgebra in
 /-- Excluded middle fails in every chain with more than two values. -/
 theorem em_not_top_chain {n : Nat} (hn : 2 ≤ n) : ∃ a : Fin (n + 1), a ⊔ neg a ≠ ⊤ :=
   ⟨⟨1, by omega⟩, Chain.em_fails Nat.zero_lt_one (by omega : 1 < n)⟩
-
-open HeytingAlgebra in
-/-- `PierceOrLukasiewiczF` still has no counterexample in the four element chain. -/
-theorem pierceOrLuk_top_four (a b : Fin 4) :
-    (((a ⇨ b) ⇨ a) ⇨ a) ⊔ ((neg a ⇨ neg b) ⇨ (b ⇨ a)) = ⊤ := by
-  revert a b; decide
-
-open HeytingAlgebra in
-/-- Nor in the five element chain. -/
-theorem pierceOrLuk_top_five (a b : Fin 5) :
-    (((a ⇨ b) ⇨ a) ⇨ a) ⊔ ((neg a ⇨ neg b) ⇨ (b ⇨ a)) = ⊤ := by
-  revert a b; decide
 
 open HeytingAlgebra in
 /-- `DeMOrLukasiewiczF`, by contrast, drops to `q` at `a = p`, `b = q`. -/

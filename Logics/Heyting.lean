@@ -223,6 +223,31 @@ instance : HeytingAlgebra (Fin (n + 1)) where
   himp := himp
   himp_adj := himp_adj'
 
+/-! ### Implication in a chain -/
+
+/-- In a chain, `a ⇨ b` is the top element exactly when `a ⊑ b`. -/
+theorem himp_eq_top_iff (a b : Fin (n + 1)) : (a ⇨ b) = ⊤ ↔ a.val ≤ b.val := by
+  have ha := a.isLt
+  show himp a b = Fin.last n ↔ a.val ≤ b.val
+  simp only [himp]
+  split
+  · next h => simp [h]
+  · next h =>
+    constructor
+    · intro hb
+      have hv : b.val = n := congrArg Fin.val hb
+      omega
+    · intro hb; exact absurd hb h
+
+theorem himp_top_right (a : Fin (n + 1)) : (a ⇨ (⊤ : Fin (n + 1))) = ⊤ :=
+  (himp_eq_top_iff a ⊤).mpr (Nat.lt_succ_iff.mp a.isLt)
+
+/-- Implying out of the top element never lands above its conclusion. -/
+theorem himp_top_left_le (a : Fin (n + 1)) : (((⊤ : Fin (n + 1)) ⇨ a) : Fin (n + 1)).val ≤ a.val := by
+  show (himp (Fin.last n) a).val ≤ a.val
+  simp only [himp, Fin.val_last]
+  split <;> first | omega | (simp only [Fin.val_last]; omega)
+
 /-! ### Failure of excluded middle -/
 
 theorem neg_eq_bot {a : Fin (n + 1)} (h : 0 < a.val) : HeytingAlgebra.neg a = ⊥ := by

@@ -163,4 +163,6 @@ theorem inf_bot : a ⊓ ⊥ = ⊥ := (eq_bot_iff _).mpr (inf_le_right a ⊥)
 
 theorem sup_top : a ⊔ ⊤ = ⊤ := (eq_top_iff _).mpr (le_sup_right a ⊤)
 
+theorem top_sup : (⊤ : α) ⊔ a = ⊤ := by rw [sup_comm]; exact sup_top a
+
 end BoundedLattice
