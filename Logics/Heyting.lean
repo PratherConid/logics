@@ -153,6 +153,58 @@ theorem valid_of_derives {p : Form} (d : [] ⊢ p) : Valid p := by
 
 end Derives
 
+/-! ## Substitution
+
+A schema is a formula together with all of its substitution instances.  The
+substitution lemma says that evaluating an instance is the same as evaluating
+the original under a shifted valuation, which is what lets a single algebra
+refute every instance of a schema at once. -/
+
+/-- Replace each variable by a formula. -/
+def Form.subst (σ : Nat → Form) : Form → Form
+  | .var n => σ n
+  | .fls => .fls
+  | .and p q => .and (p.subst σ) (q.subst σ)
+  | .or p q => .or (p.subst σ) (q.subst σ)
+  | .imp p q => .imp (p.subst σ) (q.subst σ)
+
+theorem Form.eval_subst {α : Type u} [HeytingAlgebra α] (v : Nat → α) (σ : Nat → Form) :
+    ∀ p : Form, (p.subst σ).eval v = p.eval (fun n => (σ n).eval v)
+  | .var _ => rfl
+  | .fls => rfl
+  | .and p q => by simp only [Form.subst, Form.eval, eval_subst v σ p, eval_subst v σ q]
+  | .or p q => by simp only [Form.subst, Form.eval, eval_subst v σ p, eval_subst v σ q]
+  | .imp p q => by simp only [Form.subst, Form.eval, eval_subst v σ p, eval_subst v σ q]
+
+/-- `p` follows from the schema `X` when some finite list of substitution
+instances of `X` derives it. -/
+def DerivesFromSchema (X p : Form) : Prop :=
+  ∃ Γ : List Form, (∀ q ∈ Γ, ∃ σ : Nat → Form, q = X.subst σ) ∧ (Γ ⊢ p)
+
+namespace DerivesFromSchema
+
+/-- An algebra in which every valuation makes `X` top also makes top of
+everything the schema `X` derives.  Contrapositively, a single algebra that
+validates `X` but not `p` shows that no instantiation of `X` proves `p`. -/
+theorem valid {α : Type u} [HeytingAlgebra α] {X p : Form}
+    (hX : ∀ w : Nat → α, X.eval w = ⊤) (h : DerivesFromSchema X p) (v : Nat → α) :
+    p.eval v = ⊤ := by
+  obtain ⟨Γ, hΓ, d⟩ := h
+  have hctx : evalCtx v Γ = ⊤ := by
+    clear d
+    induction Γ with
+    | nil => rfl
+    | cons q Γ ih =>
+      obtain ⟨σ, hq⟩ := hΓ q (List.mem_cons_self ..)
+      have h1 : q.eval v = ⊤ := by rw [hq, Form.eval_subst]; exact hX _
+      have h2 : evalCtx v Γ = ⊤ := ih (fun r hr => hΓ r (List.mem_cons_of_mem q hr))
+      show q.eval v ⊓ evalCtx v Γ = ⊤
+      rw [h1, h2]
+      exact BoundedLattice.inf_top ⊤
+  exact (BoundedLattice.eq_top_iff _).mpr (hctx ▸ Derives.soundness v d)
+
+end DerivesFromSchema
+
 /-! ## Chains
 
 For every `n`, the linear order `Fin (n + 1)` carries a Heyting algebra: meet is
@@ -239,6 +291,13 @@ theorem himp_eq_top_iff (a b : Fin (n + 1)) : (a ⇨ b) = ⊤ ↔ a.val ≤ b.va
       omega
     · intro hb; exact absurd hb h
 
+theorem himp_eq_of_not_le {a b : Fin (n + 1)} (h : ¬ a.val ≤ b.val) : (a ⇨ b) = b := by
+  show himp a b = b
+  simp only [himp]
+  split
+  · next h' => exact absurd h' h
+  · rfl
+
 theorem himp_top_right (a : Fin (n + 1)) : (a ⇨ (⊤ : Fin (n + 1))) = ⊤ :=
   (himp_eq_top_iff a ⊤).mpr (Nat.lt_succ_iff.mp a.isLt)
 
@@ -264,3 +323,100 @@ theorem em_fails {a : Fin (n + 1)} (h₀ : 0 < a.val) (hn : a.val < n) :
   omega
 
 end Chain
+
+/-! ## The diamond
+
+Not every Heyting algebra is a chain.  The diamond is the six element algebra of
+upward closed subsets of the four point frame with a root, two incomparable
+middle points `x` and `y`, and a top.  Each element is coded by the bit mask of
+the set of frame points it names, which makes the operations computable and the
+axioms decidable. -/
+
+inductive Diamond where
+  | bot | e | x | y | m | top
+  deriving DecidableEq, Repr
+
+namespace Diamond
+
+instance decForallDiamond (p : Diamond → Prop) [DecidablePred p] : Decidable (∀ a, p a) :=
+  if h : p bot ∧ p e ∧ p x ∧ p y ∧ p m ∧ p top then
+    isTrue (by
+      obtain ⟨h1, h2, h3, h4, h5, h6⟩ := h
+      intro a
+      cases a
+      · exact h1
+      · exact h2
+      · exact h3
+      · exact h4
+      · exact h5
+      · exact h6)
+  else
+    isFalse (fun hall => h ⟨hall _, hall _, hall _, hall _, hall _, hall _⟩)
+
+/-- The bit mask of the upward closed set each element names. -/
+def mask : Diamond → Nat
+  | bot => 0 | e => 8 | x => 10 | y => 12 | m => 14 | top => 15
+
+def ofMask (n : Nat) : Diamond :=
+  if n = 0 then bot else if n = 8 then e else if n = 10 then x
+  else if n = 12 then y else if n = 14 then m else top
+
+/-- The principal upward closed set of each of the four frame points. -/
+def upset : Nat → Nat
+  | 0 => 15 | 1 => 10 | 2 => 12 | _ => 8
+
+abbrev le (a b : Diamond) : Prop := mask a &&& mask b = mask a
+abbrev inf (a b : Diamond) : Diamond := ofMask (mask a &&& mask b)
+abbrev sup (a b : Diamond) : Diamond := ofMask (mask a ||| mask b)
+/-- `a ⇨ b` collects the frame points whose whole upward closed set meets `a`
+only inside `b`. -/
+abbrev himp (a b : Diamond) : Diamond :=
+  ofMask ((List.range 4).foldl
+    (fun acc q => if upset q &&& mask a &&& (15 ^^^ mask b) = 0 then acc ||| (1 <<< q) else acc) 0)
+
+theorem le_refl' : ∀ a, le a a := by decide
+theorem le_trans' : ∀ a b c, le a b → le b c → le a c := by decide
+theorem le_antisymm' : ∀ a b, le a b → le b a → a = b := by decide
+theorem le_top' : ∀ a, le a top := by decide
+theorem bot_le' : ∀ a, le bot a := by decide
+theorem inf_le_left' : ∀ a b, le (inf a b) a := by decide
+theorem inf_le_right' : ∀ a b, le (inf a b) b := by decide
+theorem le_inf' : ∀ a b c, le a b → le a c → le a (inf b c) := by decide
+theorem le_sup_left' : ∀ a b, le a (sup a b) := by decide
+theorem le_sup_right' : ∀ a b, le b (sup a b) := by decide
+theorem sup_le' : ∀ a b c, le a c → le b c → le (sup a b) c := by decide
+theorem himp_adj' : ∀ a b c, le (inf a b) c ↔ le a (himp b c) := by decide
+
+instance : PartialOrder Diamond where
+  le := le
+  le_refl := le_refl'
+  le_trans := le_trans' _ _ _
+  le_antisymm := le_antisymm' _ _
+
+instance : Lattice Diamond where
+  inf := inf
+  sup := sup
+  inf_le_left := inf_le_left'
+  inf_le_right := inf_le_right'
+  le_inf := le_inf' _ _ _
+  le_sup_left := le_sup_left'
+  le_sup_right := le_sup_right'
+  sup_le := sup_le' _ _ _
+
+instance : BoundedLattice Diamond where
+  top := top
+  bot := bot
+  le_top := le_top'
+  bot_le := bot_le'
+
+instance : HeytingAlgebra Diamond where
+  himp := himp
+  himp_adj := himp_adj'
+
+/-- The diamond is not a chain: `x` and `y` are incomparable. -/
+theorem x_y_incomparable : ¬ le x y ∧ ¬ le y x := by decide
+
+/-- Nor is it classical. -/
+theorem em_fails : sup x (himp x bot) ≠ top := by decide
+
+end Diamond
