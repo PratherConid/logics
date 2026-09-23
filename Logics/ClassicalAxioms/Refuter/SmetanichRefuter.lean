@@ -1,4 +1,4 @@
-import Logics.ClassicalAxioms.ClassicalRefuter
+import Logics.ClassicalAxioms.Refuter.ClassicalRefuter
 import Logics.Lindenbaum
 import Logics.ConcreteEmbed
 

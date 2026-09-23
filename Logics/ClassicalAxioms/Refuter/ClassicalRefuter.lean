@@ -1,4 +1,4 @@
-import Logics.ClassicalAxioms.Refuter.StrictImply
+import Logics.ClassicalAxioms.StrictImply
 
 /-!
 # The three value chain decides classicality
