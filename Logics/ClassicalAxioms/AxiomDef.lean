@@ -42,6 +42,9 @@ def LukasiewiczF := fun a b : Prop => (¬ a → ¬ b) → (b → a)
 failure of `b`. -/
 def SmetanichF := fun (a b : Prop) => (¬ b → a) → (((a → b) → a) → a)
 
+/-- Bounded depth two: either `a`, or `a` settles excluded middle at `b`. -/
+def BD2F := fun (a b : Prop) => a ∨ (a → (b ∨ ¬ b))
+
 def Pierce₁₂OrPierce₂₁F := fun (a b : Prop) => (((a → b) → a) → a) ∨ (((b → a) → b) → b)
 
 def ImpOr₁₂OrImpOr₂₁F := fun (a b : Prop) =>
@@ -145,6 +148,9 @@ def peirce₁₂OrImpOr₂₁Form : Form := .or (peirceForm (.var 0) (.var 1)) (
 
 def smetanichForm : Form :=
   .imp (.imp (Form.neg (.var 1)) (.var 0)) (peirceForm (.var 0) (.var 1))
+
+def bd2Form : Form :=
+  .or (.var 0) (.imp (.var 0) (.or (.var 1) (Form.neg (.var 1))))
 
 def pierce₁₂OrLuk₁₂Form : Form := .or (peirceForm (.var 0) (.var 1)) (lukForm (.var 0) (.var 1))
 

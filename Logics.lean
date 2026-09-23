@@ -4,5 +4,6 @@ import Logics.Lattice
 import Logics.Heyting
 import Logics.Lindenbaum
 import Logics.Homomorphism
+import Logics.ConcreteEmbed
 import Logics.Filter
 import Logics.ClassicalAxioms

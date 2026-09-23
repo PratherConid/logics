@@ -29,8 +29,8 @@ every combined principle of this development in a chain of five strict steps:
                   ≡ Pierce₁₂OrDeMorgan₁₂F ≡ DeMorgan₁₂OrImpOr₁₂F ≡ ImpOr₁₂OrImpOr₂₁F
     ⊋  SmetanichF ≡ Peirce₁₂OrImpOr₂₁F ≡ Em₁OrPeirce₂₁F
        ≡ EmAOrNotB₁₂OrPeirce₁₂F ≡ EmAOrNotB₁₂OrPeirce₂₁F
-    ⊋  DeMorgan₁₂OrLukasiewicz₁₂F ≡ ImpOr₁₂OrLukasiewicz₁₂F ≡ Pierce₁₂OrLukasiewicz₂₁F
-       ≡ Em₁OrLuk₂₁F ≡ NotNot₁OrLuk₂₁F ≡ CM₁OrLuk₂₁F
+    ⊋  BD2F ≡ DeMorgan₁₂OrLukasiewicz₁₂F ≡ ImpOr₁₂OrLukasiewicz₁₂F
+       ≡ Pierce₁₂OrLukasiewicz₂₁F ≡ Em₁OrLuk₂₁F ≡ NotNot₁OrLuk₂₁F ≡ CM₁OrLuk₂₁F
        ≡ NotNot₁OrPeirce₂₁F ≡ CM₁OrPeirce₂₁F
        ≡ EmAOrB₁₂OrLuk₁₂F ≡ EmAOrB₁₂OrLuk₂₁F ≡ EmAOrNotB₁₂OrLuk₂₁F
     ⊋  ImpOr₁₂OrLukasiewicz₂₁F ≡ Lukasiewicz₁₂OrLukasiewicz₂₁F
@@ -46,11 +46,16 @@ Lukasiewicz's arguments in the Peirce principle lands inside a class; doing it
 in the `ImpOrF` principle drops a level; swapping `ImpOrF`'s own arguments in
 `Peirce₁₂OrImpOr₁₂F` climbs three.
 
-The second level is the only one here with a name of its own.  `SmetanichF`,
-`(¬ b → a) → (((a → b) → a) → a)`, is the axiom the literature uses for it,
-and it is the one principle of this development whose position is pinned down
-completely: `Fin 4` and `ForkUp 1 1` are exactly its minimal refuters, so a
-schema derives it precisely when it fails in both.
+Two of the levels have names from the literature.  `SmetanichF`,
+`(¬ b → a) → (((a → b) → a) → a)`, axiomatises the second; `BD2F`,
+`a ∨ (a → (b ∨ ¬ b))`, bounded depth two, axiomatises the third.  The two
+differ by linearity, which is why the second needs a second separating algebra
+where the third does not.
+
+Only the second is pinned down completely here.  `Fin 4` and `ForkUp 1 1` are
+exactly its minimal refuters, so a schema derives it precisely when it fails in
+both; for every other level the separating algebras are witnesses, not a
+complete list.
 
 Not every such disjunction is intermediate.  `Pierce₁₂OrDeMorgan₁₂F` and
 `DeMorgan₁₂OrImpOr₁₂F` avoid Lukasiewicz, and both land back on excluded

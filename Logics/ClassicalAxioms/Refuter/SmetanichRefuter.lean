@@ -1,6 +1,6 @@
 import Logics.ClassicalAxioms.ClassicalRefuter
 import Logics.Lindenbaum
-import Logics.Homomorphism
+import Logics.ConcreteEmbed
 
 /-!
 # Where Smetanich's axiom sits, exactly
@@ -55,16 +55,6 @@ open PartialOrder Lattice BoundedLattice HeytingAlgebra
 
 /-! # Part one: the two algebras cannot be shrunk -/
 
-/-! ## Lower bounds among refuters -/
-
-/-- `A` is a lower bound for the algebras refuting `p`: anything below it in
-the order that still refutes `p` is back above it.  Note this does not itself
-say that `A` refutes `p`; that is a separate fact, and without it the property
-holds vacuously. -/
-def RefuterLB (A : Type) [iA : HeytingAlgebra A] (p : Form) : Prop :=
-  ∀ (γ : Type) (iγ : HeytingAlgebra γ),
-    @SH γ A iγ iA → (¬ ∀ v : Nat → γ, p.eval v = ⊤) → @SH A γ iA iγ
-
 /-! ## `Fin 4`
 
 The principle takes only the values `2` and `⊤` in the four element chain, and
@@ -74,16 +64,9 @@ open HeytingAlgebra in
 theorem smetanich_four_ge_two : ∀ a b : Fin 4,
     ((2 : Fin 4) ⊓ ((neg b ⇨ a) ⇨ (((a ⇨ b) ⇨ a) ⇨ a))) = 2 := by decide
 
-theorem four_coatom : ∀ x : Fin 4, x ≠ ⊤ → x ⊓ (2 : Fin 4) = x := by decide
-
 open HeytingAlgebra in
 theorem smetanich_four_fail : ∀ a b : Fin 4,
     ((neg b ⇨ a) ⇨ (((a ⇨ b) ⇨ a) ⇨ a)) ≠ ⊤ → a = 2 ∧ b = 1 := by decide
-
-theorem four_cases : ∀ y : Fin 4, y = 0 ∨ y = 1 ∨ y = 2 ∨ y = 3 := by decide
-
-theorem four_coatom' (x : Fin 4) (h : x ≠ ⊤) : x ⊑ (2 : Fin 4) :=
-  inf_eq_left_iff.mp (four_coatom x h)
 
 theorem smetanich_four_eval_ge (v : Nat → Fin 4) :
     (2 : Fin 4) ⊑ smetanichForm.eval v :=
@@ -177,9 +160,6 @@ two separating algebras can be dropped in favour of the other. -/
 
 def linearityForm : Form := .or (.imp (.var 0) (.var 1)) (.imp (.var 1) (.var 0))
 
-def depthTwoForm : Form :=
-  .or (.var 0) (.imp (.var 0) (.or (.var 1) (Form.neg (.var 1))))
-
 theorem linearity_four : ∀ a b : Fin 4, (a ⇨ b) ⊔ (b ⇨ a) = ⊤ := by decide
 
 theorem linearityForm_valid_four (v : Nat → Fin 4) : linearityForm.eval v = ⊤ :=
@@ -192,11 +172,11 @@ theorem linearityForm_nvalid_fork :
 open HeytingAlgebra in
 theorem depthTwo_fork : ∀ a b : ForkUp 1 1, a ⊔ (a ⇨ (b ⊔ neg b)) = ⊤ := by decide
 
-theorem depthTwoForm_valid_fork (v : Nat → ForkUp 1 1) : depthTwoForm.eval v = ⊤ :=
+theorem bd2Form_valid_fork (v : Nat → ForkUp 1 1) : bd2Form.eval v = ⊤ :=
   depthTwo_fork (v 0) (v 1)
 
-theorem depthTwoForm_nvalid_four :
-    depthTwoForm.eval (fun n => if n = 0 then (2 : Fin 4) else 1) ≠ ⊤ := by decide
+theorem bd2Form_nvalid_four :
+    bd2Form.eval (fun n => if n = 0 then (2 : Fin 4) else 1) ≠ ⊤ := by decide
 
 /-- The fork is not below the chain: linearity holds in `Fin 4` and fails in it. -/
 theorem not_sh_fork_four : ¬ SH (ForkUp 1 1) (Fin 4) := fun h =>
@@ -205,7 +185,7 @@ theorem not_sh_fork_four : ¬ SH (ForkUp 1 1) (Fin 4) := fun h =>
 /-- The chain is not below the fork: bounded depth holds in the fork and fails
 in `Fin 4`. -/
 theorem not_sh_four_fork : ¬ SH (Fin 4) (ForkUp 1 1) := fun h =>
-  depthTwoForm_nvalid_four (valid_of_sh h depthTwoForm_valid_fork _)
+  bd2Form_nvalid_four (valid_of_sh h bd2Form_valid_fork _)
 
 /-! # Part two: which schemas derive the axiom -/
 

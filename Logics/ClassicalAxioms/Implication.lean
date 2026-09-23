@@ -727,11 +727,17 @@ theorem demorgan₁₂OrLuk₁₂F_emAOrNotB₁₂OrLuk₂₁F (a b : Prop) :
     intro h ha
     exact hLuk (fun hn ha' => h (fun hb => hn (fun _ => hb)) ha') ha ha
 
-/-! ## Smetanich's axiom sits at the `Peirce₁₂OrImpOr₂₁F` level
+/-! ## Smetanich's axiom and `Peirce₁₂OrImpOr₂₁F` axiomatise the same level
 
-One direction needs no shift at all.  The other needs two instances, and no
-single one suffices: the target has to be fed back in as an argument before
-the principle at `a, b` can finish the job. -/
+Smetanich's is the named axiom for that level; the combined principle is the
+form the disjunctions of this development put there.  Each derives the other,
+so the two are interchangeable wherever the level is meant.
+
+The two directions are not alike.  `Peirce₁₂OrImpOr₂₁F` gives Smetanich's
+axiom at the same arguments, with no shift at all.  Going back needs *two*
+instances, and no single one suffices: the target has to be fed in as an
+argument first, to obtain `¬ b → a`, which is exactly what the instance at
+`a, b` consumes. -/
 
 theorem peirce₁₂OrImpOr₂₁F_smetanichF (a b : Prop) :
     Peirce₁₂OrImpOr₂₁F a b → SmetanichF a b := by
@@ -750,3 +756,32 @@ theorem smetanichF_peirce₁₂OrImpOr₂₁F (a b : Prop)
   refine h₁ (fun na => Or.inr (fun hba => Or.inl (fun hb => na (hba hb)))) ?_
   intro k
   exact Or.inl (h₂ (fun nb => k (hnb nb)))
+
+/-! ## `BD2F` and `Em₁OrLuk₂₁F` axiomatise the same level
+
+`BD2F` is bounded depth two, the named axiom for the level below Smetanich's.
+Each direction needs one shifted instance, and both shifts are the same idea:
+excluded middle at one argument is what the two principles trade in.  Going up,
+`BD2F` is asked about `a ∨ ¬ a`; coming back, the Lukasiewicz principle is asked
+about `b ∨ ¬ b`, whose negation is absurd and so discharges the hypothesis for
+free. -/
+
+theorem bd2F_em₁OrLuk₂₁F (a b : Prop) : BD2F (a ∨ ¬ a) b → Em₁OrLuk₂₁F a b := by
+  intro h
+  cases h with
+  | inl hem => exact Or.inl hem
+  | inr k =>
+      refine Or.inr (fun hn ha => ?_)
+      cases k (Or.inl ha) with
+      | inl hb => exact hb
+      | inr nb => exact absurd ha (hn nb)
+
+theorem em₁OrLuk₂₁F_bd2F (a b : Prop) : Em₁OrLuk₂₁F a (b ∨ ¬ b) → BD2F a b := by
+  intro h
+  cases h with
+  | inl hem =>
+      cases hem with
+      | inl ha => exact Or.inl ha
+      | inr na => exact Or.inr (fun ha => absurd ha na)
+  | inr k =>
+      exact Or.inr (k (fun hn => absurd (Or.inr (fun hb => hn (Or.inl hb))) hn))
