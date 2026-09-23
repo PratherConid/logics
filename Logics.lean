@@ -6,4 +6,5 @@ import Logics.Lindenbaum
 import Logics.Homomorphism
 import Logics.ConcreteEmbed
 import Logics.Filter
+import Logics.Jankov
 import Logics.ClassicalAxioms
