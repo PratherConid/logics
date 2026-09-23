@@ -2,4 +2,7 @@
 -- Import modules here that should be built as part of the library.
 import Logics.Lattice
 import Logics.Heyting
+import Logics.Lindenbaum
+import Logics.Homomorphism
+import Logics.Filter
 import Logics.ClassicalAxioms

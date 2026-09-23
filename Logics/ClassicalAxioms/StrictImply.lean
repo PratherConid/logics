@@ -148,3 +148,24 @@ theorem pierce₁₂OrLuk₁₂_nderiv_pierce₁₂OrPierce₂₁ :
     ¬ DerivesFromSchema pierce₁₂OrPierce₂₁Form pierce₁₂OrLuk₁₂Form := fun h =>
   pierce₁₂OrLuk₁₂Form_nvalid_kite (DerivesFromSchema.valid pierce₁₂OrPierce₂₁Form_valid_kite h _)
 
+/-! ## Both algebras are needed at the `Peirce₁₂OrImpOr₂₁F` step
+
+`Fin 4` and `ForkUp 1 1` each refute `Peirce₁₂OrImpOr₂₁F`, and neither is a
+subalgebra of a quotient of the other: quotients and subalgebras of a chain are
+chains, so the fork cannot appear inside `Fin 4`, and the fork's only proper
+generated subframe is an antichain, whose algebra is Boolean.
+
+So a schema that derives `Peirce₁₂OrImpOr₂₁F` has to miss the top value in both
+of them, which is what the two theorems below record.  Used in the other
+direction, they are the test the separation proofs above perform: exhibiting a
+schema valid throughout either algebra shows it derives nothing at this level. -/
+
+theorem nvalid_four_of_derives_peirce₁₂OrImpOr₂₁ {X : Form}
+    (h : DerivesFromSchema X peirce₁₂OrImpOr₂₁Form) :
+    ¬ ∀ w : Nat → Fin 4, X.eval w = ⊤ := fun hv =>
+  peirce₁₂OrImpOr₂₁Form_nvalid_four (DerivesFromSchema.valid hv h _)
+
+theorem nvalid_fork_of_derives_peirce₁₂OrImpOr₂₁ {X : Form}
+    (h : DerivesFromSchema X peirce₁₂OrImpOr₂₁Form) :
+    ¬ ∀ w : Nat → ForkUp 1 1, X.eval w = ⊤ := fun hv =>
+  peirce₁₂OrImpOr₂₁Form_nvalid_fork (DerivesFromSchema.valid hv h _)

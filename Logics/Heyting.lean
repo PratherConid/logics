@@ -56,6 +56,150 @@ theorem sup_cases {a b c d : α} (h : c ⊑ a ⊔ b) (ha : a ⊓ c ⊑ d) (hb : 
   have hc : c ⊓ c ⊑ d := inf_le_of_le_himp (le_trans h h')
   le_trans (le_of_eq (inf_idem c).symm) hc
 
+/-- Implication between comparable elements is the top. -/
+theorem himp_eq_top_of_le {a b : α} (h : a ⊑ b) : (a ⇨ b) = ⊤ :=
+  (eq_top_iff _).mpr (le_himp_of_inf_le (by rw [top_inf]; exact h))
+
+/-- Implying out of the top is the conclusion itself. -/
+theorem himp_top_left : ((⊤ : α) ⇨ a) = a :=
+  le_antisymm (by have h := himp_inf_le (⊤ : α) a; rwa [inf_top] at h)
+    (le_himp_of_inf_le (inf_le_left a ⊤))
+
+/-- The negation of an excluded middle is absurd: it lies below both `a` and
+`neg a`, hence below their meet, which is `⊥`. -/
+theorem neg_sup_neg_eq_bot (a : α) : neg (a ⊔ neg a) = ⊥ := by
+  have h1 : neg (a ⊔ neg a) ⊓ (a ⊔ neg a) ⊑ ⊥ := himp_inf_le (a ⊔ neg a) ⊥
+  have h2 : neg (a ⊔ neg a) ⊓ a ⊑ ⊥ :=
+    le_trans (inf_le_inf le_rfl (le_sup_left a (neg a))) h1
+  have h3 : neg (a ⊔ neg a) ⊑ neg a := le_himp_of_inf_le h2
+  have h4 : neg (a ⊔ neg a) ⊑ a ⊔ neg a := le_trans h3 (le_sup_right a (neg a))
+  have h5 : neg (a ⊔ neg a) ⊓ neg (a ⊔ neg a) ⊑ ⊥ :=
+    le_trans (inf_le_inf le_rfl h4) h1
+  exact (eq_bot_iff _).mpr (le_trans (le_of_eq (inf_idem _).symm) h5)
+
+/-- `neg ⊥` is the top. -/
+theorem neg_bot : neg (⊥ : α) = ⊤ := himp_eq_top_of_le le_rfl
+
+/-! ### Implication and the lattice operations
+
+The identities a congruence needs: implication composes, and it is monotone in
+its conclusion and antitone in its hypothesis, uniformly enough that a pair of
+implications bounds the implication between the combinations. -/
+
+theorem himp_trans (x y z : α) : (x ⇨ y) ⊓ (y ⇨ z) ⊑ (x ⇨ z) := by
+  refine le_himp_of_inf_le ?_
+  have h1 : ((x ⇨ y) ⊓ (y ⇨ z)) ⊓ x ⊑ (y ⇨ z) ⊓ y := by
+    refine le_inf (le_trans (inf_le_left _ _) (inf_le_right _ _)) ?_
+    exact le_trans (inf_le_inf (inf_le_left _ _) le_rfl) (himp_inf_le x y)
+  exact le_trans h1 (himp_inf_le y z)
+
+theorem himp_le_inf (x y z : α) : (x ⇨ y) ⊓ (x ⇨ z) ⊑ (x ⇨ y ⊓ z) := by
+  refine le_himp_of_inf_le (le_inf ?_ ?_)
+  · exact le_trans (inf_le_inf (inf_le_left _ _) le_rfl) (himp_inf_le x y)
+  · exact le_trans (inf_le_inf (inf_le_right _ _) le_rfl) (himp_inf_le x z)
+
+theorem sup_himp_le (x y z : α) : (x ⇨ z) ⊓ (y ⇨ z) ⊑ ((x ⊔ y) ⇨ z) := by
+  refine le_himp_of_inf_le (sup_cases (inf_le_right _ _) ?_ ?_)
+  · exact le_trans (le_inf (le_trans (inf_le_right _ _)
+      (le_trans (inf_le_left _ _) (inf_le_left _ _))) (inf_le_left _ _)) (himp_inf_le x z)
+  · exact le_trans (le_inf (le_trans (inf_le_right _ _)
+      (le_trans (inf_le_left _ _) (inf_le_right _ _))) (inf_le_left _ _)) (himp_inf_le y z)
+
+theorem himp_inf_congr (x y x' y' : α) :
+    (x ⇨ x') ⊓ (y ⇨ y') ⊑ ((x ⊓ y) ⇨ (x' ⊓ y')) := by
+  refine le_himp_of_inf_le (le_inf ?_ ?_)
+  · exact le_trans (inf_le_inf (inf_le_left _ _) (inf_le_left _ _)) (himp_inf_le x x')
+  · exact le_trans (inf_le_inf (inf_le_right _ _) (inf_le_right _ _)) (himp_inf_le y y')
+
+theorem himp_sup_congr (x y x' y' : α) :
+    (x ⇨ x') ⊓ (y ⇨ y') ⊑ ((x ⊔ y) ⇨ (x' ⊔ y')) := by
+  refine le_himp_of_inf_le (sup_cases (inf_le_right _ _) ?_ ?_)
+  · refine le_trans ?_ (le_sup_left x' y')
+    refine le_trans (le_inf (le_trans (inf_le_right _ _)
+      (le_trans (inf_le_left _ _) (inf_le_left _ _))) (inf_le_left _ _)) ?_
+    exact himp_inf_le x x'
+  · refine le_trans ?_ (le_sup_right x' y')
+    refine le_trans (le_inf (le_trans (inf_le_right _ _)
+      (le_trans (inf_le_left _ _) (inf_le_right _ _))) (inf_le_left _ _)) ?_
+    exact himp_inf_le y y'
+
+theorem himp_himp_congr (x y x' y' : α) :
+    (x' ⇨ x) ⊓ (y ⇨ y') ⊑ ((x ⇨ y) ⇨ (x' ⇨ y')) := by
+  refine le_himp_of_inf_le (le_himp_of_inf_le ?_)
+  have h1 : (((x' ⇨ x) ⊓ (y ⇨ y')) ⊓ (x ⇨ y)) ⊓ x' ⊑ (y ⇨ y') ⊓ y := by
+    refine le_inf ?_ ?_
+    · exact le_trans (inf_le_left _ _) (le_trans (inf_le_left _ _) (inf_le_right _ _))
+    · have ha : (((x' ⇨ x) ⊓ (y ⇨ y')) ⊓ (x ⇨ y)) ⊓ x' ⊑ x :=
+        le_trans (inf_le_inf (le_trans (inf_le_left _ _) (inf_le_left _ _)) le_rfl)
+          (himp_inf_le x' x)
+      exact le_trans (le_inf (le_trans (inf_le_left _ _) (inf_le_right _ _)) ha) (himp_inf_le x y)
+  exact le_trans h1 (himp_inf_le y y')
+
+/-- Currying, as an equality of elements. -/
+theorem himp_curry (x y z : α) : ((x ⊓ y) ⇨ z) = (x ⇨ (y ⇨ z)) := by
+  refine le_antisymm (le_himp_of_inf_le (le_himp_of_inf_le ?_)) (le_himp_of_inf_le ?_)
+  · exact le_trans (le_of_eq (inf_assoc _ _ _)) (himp_inf_le (x ⊓ y) z)
+  · refine le_trans (le_of_eq (inf_assoc _ _ _).symm) ?_
+    exact le_trans (inf_le_inf (himp_inf_le x (y ⇨ z)) le_rfl) (himp_inf_le y z)
+
+/-- An implication reaching the top means the hypothesis lies below the
+conclusion: the converse of `himp_eq_top_of_le`. -/
+theorem le_of_himp_eq_top {a b : α} (h : (a ⇨ b) = ⊤) : a ⊑ b := by
+  have h1 : (a ⇨ b) ⊓ a ⊑ b := himp_inf_le a b
+  rw [h, top_inf] at h1
+  exact h1
+
+/-! ### Negation
+
+The facts a pair of complementary regular elements needs.  In any Heyting
+algebra `neg t` and `neg (neg t)` meet at `⊥`, negate to each other, and each
+is what the other implies it to be — so they always span a copy of the five
+element fork, as soon as their join misses the top. -/
+
+theorem inf_neg_eq_bot (a : α) : a ⊓ neg a = ⊥ :=
+  (eq_bot_iff _).mpr (le_trans (le_of_eq (inf_comm a (neg a))) (himp_inf_le a ⊥))
+
+theorem le_neg_neg (a : α) : a ⊑ neg (neg a) :=
+  le_himp_of_inf_le (le_of_eq (inf_neg_eq_bot a))
+
+theorem neg_neg_neg (a : α) : neg (neg (neg a)) = neg a := by
+  refine le_antisymm ?_ ?_
+  · refine le_himp_of_inf_le ?_
+    exact le_trans (inf_le_inf le_rfl (le_neg_neg a)) (himp_inf_le _ ⊥)
+  · exact le_himp_of_inf_le (le_trans (le_of_eq (inf_comm _ _)) (himp_inf_le (neg a) ⊥))
+
+/-- `neg a ⇨ neg (neg a)` is `neg (neg a)`. -/
+theorem neg_himp_neg_neg (a : α) : (neg a ⇨ neg (neg a)) = neg (neg a) := by
+  refine le_antisymm (le_himp_of_inf_le ?_) (le_himp_of_inf_le (inf_le_left _ _))
+  exact le_trans (le_inf (himp_inf_le _ _) (inf_le_right _ _))
+    (le_trans (le_of_eq (inf_comm _ _)) (le_of_eq (inf_neg_eq_bot (neg a))))
+
+/-- `neg (neg a) ⇨ neg a` is `neg a`. -/
+theorem neg_neg_himp_neg (a : α) : (neg (neg a) ⇨ neg a) = neg a := by
+  refine le_antisymm (le_himp_of_inf_le ?_) (le_himp_of_inf_le (inf_le_left _ _))
+  have h1 : (neg (neg a) ⇨ neg a) ⊓ a ⊑ neg a :=
+    le_trans (inf_le_inf le_rfl (le_neg_neg a)) (himp_inf_le _ _)
+  exact le_trans (le_inf (inf_le_right _ _) h1) (le_of_eq (inf_neg_eq_bot a))
+
+/-- The join of the two implies back to each of them. -/
+theorem sup_neg_himp_left (a : α) : ((neg a ⊔ neg (neg a)) ⇨ neg a) = neg a := by
+  refine le_antisymm ?_ (le_himp_of_inf_le (inf_le_left _ _))
+  have h1 : ((neg a ⊔ neg (neg a)) ⇨ neg a) ⊓ neg (neg a) ⊑ neg a :=
+    le_trans (inf_le_inf le_rfl (le_sup_right _ _)) (himp_inf_le _ _)
+  have h3 : ((neg a ⊔ neg (neg a)) ⇨ neg a) ⊓ neg (neg a) ⊑ ⊥ :=
+    le_trans (le_inf h1 (inf_le_right _ _)) (le_of_eq (inf_neg_eq_bot (neg a)))
+  have h4 : ((neg a ⊔ neg (neg a)) ⇨ neg a) ⊑ neg (neg (neg a)) := le_himp_of_inf_le h3
+  rwa [neg_neg_neg] at h4
+
+theorem sup_neg_himp_right (a : α) :
+    ((neg a ⊔ neg (neg a)) ⇨ neg (neg a)) = neg (neg a) := by
+  refine le_antisymm ?_ (le_himp_of_inf_le (inf_le_left _ _))
+  have h1 : ((neg a ⊔ neg (neg a)) ⇨ neg (neg a)) ⊓ neg a ⊑ neg (neg a) :=
+    le_trans (inf_le_inf le_rfl (le_sup_left _ _)) (himp_inf_le _ _)
+  have h3 : ((neg a ⊔ neg (neg a)) ⇨ neg (neg a)) ⊓ neg a ⊑ ⊥ :=
+    le_trans (le_inf (inf_le_right _ _) h1) (le_of_eq (inf_neg_eq_bot (neg a)))
+  exact le_himp_of_inf_le h3
+
 end HeytingAlgebra
 
 /-! ## Upward closed sets of a frame
@@ -229,6 +373,42 @@ notation:40 Γ " ⊢ " p => Derives Γ p
 
 namespace Derives
 
+/-! ### Structural rules
+
+The rules above work in a fixed context, but a derivation stays valid in any
+larger one, and a hypothesis that is itself derivable can be discharged. -/
+
+/-- Membership transfers through a common head. -/
+theorem mem_cons_of {Γ Δ : List Form} (hs : ∀ q ∈ Γ, q ∈ Δ) (r : Form) :
+    ∀ q ∈ r :: Γ, q ∈ r :: Δ := by
+  intro q hq
+  simp only [List.mem_cons] at hq ⊢
+  exact hq.imp id (hs q)
+
+/-- Weakening: a derivation survives any enlargement of its context. -/
+theorem weaken {Γ : List Form} {p : Form} (d : Γ ⊢ p) :
+    ∀ Δ : List Form, (∀ q ∈ Γ, q ∈ Δ) → (Δ ⊢ p) := by
+  induction d with
+  | ax h => intro Δ hs; exact .ax (hs _ h)
+  | flsE _ ih => intro Δ hs; exact .flsE (ih Δ hs)
+  | andI _ _ ih₁ ih₂ => intro Δ hs; exact .andI (ih₁ Δ hs) (ih₂ Δ hs)
+  | andE₁ _ ih => intro Δ hs; exact .andE₁ (ih Δ hs)
+  | andE₂ _ ih => intro Δ hs; exact .andE₂ (ih Δ hs)
+  | orI₁ _ ih => intro Δ hs; exact .orI₁ (ih Δ hs)
+  | orI₂ _ ih => intro Δ hs; exact .orI₂ (ih Δ hs)
+  | orE _ _ _ ih ih₁ ih₂ =>
+      intro Δ hs
+      exact .orE (ih Δ hs) (ih₁ _ (mem_cons_of hs _)) (ih₂ _ (mem_cons_of hs _))
+  | impI _ ih => intro Δ hs; exact .impI (ih _ (mem_cons_of hs _))
+  | impE _ _ ih₁ ih₂ => intro Δ hs; exact .impE (ih₁ Δ hs) (ih₂ Δ hs)
+
+/-- Cut: a hypothesis derivable in the remaining context can be removed. -/
+theorem cut {Γ : List Form} {p q : Form} (d₁ : Γ ⊢ p) (d₂ : (p :: Γ) ⊢ q) : Γ ⊢ q :=
+  .impE (.impI d₂) d₁
+
+/-- `⊤` is derivable in every context. -/
+theorem tru {Γ : List Form} : Γ ⊢ Form.tru := .impI (.ax (by simp))
+
 theorem evalCtx_le_of_mem {α : Type u} [HeytingAlgebra α] (v : Nat → α) {p : Form}
     {Γ : List Form} (h : p ∈ Γ) : evalCtx v Γ ⊑ p.eval v := by
   induction h with
@@ -260,6 +440,77 @@ theorem valid_of_derives {p : Form} (d : [] ⊢ p) : Valid p := by
   exact (eq_top_iff _).mpr (soundness v d)
 
 end Derives
+
+/-! ## Entailment between single formulas
+
+`Ent p q` is a derivation of `q` from `p` alone.  Read as a one step
+implication it gives a calculus in which a formula can be rewritten inside a
+connective, which is what an induction over formula structure needs. -/
+
+/-- `q` is derivable from the single hypothesis `p`. -/
+def Ent (p q : Form) : Prop := [p] ⊢ q
+
+namespace Ent
+
+theorem refl (p : Form) : Ent p p := Derives.ax (by simp)
+
+/-- An entailment applies to any derivation of its hypothesis. -/
+theorem mp {Γ : List Form} {p q : Form} (h : Ent p q) (d : Γ ⊢ p) : Γ ⊢ q :=
+  Derives.cut d (Derives.weaken h _ (by intro r hr; simp at hr; simp [hr]))
+
+theorem trans {p q r : Form} (h₁ : Ent p q) (h₂ : Ent q r) : Ent p r := mp h₂ h₁
+
+theorem fls (p : Form) : Ent .fls p := Derives.flsE (Derives.ax (by simp))
+theorem tru (p : Form) : Ent p Form.tru := Derives.tru
+
+theorem and_left (p q : Form) : Ent (.and p q) p :=
+  Derives.andE₁ (q := q) (Derives.ax (by simp))
+theorem and_right (p q : Form) : Ent (.and p q) q :=
+  Derives.andE₂ (p := p) (Derives.ax (by simp))
+theorem and_intro {r p q : Form} (h₁ : Ent r p) (h₂ : Ent r q) : Ent r (.and p q) :=
+  Derives.andI h₁ h₂
+
+theorem or_left (p q : Form) : Ent p (.or p q) := Derives.orI₁ (Derives.ax (by simp))
+theorem or_right (p q : Form) : Ent q (.or p q) := Derives.orI₂ (Derives.ax (by simp))
+theorem or_elim {p q r : Form} (h₁ : Ent p r) (h₂ : Ent q r) : Ent (.or p q) r :=
+  Derives.orE (p := p) (q := q) (Derives.ax (by simp)) (mp h₁ (Derives.ax (by simp)))
+    (mp h₂ (Derives.ax (by simp)))
+
+/-- A provable implication is derivable from anything. -/
+theorem imp_intro {r p q : Form} (h : Ent p q) : Ent r (.imp p q) :=
+  Derives.impI (mp h (Derives.ax (by simp)))
+
+/-- Weakening inside an implication. -/
+theorem imp_weak (p q : Form) : Ent q (.imp p q) := Derives.impI (Derives.ax (by simp))
+
+/-- An implication out of `⊤` is its own conclusion. -/
+theorem imp_tru_left (q : Form) : Ent (.imp Form.tru q) q :=
+  Derives.impE (Derives.ax (by simp)) Derives.tru
+
+theorem and_cong {p p' q q' : Form} (h₁ : Ent p p') (h₂ : Ent q q') :
+    Ent (.and p q) (.and p' q') :=
+  Derives.andI (mp h₁ (Derives.andE₁ (q := q) (Derives.ax (by simp))))
+    (mp h₂ (Derives.andE₂ (p := p) (Derives.ax (by simp))))
+
+theorem or_cong {p p' q q' : Form} (h₁ : Ent p p') (h₂ : Ent q q') :
+    Ent (.or p q) (.or p' q') :=
+  or_elim (trans h₁ (or_left p' q')) (trans h₂ (or_right p' q'))
+
+/-- Residuation, one way: a hypothesis can be moved out of a conjunction. -/
+theorem curry {p q r : Form} (h : Ent (.and p q) r) : Ent p (.imp q r) :=
+  Derives.impI (mp h (Derives.andI (Derives.ax (by simp)) (Derives.ax (by simp))))
+
+/-- Residuation, the other way. -/
+theorem uncurry {p q r : Form} (h : Ent p (.imp q r)) : Ent (.and p q) r :=
+  Derives.impE (mp h (Derives.andE₁ (q := q) (Derives.ax (by simp))))
+    (Derives.andE₂ (p := p) (Derives.ax (by simp)))
+
+/-- Implication is contravariant in its hypothesis. -/
+theorem imp_cong {p p' q q' : Form} (h₁ : Ent p' p) (h₂ : Ent q q') :
+    Ent (.imp p q) (.imp p' q') :=
+  Derives.impI (mp h₂ (Derives.impE (Derives.ax (by simp)) (mp h₁ (Derives.ax (by simp)))))
+
+end Ent
 
 /-! ## Substitution
 
@@ -312,6 +563,64 @@ theorem valid {α : Type u} [HeytingAlgebra α] {X p : Form}
   exact (BoundedLattice.eq_top_iff _).mpr (hctx ▸ Derives.soundness v d)
 
 end DerivesFromSchema
+
+/-! ## Naming the elements of an algebra by formulas
+
+A `FormRep` picks a formula for each element of an algebra so that the
+connectives track the operations, up to derivability in both directions.  That
+is a Heyting algebra homomorphism into the order of formulas under entailment,
+written without quotienting that order into an algebra first.
+
+Its point is `FormRep.ent_eval`: substituting the names of a valuation's values
+turns every formula into one interderivable with the name of its own value.  So
+a formula refuted in the algebra becomes a formula whose named instance is
+derivably below the name of a non-top element, which is how a countermodel is
+read back as a derivation. -/
+
+structure FormRep (α : Type u) [HeytingAlgebra α] where
+  /-- The formula naming an element. -/
+  toForm : α → Form
+  /-- The name of `⊥` is absurd.  The converse holds in any case. -/
+  bot : Ent (toForm ⊥) .fls
+  inf_le : ∀ x y, Ent (.and (toForm x) (toForm y)) (toForm (x ⊓ y))
+  le_inf : ∀ x y, Ent (toForm (x ⊓ y)) (.and (toForm x) (toForm y))
+  sup_le : ∀ x y, Ent (.or (toForm x) (toForm y)) (toForm (x ⊔ y))
+  le_sup : ∀ x y, Ent (toForm (x ⊔ y)) (.or (toForm x) (toForm y))
+  himp_le : ∀ x y, Ent (.imp (toForm x) (toForm y)) (toForm (x ⇨ y))
+  le_himp : ∀ x y, Ent (toForm (x ⇨ y)) (.imp (toForm x) (toForm y))
+
+namespace FormRep
+
+variable {α : Type u} [HeytingAlgebra α]
+
+/-- The substitution naming a valuation: each variable goes to the formula
+naming its value. -/
+def subst (R : FormRep α) (v : Nat → α) : Nat → Form := fun n => R.toForm (v n)
+
+/-- Every formula is interderivable with the name of its value: the
+substitution lemma with derivability in place of evaluation. -/
+theorem ent_eval (R : FormRep α) (v : Nat → α) : ∀ q : Form,
+    Ent (q.subst (R.subst v)) (R.toForm (q.eval v)) ∧
+      Ent (R.toForm (q.eval v)) (q.subst (R.subst v))
+  | .var _ => ⟨Ent.refl _, Ent.refl _⟩
+  | .fls => ⟨Ent.fls _, R.bot⟩
+  | .and p q =>
+      let hp := ent_eval R v p
+      let hq := ent_eval R v q
+      ⟨Ent.trans (Ent.and_cong hp.1 hq.1) (R.inf_le _ _),
+       Ent.trans (R.le_inf _ _) (Ent.and_cong hp.2 hq.2)⟩
+  | .or p q =>
+      let hp := ent_eval R v p
+      let hq := ent_eval R v q
+      ⟨Ent.trans (Ent.or_cong hp.1 hq.1) (R.sup_le _ _),
+       Ent.trans (R.le_sup _ _) (Ent.or_cong hp.2 hq.2)⟩
+  | .imp p q =>
+      let hp := ent_eval R v p
+      let hq := ent_eval R v q
+      ⟨Ent.trans (Ent.imp_cong hp.2 hq.1) (R.himp_le _ _),
+       Ent.trans (R.le_himp _ _) (Ent.imp_cong hp.1 hq.2)⟩
+
+end FormRep
 
 /-! ## Chains
 
@@ -430,6 +739,24 @@ theorem em_fails {a : Fin (n + 1)} (h₀ : 0 < a.val) (hn : a.val < n) :
   have hv : a.val = n := congrArg Fin.val h
   omega
 
+
+/-! ### Meet and join in a chain -/
+
+theorem inf_eq_left {a b : Fin (n + 1)} (h : a.val ≤ b.val) : a ⊓ b = a := by
+  show (if a.val ≤ b.val then a else b) = a
+  simp [h]
+
+theorem inf_eq_right {a b : Fin (n + 1)} (h : ¬ a.val ≤ b.val) : a ⊓ b = b := by
+  show (if a.val ≤ b.val then a else b) = b
+  simp [h]
+
+theorem sup_eq_right {a b : Fin (n + 1)} (h : a.val ≤ b.val) : a ⊔ b = b := by
+  show (if a.val ≤ b.val then b else a) = b
+  simp [h]
+
+theorem sup_eq_left {a b : Fin (n + 1)} (h : ¬ a.val ≤ b.val) : a ⊔ b = a := by
+  show (if a.val ≤ b.val then b else a) = a
+  simp [h]
 end Chain
 
 /-! ## Forks and kites of arbitrary shape

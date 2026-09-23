@@ -142,6 +142,9 @@ every unswapped combined principle of this file still reaches the top. -/
 theorem peirce₁₂OrImpOr₂₁_not_top_four :
     ((((2 : Fin 4) ⇨ 1) ⇨ 2) ⇨ 2) ⊔ (((1 : Fin 4) ⇨ 2) ⇨ (neg 1 ⊔ 2)) ≠ ⊤ := by decide
 
+theorem peirce₁₂OrImpOr₂₁Form_nvalid_four :
+    peirce₁₂OrImpOr₂₁Form.eval (fun n => if n = 0 then (2 : Fin 4) else 1) ≠ ⊤ := by decide
+
 open HeytingAlgebra in
 /-- `DeMorgan₁₂OrLukasiewicz₁₂F` reaches the top value throughout the fork. -/
 theorem demorgan₁₂OrLuk₁₂_top_fork : ∀ a b : ForkUp 1 1,
