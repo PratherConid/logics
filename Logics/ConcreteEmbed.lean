@@ -235,10 +235,8 @@ theorem join_sup_right : (neg t ⊔ neg (neg t)) ⊔ neg (neg t) = neg t ⊔ neg
 @[simp] theorem right_himp_join : (neg (neg t) ⇨ (neg t ⊔ neg (neg t))) = ⊤ :=
   himp_eq_top_of_le (right_le_join t)
 
-/-! The 75 composite reductions, each definitional. -/
-
-
-/-! The 75 composite reductions, each definitional. -/
+/-! The 75 composite reductions, each definitional: every composite of two of
+the five elements is already one of them, so `simp` can compute the fork side. -/
 
 @[simp] theorem mi_a_a : map t (ForkUp.all ⊓ ForkUp.all) = ⊤ := rfl
 @[simp] theorem mi_a_00 : map t (ForkUp.all ⊓ ForkUp.tails 0 0) = (neg t ⊔ neg (neg t)) := rfl
