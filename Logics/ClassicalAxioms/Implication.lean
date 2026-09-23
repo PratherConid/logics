@@ -556,3 +556,174 @@ theorem peirce₁₂OrImpOr₂₁F_em₁OrPeirce₂₁F (a b : Prop) :
       cases hab
       case inl ha => exact Or.inl (Or.inl ha)
       case inr hb => exact Or.inr (fun _ => hb)
+
+/-! ### Pairings with the three way splits
+
+`EmAOrNotBF` and `EmAOrBF` are each excluded middle on their own, but paired
+with a two-argument principle they need not be: the pairing is only classical
+when one side implies the other.  Where it is not, the result lands on a level
+the hierarchy already has, and the two theorems for each pairing place it
+there. -/
+
+/-- `EmAOrNotB₁₂OrPeirce₁₂F` reaches `Peirce₁₂OrImpOr₂₁F` at the plain
+arguments: the three way split is exactly what `ImpOrF b a` needs once `b → a`
+is assumed. -/
+theorem emAOrNotB₁₂OrPeirce₁₂F_peirce₁₂OrImpOr₂₁F (a b : Prop) :
+    EmAOrNotB₁₂OrPeirce₁₂F a b → Peirce₁₂OrImpOr₂₁F a b := by
+  intro h
+  cases h
+  case inr hPc => exact Or.inl hPc
+  case inl hE =>
+    refine Or.inr ?_
+    intro hba
+    cases hE
+    case inl ha => exact Or.inr ha
+    case inr h2 =>
+      cases h2
+      case inl hnb => exact Or.inl hnb
+      case inr hn => exact absurd hba hn
+
+theorem peirce₁₂OrImpOr₂₁F_emAOrNotB₁₂OrPeirce₁₂F (a b : Prop) :
+    Peirce₁₂OrImpOr₂₁F (a ∨ b) b → EmAOrNotB₁₂OrPeirce₁₂F a b := by
+  intro h
+  cases h
+  case inl hPc =>
+    refine Or.inr ?_
+    intro hi
+    cases hPc (fun hx => Or.inl (hi (fun ha => hx (Or.inl ha))))
+    case inl ha => exact ha
+    case inr hb => exact hi (fun _ => hb)
+  case inr hIO =>
+    cases hIO Or.inr
+    case inl hnb => exact Or.inl (Or.inr (Or.inl hnb))
+    case inr hab =>
+      cases hab
+      case inl ha => exact Or.inl (Or.inl ha)
+      case inr hb => exact Or.inr (fun hi => hi (fun _ => hb))
+
+/-- Taking the split at `(b, a)` instead reaches the same level, now with the
+split feeding `ImpOrF b a` directly in all three cases. -/
+theorem emAOrNotB₁₂OrPeirce₂₁F_peirce₁₂OrImpOr₂₁F (a b : Prop) :
+    EmAOrNotB₁₂OrPeirce₂₁F b a → Peirce₁₂OrImpOr₂₁F a b := by
+  intro h
+  cases h
+  case inr hPc => exact Or.inl hPc
+  case inl hE =>
+    refine Or.inr ?_
+    intro hba
+    cases hE
+    case inl hb => exact Or.inr (hba hb)
+    case inr h2 =>
+      cases h2
+      case inl hna => exact Or.inl (fun hb => hna (hba hb))
+      case inr hn => exact Or.inl (fun hb => hn (fun _ => hb))
+
+theorem peirce₁₂OrImpOr₂₁F_emAOrNotB₁₂OrPeirce₂₁F (a b : Prop) :
+    Peirce₁₂OrImpOr₂₁F (a ∨ b ∨ (b → a)) (b → a) → EmAOrNotB₁₂OrPeirce₂₁F a b := by
+  intro h
+  have fromA : (a ∨ b ∨ (b → a)) → EmAOrNotB₁₂OrPeirce₂₁F a b := by
+    intro hA
+    cases hA
+    case inl ha => exact Or.inl (Or.inl ha)
+    case inr h2 =>
+      cases h2
+      case inl hb => exact Or.inr (fun _ => hb)
+      case inr hba => exact Or.inr (fun hi => hi hba)
+  cases h
+  case inl hPc =>
+    exact fromA (hPc (fun hAB => Or.inr (Or.inr (fun hb => hAB (Or.inr (Or.inl hb)) hb))))
+  case inr hIO =>
+    cases hIO (fun hba => Or.inr (Or.inr hba))
+    case inl hn => exact Or.inl (Or.inr (Or.inr hn))
+    case inr hA => exact fromA hA
+
+/-- Pairing the other split with Lukasiewicz drops a level, to
+`DeMorgan₁₂OrLukasiewicz₁₂F`.  Both directions shift to `(b → a, b)`, where the
+split's third disjunct becomes refutable and its Lukasiewicz half turns on
+`¬ (b → a)` giving `¬ a`. -/
+theorem emAOrB₁₂OrLuk₁₂F_demorgan₁₂OrLuk₁₂F (a b : Prop) :
+    EmAOrB₁₂OrLuk₁₂F (b → a) b → DeMorgan₁₂OrLukasiewicz₁₂F a b := by
+  intro h
+  cases h
+  case inl hE =>
+    cases hE
+    case inl hba => exact Or.inr (fun _ => hba)
+    case inr h2 =>
+      cases h2
+      case inl hb => exact Or.inl (fun _ => Or.inr hb)
+      case inr hn => exact absurd (fun hnb hb => absurd hb hnb) hn
+  case inr hLuk =>
+    refine Or.inr ?_
+    intro h hb
+    exact hLuk (fun hn hb' => h (fun ha => hn (fun _ => ha)) hb') hb hb
+
+theorem demorgan₁₂OrLuk₁₂F_emAOrB₁₂OrLuk₁₂F (a b : Prop) :
+    DeMorgan₁₂OrLukasiewicz₁₂F (b → a) b → EmAOrB₁₂OrLuk₁₂F a b := by
+  intro h
+  cases h
+  case inl hDeM =>
+    cases hDeM (fun hc => hc.left (fun hb => absurd hb hc.right))
+    case inl hba => exact Or.inr (fun _ => hba)
+    case inr hb => exact Or.inl (Or.inr (Or.inl hb))
+  case inr hLuk =>
+    refine Or.inr ?_
+    intro h hb
+    exact hLuk (fun hn hb' => h (fun ha => hn (fun _ => ha)) hb') hb hb
+
+/-- Swapping Lukasiewicz's arguments keeps the same level.  Here the forward
+direction needs no shift on the Lukasiewicz side at all, and the split's third
+disjunct `¬ (¬ a → b)` delivers `¬ b`, which is enough for Lukasiewicz. -/
+theorem emAOrB₁₂OrLuk₂₁F_demorgan₁₂OrLuk₁₂F (a b : Prop) :
+    EmAOrB₁₂OrLuk₂₁F b a → DeMorgan₁₂OrLukasiewicz₁₂F a b := by
+  intro h
+  cases h
+  case inr hLuk => exact Or.inr hLuk
+  case inl hE =>
+    cases hE
+    case inl hb => exact Or.inl (fun _ => Or.inr hb)
+    case inr h2 =>
+      cases h2
+      case inl ha => exact Or.inl (fun _ => Or.inl ha)
+      case inr hn => exact Or.inr (fun _ hb => absurd (fun _ => hb) hn)
+
+theorem demorgan₁₂OrLuk₁₂F_emAOrB₁₂OrLuk₂₁F (a b : Prop) :
+    DeMorgan₁₂OrLukasiewicz₁₂F (a → b) a → EmAOrB₁₂OrLuk₂₁F a b := by
+  intro h
+  cases h
+  case inl hDeM =>
+    cases hDeM (fun hc => hc.left (fun ha => absurd ha hc.right))
+    case inl hab => exact Or.inr (fun _ => hab)
+    case inr ha => exact Or.inl (Or.inl ha)
+  case inr hLuk =>
+    refine Or.inr ?_
+    intro h ha
+    exact hLuk (fun hn ha' => h (fun hb => hn (fun _ => hb)) ha') ha ha
+
+/-- The last nontrivial pairing, again at the De Morgan level.  Every case of
+the split feeds Lukasiewicz: `¬ a` directly, and `¬ (a → b)` through `¬ b`. -/
+theorem emAOrNotB₁₂OrLuk₂₁F_demorgan₁₂OrLuk₁₂F (a b : Prop) :
+    EmAOrNotB₁₂OrLuk₂₁F b a → DeMorgan₁₂OrLukasiewicz₁₂F a b := by
+  intro h
+  cases h
+  case inr hLuk => exact Or.inr hLuk
+  case inl hE =>
+    cases hE
+    case inl hb => exact Or.inl (fun _ => Or.inr hb)
+    case inr h2 =>
+      cases h2
+      case inl hna => exact Or.inr (fun hx hb => absurd hb (hx hna))
+      case inr hn => exact Or.inr (fun _ hb => absurd (fun _ => hb) hn)
+
+theorem demorgan₁₂OrLuk₁₂F_emAOrNotB₁₂OrLuk₂₁F (a b : Prop) :
+    DeMorgan₁₂OrLukasiewicz₁₂F (a → b) a → EmAOrNotB₁₂OrLuk₂₁F a b := by
+  intro h
+  cases h
+  case inl hDeM =>
+    cases hDeM (fun hc => hc.left (fun ha => absurd ha hc.right))
+    case inl hab => exact Or.inr (fun _ => hab)
+    case inr ha => exact Or.inl (Or.inl ha)
+  case inr hLuk =>
+    refine Or.inr ?_
+    intro h ha
+    exact hLuk (fun hn ha' => h (fun hb => hn (fun _ => hb)) ha') ha ha
+

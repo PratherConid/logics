@@ -150,6 +150,16 @@ PRINCIPLES: dict[str, Principle] = {
     "Em1OrLuk21":        lambda H,a,b: (a | H.neg(a)) | lukasiewicz(H,b,a),
     "NotNot1OrLuk21":    lambda H,a,b: H.imp(H.neg(H.neg(a)), a) | lukasiewicz(H,b,a),
     "CM1OrLuk21":        lambda H,a,b: H.imp(H.imp(H.neg(a),a),a) | lukasiewicz(H,b,a),
+    "EmAOrNotB12OrPeirce12": lambda H,a,b:
+        (a | H.neg(b) | H.neg(H.imp(b,a))) | peirce(H,a,b),
+    "EmAOrNotB12OrPeirce21": lambda H,a,b:
+        (a | H.neg(b) | H.neg(H.imp(b,a))) | peirce(H,b,a),
+    "EmAOrB12OrLuk12": lambda H,a,b:
+        (a | b | H.neg(H.imp(H.neg(b),a))) | lukasiewicz(H,a,b),
+    "EmAOrB12OrLuk21": lambda H,a,b:
+        (a | b | H.neg(H.imp(H.neg(b),a))) | lukasiewicz(H,b,a),
+    "EmAOrNotB12OrLuk21": lambda H,a,b:
+        (a | H.neg(b) | H.neg(H.imp(b,a))) | lukasiewicz(H,b,a),
     "ExcludedMiddle": excluded_middle,
     "WeakExcludedMiddle": weak_excluded_middle,
 }

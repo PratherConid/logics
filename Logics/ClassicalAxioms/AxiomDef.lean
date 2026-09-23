@@ -66,6 +66,21 @@ def Pierce₁₂OrLukasiewicz₂₁F := fun (a b : Prop) => (((a → b) → a) �
 
 def ImpOr₁₂OrLukasiewicz₂₁F := fun (a b : Prop) => ((a → b) → (¬ a ∨ b)) ∨ ((¬ b → ¬ a) → (a → b))
 
+def EmAOrNotB₁₂OrPeirce₁₂F := fun (a b : Prop) =>
+  (a ∨ ¬ b ∨ ¬ (b → a)) ∨ (((a → b) → a) → a)
+
+def EmAOrNotB₁₂OrPeirce₂₁F := fun (a b : Prop) =>
+  (a ∨ ¬ b ∨ ¬ (b → a)) ∨ (((b → a) → b) → b)
+
+def EmAOrB₁₂OrLuk₁₂F := fun (a b : Prop) =>
+  (a ∨ b ∨ ¬ (¬ b → a)) ∨ ((¬ a → ¬ b) → (b → a))
+
+def EmAOrB₁₂OrLuk₂₁F := fun (a b : Prop) =>
+  (a ∨ b ∨ ¬ (¬ b → a)) ∨ ((¬ b → ¬ a) → (a → b))
+
+def EmAOrNotB₁₂OrLuk₂₁F := fun (a b : Prop) =>
+  (a ∨ ¬ b ∨ ¬ (b → a)) ∨ ((¬ b → ¬ a) → (a → b))
+
 /-! Mixing a one argument principle with a two argument one.  The pairing is
 only interesting when the two argument principle is taken at `(b, a)`: at
 `(a, b)` the one argument disjunct already implies it and the disjunction
@@ -133,6 +148,21 @@ def impOr₁₂OrLuk₁₂Form : Form := .or (impOrForm (.var 0) (.var 1)) (lukF
 def pierce₁₂OrLuk₂₁Form : Form := .or (peirceForm (.var 0) (.var 1)) (lukForm (.var 1) (.var 0))
 
 def impOr₁₂OrLuk₂₁Form : Form := .or (impOrForm (.var 0) (.var 1)) (lukForm (.var 1) (.var 0))
+
+def emAOrNotB₁₂OrPeirce₁₂Form : Form :=
+  .or (emAOrNotBForm (.var 0) (.var 1)) (peirceForm (.var 0) (.var 1))
+
+def emAOrNotB₁₂OrPeirce₂₁Form : Form :=
+  .or (emAOrNotBForm (.var 0) (.var 1)) (peirceForm (.var 1) (.var 0))
+
+def emAOrB₁₂OrLuk₁₂Form : Form :=
+  .or (emAOrBForm (.var 0) (.var 1)) (lukForm (.var 0) (.var 1))
+
+def emAOrB₁₂OrLuk₂₁Form : Form :=
+  .or (emAOrBForm (.var 0) (.var 1)) (lukForm (.var 1) (.var 0))
+
+def emAOrNotB₁₂OrLuk₂₁Form : Form :=
+  .or (emAOrNotBForm (.var 0) (.var 1)) (lukForm (.var 1) (.var 0))
 
 def em₁OrPeirce₂₁Form : Form :=
   .or (excludedMiddleForm (.var 0)) (peirceForm (.var 1) (.var 0))

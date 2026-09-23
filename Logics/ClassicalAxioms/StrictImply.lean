@@ -28,25 +28,15 @@ every combined principle of this development in a chain of five strict steps:
   ExcludedMiddleF ≡ EmAOrNotBF ≡ EmAOrBF
                   ≡ Pierce₁₂OrDeMorgan₁₂F ≡ DeMorgan₁₂OrImpOr₁₂F ≡ ImpOr₁₂OrImpOr₂₁F
     ⊋  Peirce₁₂OrImpOr₂₁F ≡ Em₁OrPeirce₂₁F
+       ≡ EmAOrNotB₁₂OrPeirce₁₂F ≡ EmAOrNotB₁₂OrPeirce₂₁F
     ⊋  DeMorgan₁₂OrLukasiewicz₁₂F ≡ ImpOr₁₂OrLukasiewicz₁₂F ≡ Pierce₁₂OrLukasiewicz₂₁F
        ≡ Em₁OrLuk₂₁F ≡ NotNot₁OrLuk₂₁F ≡ CM₁OrLuk₂₁F
        ≡ NotNot₁OrPeirce₂₁F ≡ CM₁OrPeirce₂₁F
+       ≡ EmAOrB₁₂OrLuk₁₂F ≡ EmAOrB₁₂OrLuk₂₁F ≡ EmAOrNotB₁₂OrLuk₂₁F
     ⊋  ImpOr₁₂OrLukasiewicz₂₁F ≡ Lukasiewicz₁₂OrLukasiewicz₂₁F
     ⊋  Pierce₁₂OrLukasiewicz₁₂F ≡ Peirce₁₂OrImpOr₁₂F
     ⊋  Pierce₁₂OrPierce₂₁F
 ```
-
-Not every such disjunction is intermediate.  `Pierce₁₂OrDeMorgan₁₂F` and
-`DeMorgan₁₂OrImpOr₁₂F` avoid Lukasiewicz, and both land back on excluded middle: at
-arguments built from `a ∨ ¬ a` each of their disjuncts collapses to it on its
-own.  Every principle that stays below the top has `LukasiewiczF` as one
-disjunct, or else pairs Peirce with `ImpOrF`, the two weakest of the four.
-
-`EmAOrNotBF` and `EmAOrBF` reach the top by a different route.  Neither of
-their disjuncts implies excluded middle; instead a substitution makes one of
-the three *refutable*, and the remaining two are excluded middle exactly.
-`EmAOrNotBF` needs its arguments aligned, at `b := a`, while `EmAOrBF` gives
-way to the constant `b := False`.
 
 Each `≡` is a pair of derivations at shifted instances, not an identity: the
 principles so related are different formulas that prove each other.  Swapping
@@ -54,12 +44,33 @@ Lukasiewicz's arguments in the Peirce principle lands inside a class; doing it
 in the `ImpOrF` principle drops a level; swapping `ImpOrF`'s own arguments in
 `Peirce₁₂OrImpOr₁₂F` climbs three.
 
+Not every such disjunction is intermediate.  `Pierce₁₂OrDeMorgan₁₂F` and
+`DeMorgan₁₂OrImpOr₁₂F` avoid Lukasiewicz, and both land back on excluded
+middle: at arguments built from `a ∨ ¬ a` each of their disjuncts collapses to
+it on its own.  Every principle that stays below the top has `PeirceF` or
+`LukasiewiczF` on at least one side, though that is not enough by itself, as
+`Pierce₁₂OrDeMorgan₁₂F` shows: De Morgan is classical in any company but
+Lukasiewicz's.
+
+`EmAOrNotBF` and `EmAOrBF` reach the top by a different route.  Neither of
+their disjuncts implies excluded middle; instead a substitution makes one of
+the three *refutable*, and the remaining two are excluded middle exactly.
+`EmAOrNotBF` needs its arguments aligned, at `b := a`, while `EmAOrBF` gives
+way to the constant `b := False`.
+
+Paired with a two-argument axiom they need not stay at the top, since the
+substitution that collapses them need not be available.  Of the seventy two
+such pairings, twenty four are degenerate and thirty eight are classical; the
+five listed above are the rest, and every one lands on a level the hierarchy
+already had.  Pairing a split with Peirce reaches the `Peirce₁₂OrImpOr₂₁F`
+level, and pairing either with Lukasiewicz reaches the De Morgan level.
+
 Joining a one-argument axiom to a two-argument one adds nothing new, but it
 does not always collapse.  At the *same* argument it does: excluded middle,
 double negation and consequentia mirabilis at `a` each imply `PeirceF a b`,
 `ImpOrF a b` and `LukasiewiczF a b`, so the disjunction is the two-argument
-principle again.  Crossed, at `(b, a)`, they do not, and the six
-`Em₁`, `NotNot₁` and `CM₁` principles above are the result.
+principle again.  Crossed, at `(b, a)`, they do not, and the six `Em₁`,
+`NotNot₁` and `CM₁` principles above are the result.
 
 Two families never produce anything below the top.  A disjunction of two
 one-argument axioms is classical, since taking both arguments to be the same
