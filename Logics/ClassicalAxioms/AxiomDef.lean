@@ -38,6 +38,10 @@ def ConsequentiaMirabilisF := fun a : Prop => (¬ a → a) → a
 
 def LukasiewiczF := fun a b : Prop => (¬ a → ¬ b) → (b → a)
 
+/-- Smetanich's axiom: Peirce's law, granted that `a` already follows from the
+failure of `b`. -/
+def SmetanichF := fun (a b : Prop) => (¬ b → a) → (((a → b) → a) → a)
+
 def Pierce₁₂OrPierce₂₁F := fun (a b : Prop) => (((a → b) → a) → a) ∨ (((b → a) → b) → b)
 
 def ImpOr₁₂OrImpOr₂₁F := fun (a b : Prop) =>
@@ -138,6 +142,9 @@ def demorgan₁₂OrImpOr₁₂Form : Form := .or (demorganForm (.var 0) (.var 1
 def peirce₁₂OrImpOr₁₂Form : Form := .or (peirceForm (.var 0) (.var 1)) (impOrForm (.var 0) (.var 1))
 
 def peirce₁₂OrImpOr₂₁Form : Form := .or (peirceForm (.var 0) (.var 1)) (impOrForm (.var 1) (.var 0))
+
+def smetanichForm : Form :=
+  .imp (.imp (Form.neg (.var 1)) (.var 0)) (peirceForm (.var 0) (.var 1))
 
 def pierce₁₂OrLuk₁₂Form : Form := .or (peirceForm (.var 0) (.var 1)) (lukForm (.var 0) (.var 1))
 

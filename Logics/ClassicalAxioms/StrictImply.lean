@@ -27,7 +27,7 @@ every combined principle of this development in a chain of five strict steps:
 ```
   ExcludedMiddleF ≡ EmAOrNotBF ≡ EmAOrBF
                   ≡ Pierce₁₂OrDeMorgan₁₂F ≡ DeMorgan₁₂OrImpOr₁₂F ≡ ImpOr₁₂OrImpOr₂₁F
-    ⊋  Peirce₁₂OrImpOr₂₁F ≡ Em₁OrPeirce₂₁F
+    ⊋  SmetanichF ≡ Peirce₁₂OrImpOr₂₁F ≡ Em₁OrPeirce₂₁F
        ≡ EmAOrNotB₁₂OrPeirce₁₂F ≡ EmAOrNotB₁₂OrPeirce₂₁F
     ⊋  DeMorgan₁₂OrLukasiewicz₁₂F ≡ ImpOr₁₂OrLukasiewicz₁₂F ≡ Pierce₁₂OrLukasiewicz₂₁F
        ≡ Em₁OrLuk₂₁F ≡ NotNot₁OrLuk₂₁F ≡ CM₁OrLuk₂₁F
@@ -39,10 +39,18 @@ every combined principle of this development in a chain of five strict steps:
 ```
 
 Each `≡` is a pair of derivations at shifted instances, not an identity: the
-principles so related are different formulas that prove each other.  Swapping
+principles so related are different formulas that prove each other.  One `≡` is
+weaker than the rest: `SmetanichF` needs *two* instances of itself to recover
+`Peirce₁₂OrImpOr₂₁F`, and no single instantiation suffices.  Swapping
 Lukasiewicz's arguments in the Peirce principle lands inside a class; doing it
 in the `ImpOrF` principle drops a level; swapping `ImpOrF`'s own arguments in
 `Peirce₁₂OrImpOr₁₂F` climbs three.
+
+The second level is the only one here with a name of its own.  `SmetanichF`,
+`(¬ b → a) → (((a → b) → a) → a)`, is the axiom the literature uses for it,
+and it is the one principle of this development whose position is pinned down
+completely: `Fin 4` and `ForkUp 1 1` are exactly its minimal refuters, so a
+schema derives it precisely when it fails in both.
 
 Not every such disjunction is intermediate.  `Pierce₁₂OrDeMorgan₁₂F` and
 `DeMorgan₁₂OrImpOr₁₂F` avoid Lukasiewicz, and both land back on excluded

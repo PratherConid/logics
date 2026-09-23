@@ -200,6 +200,13 @@ theorem sup_neg_himp_right (a : α) :
     le_trans (le_inf (inf_le_right _ _) h1) (le_of_eq (inf_neg_eq_bot (neg a)))
   exact le_himp_of_inf_le h3
 
+/-- Weakening: a value lies below anything implying it. -/
+theorem le_himp_self (a b : α) : a ⊑ (b ⇨ a) := le_himp_of_inf_le (inf_le_left a b)
+
+/-- Negation is antitone. -/
+theorem neg_antitone {a b : α} (h : a ⊑ b) : neg b ⊑ neg a :=
+  le_himp_of_inf_le (le_trans (inf_le_inf le_rfl h) (himp_inf_le b ⊥))
+
 end HeytingAlgebra
 
 /-! ## Upward closed sets of a frame
@@ -347,6 +354,13 @@ def Form.eval {α : Type u} [HeytingAlgebra α] (v : Nat → α) : Form → α
 /-- A formula is valid when it evaluates to `⊤` in every model. -/
 def Valid (p : Form) : Prop :=
   ∀ (α : Type) [HeytingAlgebra α] (v : Nat → α), p.eval v = ⊤
+
+/-- A formula that is not valid in an algebra misses the top value somewhere. -/
+theorem exists_ne_top {α : Type} [HeytingAlgebra α] {p : Form}
+    (h : ¬ ∀ v : Nat → α, p.eval v = ⊤) : ∃ v : Nat → α, p.eval v ≠ ⊤ := by
+  refine Classical.byContradiction fun hne => h ?_
+  intro v
+  exact Classical.byContradiction fun hv => hne ⟨v, hv⟩
 
 /-- A context is interpreted by the meet of its members. -/
 def evalCtx {α : Type u} [HeytingAlgebra α] (v : Nat → α) : List Form → α

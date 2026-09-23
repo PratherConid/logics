@@ -188,6 +188,61 @@ theorem valid_of_embeds_of_valid_on {α β : Type u} [HeytingAlgebra α] [Heytin
   rw [f.map_top, ← f.eval v p]
   exact h v
 
+/-- An embedding already puts an algebra below: take the identity quotient. -/
+theorem sh_of_embeds {A α : Type} [HeytingAlgebra A] [HeytingAlgebra α]
+    (h : Embeds A α) : SH A α :=
+  ⟨α, inferInstance, onto_refl α, h⟩
+
+/-- A map that is not injective identifies two distinct elements. -/
+theorem exists_collapse {α β : Type u} [HeytingAlgebra α] [HeytingAlgebra β]
+    (f : Hom α β) (h : ¬ Function.Injective f.toFun) :
+    ∃ a b : α, f.toFun a = f.toFun b ∧ a ≠ b := by
+  refine Classical.byContradiction fun hne => h ?_
+  intro a b hab
+  exact Classical.byContradiction fun hab' => hne ⟨a, b, hab, hab'⟩
+
+/-- A refutation survives being pushed along an embedding. -/
+theorem ne_top_of_embeds {α β : Type u} [HeytingAlgebra α] [HeytingAlgebra β]
+    (f : Hom α β) (hf : Function.Injective f.toFun) {p : Form} {v : Nat → α}
+    (hv : p.eval v ≠ ⊤) : p.eval (fun n => f.toFun (v n)) ≠ ⊤ := by
+  rw [f.eval v]
+  intro hc
+  exact hv (hf (by rw [hc, f.map_top]))
+
+/-- When a quotient map is injective it is an isomorphism, so anything
+embedding in the quotient already embeds in the algebra. -/
+theorem embeds_of_iso {γ α β : Type u} [HeytingAlgebra γ] [HeytingAlgebra α]
+    [HeytingAlgebra β] (f : Hom α β) (hinj : Function.Injective f.toFun)
+    (hsurj : Function.Surjective f.toFun) (g : Hom γ β)
+    (hg : Function.Injective g.toFun) : ∃ h : Hom γ α, Function.Injective h.toFun :=
+  ⟨Hom.comp (f.inv ⟨hinj, hsurj⟩) g,
+   fun _ _ hxy => hg (Hom.inv_injective f ⟨hinj, hsurj⟩ hxy)⟩
+
+/-- A quotient that identifies two elements validates every formula whose
+values all lie above the largest non-top element: the collapse sends that
+element to the top, and so every value with it. -/
+theorem valid_of_collapse {α β : Type u} [HeytingAlgebra α] [HeytingAlgebra β]
+    (f : Hom α β) (hsurj : Function.Surjective f.toFun)
+    {a b : α} (hab : f.toFun a = f.toFun b) (hne : a ≠ b)
+    {c : α} (hc : ∀ x : α, x ≠ ⊤ → x ⊑ c)
+    {p : Form} (hp : ∀ v : Nat → α, c ⊑ p.eval v) :
+    ∀ w : Nat → β, p.eval w = ⊤ := by
+  have hx : f.toFun ((a ⇨ b) ⊓ (b ⇨ a)) = ⊤ := by
+    rw [f.map_inf, f.map_himp, f.map_himp, hab, himp_eq_top_of_le le_rfl, inf_top]
+  have hxne : (a ⇨ b) ⊓ (b ⇨ a) ≠ ⊤ := by
+    intro h
+    have h1 : (a ⇨ b) = ⊤ := (eq_top_iff _).mpr (h ▸ inf_le_left (a ⇨ b) (b ⇨ a))
+    have h2 : (b ⇨ a) = ⊤ := (eq_top_iff _).mpr (h ▸ inf_le_right (a ⇨ b) (b ⇨ a))
+    exact hne (le_antisymm (le_of_himp_eq_top h1) (le_of_himp_eq_top h2))
+  have hfc : f.toFun c = ⊤ :=
+    (eq_top_iff _).mpr (le_trans (le_of_eq hx.symm) (f.mono (hc _ hxne)))
+  intro w
+  have hrep : ∀ n, ∃ x, f.toFun x = w n := fun n => hsurj (w n)
+  have hw : w = fun n => f.toFun (Classical.choose (hrep n)) :=
+    funext (fun n => (Classical.choose_spec (hrep n)).symm)
+  rw [hw, f.eval]
+  exact (eq_top_iff _).mpr (le_trans (le_of_eq hfc.symm) (f.mono (hp _)))
+
 /-! ## The three element chain sits inside every non-classical algebra
 
 Given an element `a` at which excluded middle fails, the three elements `⊥`,
@@ -486,13 +541,13 @@ theorem map_inf' (x y : ForkUp 1 1) : map t (x ⊓ y) = map t x ⊓ map t y := b
 theorem map_sup' (x y : ForkUp 1 1) : map t (x ⊔ y) = map t x ⊔ map t y := by
   rcases forkUp_cases x with rfl|rfl|rfl|rfl|rfl <;>
     rcases forkUp_cases y with rfl|rfl|rfl|rfl|rfl <;>
-    simp [left_sup_join, join_sup_left, right_sup_join, join_sup_right,
-      sup_idem, sup_top, top_sup, sup_bot, bot_sup, sup_comm]
+    simp [left_sup_join, right_sup_join, sup_idem, sup_top, top_sup, bot_sup,
+      sup_comm]
 
 theorem map_himp' (x y : ForkUp 1 1) : map t (x ⇨ y) = map t x ⇨ map t y := by
   rcases forkUp_cases x with rfl|rfl|rfl|rfl|rfl <;>
     rcases forkUp_cases y with rfl|rfl|rfl|rfl|rfl <;>
-    simp [himp_top_left, neg_join, neg_neg_neg, neg_himp_neg_neg, neg_neg_himp_neg,
+    simp [himp_top_left, neg_neg_neg, neg_himp_neg_neg, neg_neg_himp_neg,
       sup_neg_himp_left, sup_neg_himp_right]
 
 /-- The five values are distinct exactly when weak excluded middle fails. -/

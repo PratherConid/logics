@@ -727,3 +727,26 @@ theorem demorgan₁₂OrLuk₁₂F_emAOrNotB₁₂OrLuk₂₁F (a b : Prop) :
     intro h ha
     exact hLuk (fun hn ha' => h (fun hb => hn (fun _ => hb)) ha') ha ha
 
+/-! ## Smetanich's axiom sits at the `Peirce₁₂OrImpOr₂₁F` level
+
+One direction needs no shift at all.  The other needs two instances, and no
+single one suffices: the target has to be fed back in as an argument before
+the principle at `a, b` can finish the job. -/
+
+theorem peirce₁₂OrImpOr₂₁F_smetanichF (a b : Prop) :
+    Peirce₁₂OrImpOr₂₁F a b → SmetanichF a b := by
+  intro h hnb k
+  cases h with
+  | inl hp => exact hp k
+  | inr himp =>
+      cases himp (fun hb => k (fun _ => hb)) with
+      | inl hnb' => exact hnb hnb'
+      | inr ha => exact ha
+
+theorem smetanichF_peirce₁₂OrImpOr₂₁F (a b : Prop)
+    (h₁ : SmetanichF (Peirce₁₂OrImpOr₂₁F a b) a) (h₂ : SmetanichF a b) :
+    Peirce₁₂OrImpOr₂₁F a b := by
+  have hnb : ¬ b → Peirce₁₂OrImpOr₂₁F a b := fun nb => Or.inr (fun _ => Or.inl nb)
+  refine h₁ (fun na => Or.inr (fun hba => Or.inl (fun hb => na (hba hb)))) ?_
+  intro k
+  exact Or.inl (h₂ (fun nb => k (hnb nb)))
