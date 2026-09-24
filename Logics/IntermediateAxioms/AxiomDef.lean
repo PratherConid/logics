@@ -3,146 +3,26 @@ import Logics.Heyting
 /-!
 # The principles of the intermediate logics
 
-Each principle is stated as a predicate on propositions rather than as a rule,
-so that it can be assumed *at particular arguments*: `ExcludedMiddleF a` says
-excluded middle holds at `a`, and says nothing about any other proposition.
-That is what makes it possible to ask which instances of one principle suffice
-to prove an instance of another.
+Each principle is a formula of `Form`.  Substituting for its variables takes it
+at particular arguments, and a statement about the principle as an axiom
+*schema* quantifies over all of those substitution instances at once.  Which
+instances of one principle suffice to derive an instance of another is what
+places the principles relative to each other.
 
-The first group collects the familiar principles, every one of which is
-classical on its own.  The rest are not: combining two of them disjunctively,
-or weakening one, gives axioms of logics that sit strictly between the
-intuitionistic calculus and the classical one.  Within the combined group the
-primed members take Lukasiewicz at
-swapped arguments, which for some of them is a genuine change and for others
-only a transposition.
+The basic principles come first, as formula formers taking the formulas to be
+substituted for their arguments, since they are used at many different
+arguments.  Every one of them is classical on its own.
 
-The file closes with the same material built as formulas of `Form`.  A
-predicate on propositions can only ever be assumed at arguments one writes
-down; a formula can be quantified over all of its substitution instances at
-once, which is what statements about a whole schema require.
+The rest are formulas in `.var 0` and `.var 1` (and `.var 2`, for Kreisel and
+Putnam's axiom), which the descriptions call `a` and `b` (and `c`).  Most join
+two basic principles by a disjunction, the subscripts recording the order in
+which each disjunct takes the arguments: `pierce₁₂OrLuk₂₁Form` is Peirce's law
+at `a, b` or Łukasiewicz's at `b, a`.  Joining or weakening classical principles
+this way need not stay classical: many of the results are axioms of logics
+strictly between the intuitionistic calculus and the classical one.
 -/
 
-def ExcludedMiddleF := fun (a : Prop) => a ∨ ¬a
-
-def EmAOrNotBF := fun (a b : Prop) => a ∨ ¬ b ∨ ¬ (b → a)
-
-def EmAOrBF := fun (a b : Prop) => a ∨ b ∨ ¬ (¬ b → a)
-
-def PeirceF := fun a b : Prop => ((a → b) → a) → a
-
-def NotNotF := fun a : Prop => ¬ ¬ a → a
-
-def DeMorganNotAndNotF := fun a b : Prop => ¬ (¬ a ∧ ¬ b) → a ∨ b
-
-def ImpOrF := fun a b : Prop => (a → b) → (¬ a ∨ b)
-
-def ConsequentiaMirabilisF := fun a : Prop => (¬ a → a) → a
-
-def LukasiewiczF := fun a b : Prop => (¬ a → ¬ b) → (b → a)
-
-/-- Smetanich's axiom: Peirce's law, granted that `a` already follows from the
-failure of `b`. -/
-def SmetanichF := fun (a b : Prop) => (¬ b → a) → (((a → b) → a) → a)
-
-/-- Bounded depth two: either `a`, or `a` settles excluded middle at `b`. -/
-def BD2F := fun (a b : Prop) => a ∨ (a → (b ∨ ¬ b))
-
-/-- Either argument settles excluded middle at the other.  This is `BD2F` with
-its bare left disjunct replaced by the mirror image of its right one.
-
-The name records the shape of the smallest algebra that refutes it, a diamond:
-two incomparable values between a bottom and a top.  Chains, however long,
-cannot produce one. -/
-def NoDiamondF := fun (a b : Prop) => (a → (b ∨ ¬ b)) ∨ (b → (a ∨ ¬ a))
-
-/-- Linearity, guarded: the two arguments are comparable as soon as they are
-jointly consistent.  Dropping the guard would give the linearity axiom itself,
-which is stronger. -/
-def NotNotAndF := fun (a b : Prop) => ¬ ¬ (a ∧ b) → ((a → b) ∨ (b → a))
-
-/-- **Linearity**, the Godel--Dummett axiom: any two propositions are
-comparable.  Its algebras are the chains. -/
-def LinearityF := fun (a b : Prop) => (a → b) ∨ (b → a)
-
-/-- **Weak excluded middle**, Jankov's axiom: excluded middle for a negation,
-which unlike excluded middle itself leaves room below the classical logic. -/
-def WeakEmF := fun (a : Prop) => ¬ a ∨ ¬ ¬ a
-
-/-- **Kreisel and Putnam's axiom**: a disjunction established from a negation
-splits, one of its disjuncts already following from that negation alone. -/
-def KreiselPutnamF := fun (a b c : Prop) =>
-  (¬ a → b ∨ c) → ((¬ a → b) ∨ (¬ a → c))
-
-/-- **Scott's axiom**: weak excluded middle, granted that double negation
-elimination at `a` would already settle excluded middle there. -/
-def ScottF := fun (a : Prop) => ((¬ ¬ a → a) → (a ∨ ¬ a)) → (¬ a ∨ ¬ ¬ a)
-
-def Pierce₁₂OrPierce₂₁F := fun (a b : Prop) => (((a → b) → a) → a) ∨ (((b → a) → b) → b)
-
-def ImpOr₁₂OrImpOr₂₁F := fun (a b : Prop) =>
-  ((a → b) → (¬ a ∨ b)) ∨ ((b → a) → (¬ b ∨ a))
-
-def Lukasiewicz₁₂OrLukasiewicz₂₁F := fun (a b : Prop) =>
-  ((¬ a → ¬ b) → (b → a)) ∨ ((¬ b → ¬ a) → (a → b))
-
-def Pierce₁₂OrDeMorgan₁₂F := fun (a b : Prop) =>
-  (((a → b) → a) → a) ∨ (¬ (¬ a ∧ ¬ b) → a ∨ b)
-
-def DeMorgan₁₂OrImpOr₁₂F := fun (a b : Prop) =>
-  (¬ (¬ a ∧ ¬ b) → a ∨ b) ∨ ((a → b) → (¬ a ∨ b))
-
-def Peirce₁₂OrImpOr₁₂F := fun (a b : Prop) => (((a → b) → a) → a) ∨ ((a → b) → (¬ a ∨ b))
-
-def Peirce₁₂OrImpOr₂₁F := fun (a b : Prop) => (((a → b) → a) → a) ∨ ((b → a) → (¬ b ∨ a))
-
-def Pierce₁₂OrLukasiewicz₁₂F := fun (a b : Prop) => (((a → b) → a) → a) ∨ ((¬ a → ¬ b) → (b → a))
-
-def DeMorgan₁₂OrLukasiewicz₁₂F := fun (a b : Prop) => (¬ (¬ a ∧ ¬ b) → a ∨ b) ∨ ((¬ a → ¬ b) → (b → a))
-
-def ImpOr₁₂OrLukasiewicz₁₂F := fun (a b : Prop) => ((a → b) → (¬ a ∨ b)) ∨ ((¬ a → ¬ b) → (b → a))
-
-def Pierce₁₂OrLukasiewicz₂₁F := fun (a b : Prop) => (((a → b) → a) → a) ∨ ((¬ b → ¬ a) → (a → b))
-
-def ImpOr₁₂OrLukasiewicz₂₁F := fun (a b : Prop) => ((a → b) → (¬ a ∨ b)) ∨ ((¬ b → ¬ a) → (a → b))
-
-def EmAOrNotB₁₂OrPeirce₁₂F := fun (a b : Prop) =>
-  (a ∨ ¬ b ∨ ¬ (b → a)) ∨ (((a → b) → a) → a)
-
-def EmAOrNotB₁₂OrPeirce₂₁F := fun (a b : Prop) =>
-  (a ∨ ¬ b ∨ ¬ (b → a)) ∨ (((b → a) → b) → b)
-
-def EmAOrB₁₂OrLuk₁₂F := fun (a b : Prop) =>
-  (a ∨ b ∨ ¬ (¬ b → a)) ∨ ((¬ a → ¬ b) → (b → a))
-
-def EmAOrB₁₂OrLuk₂₁F := fun (a b : Prop) =>
-  (a ∨ b ∨ ¬ (¬ b → a)) ∨ ((¬ b → ¬ a) → (a → b))
-
-def EmAOrNotB₁₂OrLuk₂₁F := fun (a b : Prop) =>
-  (a ∨ ¬ b ∨ ¬ (b → a)) ∨ ((¬ b → ¬ a) → (a → b))
-
-/-! Mixing a one argument principle with a two argument one.  The pairing is
-only interesting when the two argument principle is taken at `(b, a)`: at
-`(a, b)` the one argument disjunct already implies it and the disjunction
-collapses. -/
-
-def Em₁OrPeirce₂₁F := fun (a b : Prop) => (a ∨ ¬ a) ∨ (((b → a) → b) → b)
-
-def NotNot₁OrPeirce₂₁F := fun (a b : Prop) => (¬ ¬ a → a) ∨ (((b → a) → b) → b)
-
-def CM₁OrPeirce₂₁F := fun (a b : Prop) => ((¬ a → a) → a) ∨ (((b → a) → b) → b)
-
-def Em₁OrLuk₂₁F := fun (a b : Prop) => (a ∨ ¬ a) ∨ ((¬ b → ¬ a) → (a → b))
-
-def NotNot₁OrLuk₂₁F := fun (a b : Prop) => (¬ ¬ a → a) ∨ ((¬ b → ¬ a) → (a → b))
-
-def CM₁OrLuk₂₁F := fun (a b : Prop) => ((¬ a → a) → a) ∨ ((¬ b → ¬ a) → (a → b))
-
-/-! ### The same principles as formulas
-
-Each of the seven basic principles becomes a formula former, taking the
-formulas to be substituted for its arguments.  These are the building blocks;
-they are parameterised because they are used at many different arguments. -/
+/-! ### The basic principles -/
 
 def excludedMiddleForm (p : Form) : Form := .or p (Form.neg p)
 
@@ -165,6 +45,8 @@ def consequentiaMirabilisForm (p : Form) : Form := .imp (.imp (Form.neg p) p) p
 
 def lukForm (p q : Form) : Form := .imp (.imp (Form.neg p) (Form.neg q)) (.imp q p)
 
+/-! ### Joined and named principles -/
+
 def pierce₁₂OrPierce₂₁Form : Form := .or (peirceForm (.var 0) (.var 1)) (peirceForm (.var 1) (.var 0))
 
 def impOr₁₂OrImpOr₂₁Form : Form := .or (impOrForm (.var 0) (.var 1)) (impOrForm (.var 1) (.var 0))
@@ -179,29 +61,49 @@ def peirce₁₂OrImpOr₁₂Form : Form := .or (peirceForm (.var 0) (.var 1)) (
 
 def peirce₁₂OrImpOr₂₁Form : Form := .or (peirceForm (.var 0) (.var 1)) (impOrForm (.var 1) (.var 0))
 
+/-- Smetanich's axiom: Peirce's law, granted that `a` already follows from the
+failure of `b`. -/
 def smetanichForm : Form :=
   .imp (.imp (Form.neg (.var 1)) (.var 0)) (peirceForm (.var 0) (.var 1))
 
+/-- Bounded depth two: either `a`, or `a` settles excluded middle at `b`. -/
 def bd2Form : Form :=
   .or (.var 0) (.imp (.var 0) (.or (.var 1) (Form.neg (.var 1))))
 
+/-- Either argument settles excluded middle at the other.  This is `bd2Form`
+with its bare left disjunct replaced by the mirror image of its right one.
+
+The name records the shape of the smallest algebra that refutes it, a diamond:
+two incomparable values between a bottom and a top.  Chains, however long,
+cannot produce one. -/
 def noDiamondForm : Form :=
   .or (.imp (.var 0) (excludedMiddleForm (.var 1)))
       (.imp (.var 1) (excludedMiddleForm (.var 0)))
 
+/-- Linearity, guarded: the two arguments are comparable as soon as they are
+jointly consistent.  Dropping the guard would give the linearity axiom itself,
+which is stronger. -/
 def notNotAndForm : Form :=
   .imp (Form.neg (Form.neg (.and (.var 0) (.var 1))))
     (.or (.imp (.var 0) (.var 1)) (.imp (.var 1) (.var 0)))
 
+/-- **Linearity**, the Godel--Dummett axiom: any two formulas are
+comparable.  Its algebras are the chains. -/
 def linearityForm : Form := .or (.imp (.var 0) (.var 1)) (.imp (.var 1) (.var 0))
 
+/-- **Weak excluded middle**, Jankov's axiom: excluded middle for a negation,
+which unlike excluded middle itself leaves room below the classical logic. -/
 def weakEmForm : Form :=
   .or (Form.neg (.var 0)) (Form.neg (Form.neg (.var 0)))
 
+/-- **Kreisel and Putnam's axiom**: a disjunction established from a negation
+splits, one of its disjuncts already following from that negation alone. -/
 def kreiselPutnamForm : Form :=
   .imp (.imp (Form.neg (.var 0)) (.or (.var 1) (.var 2)))
     (.or (.imp (Form.neg (.var 0)) (.var 1)) (.imp (Form.neg (.var 0)) (.var 2)))
 
+/-- **Scott's axiom**: weak excluded middle, granted that double negation
+elimination at `a` would already settle excluded middle there. -/
 def scottForm : Form :=
   .imp (.imp (notNotForm (.var 0)) (excludedMiddleForm (.var 0))) weakEmForm
 
@@ -229,6 +131,11 @@ def emAOrB₁₂OrLuk₂₁Form : Form :=
 
 def emAOrNotB₁₂OrLuk₂₁Form : Form :=
   .or (emAOrNotBForm (.var 0) (.var 1)) (lukForm (.var 1) (.var 0))
+
+/-! Mixing a one argument principle with a two argument one.  The pairing is
+only interesting when the two argument principle is taken at `(b, a)`: at
+`(a, b)` the one argument disjunct already implies it and the disjunction
+collapses. -/
 
 def em₁OrPeirce₂₁Form : Form :=
   .or (excludedMiddleForm (.var 0)) (peirceForm (.var 1) (.var 0))

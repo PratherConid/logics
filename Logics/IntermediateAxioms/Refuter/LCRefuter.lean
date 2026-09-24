@@ -2,7 +2,7 @@ import Logics.IntermediateAxioms.Refuter.KCRefuter
 import Logics.IntermediateAxioms.Refuter.NoDiamondRefuter
 
 /-!
-# Where `LinearityF` sits, exactly
+# Where `linearityForm` sits, exactly
 
 Linearity, `(a → b) ∨ (b → a)`, is settled here the way `SmetanichRefuter`
 settles its axiom, and for the same reason: it has *two* minimal refuters rather
@@ -13,26 +13,25 @@ than one.
 either one refutes it: `refuterLB_fork_linearity` and
 `refuterLB_kite_linearity`.  The two are incomparable because each validates
 what the other refutes -- weak excluded middle holds in the diamond and fails in
-the fork, while `NoDiamondF` holds in the fork and fails in the diamond.
+the fork, while `noDiamondForm` holds in the fork and fails in the diamond.
 
 **Which schemas derive it?**  Exactly those missing the top value in both.  The
 hard half is `sh_fork_or_kite_of_refutes_linearity`, and it needs no new
 embedding: both constructions are already available, so the whole content is
 the algebraic fact that
 
-    weak excluded middle  +  `NoDiamondF`  =  linearity.
+    weak excluded middle  +  `noDiamondForm`  =  linearity.
 
 `linearity_of_weakEm_noDiamond` proves it in three cuts.  Each argument is
 either refutable, and then one of the two implications holds vacuously, or
 doubly negated; and once both are doubly negated, whichever disjunct of
-`NoDiamondF` holds turns an excluded middle into the comparison itself, because
-the unwanted half of that excluded middle is exactly what the double negation
-rules out.
--/
+`noDiamondForm` holds turns an excluded middle into the comparison itself,
+because the unwanted half of that excluded middle is exactly what the double
+negation rules out.  -/
 
 open PartialOrder Lattice BoundedLattice HeytingAlgebra
 
-/-! # Part one: linearity is weak excluded middle together with `NoDiamondF` -/
+/-! # Part one: linearity is weak excluded middle with `noDiamondForm` -/
 
 section Core
 
@@ -50,7 +49,7 @@ theorem himp_sup_neg_inf_neg_neg (a b : α) :
   exact le_trans (le_of_eq (inf_neg_eq_bot (neg b))) (bot_le b)
 
 /-- **Linearity is the conjunction of the two.**  Three cuts: on `a`, on `b`,
-and then on `NoDiamondF`. -/
+and then on `noDiamondForm`. -/
 theorem linearity_of_weakEm_noDiamond
     (hkc : ∀ x : α, neg x ⊔ neg (neg x) = ⊤)
     (hnd : ∀ x y : α, (x ⇨ (y ⊔ neg y)) ⊔ (y ⇨ (x ⊔ neg x)) = ⊤)
@@ -72,7 +71,7 @@ theorem linearity_of_weakEm_noDiamond
 end Core
 
 /-- **Every algebra refuting linearity carries the fork or the diamond below
-it.**  If weak excluded middle fails, the fork; otherwise, if `NoDiamondF`
+it.**  If weak excluded middle fails, the fork; otherwise, if `noDiamondForm`
 fails, the diamond; and if neither fails, linearity held after all. -/
 theorem sh_fork_or_kite_of_refutes_linearity (α : Type) (iα : HeytingAlgebra α)
     (h : ¬ ∀ v : Nat → α, linearityForm.eval v = ⊤) :
@@ -153,20 +152,7 @@ diamond and fails in the fork. -/
 theorem not_sh_fork_kite : ¬ SH (ForkUp 1 1) (KiteUp 1 1) := fun h =>
   weakEmForm_nvalid_fork (valid_of_sh h weakEmForm_valid_kite _)
 
-/-- The diamond is not below the fork: `NoDiamondF` holds in the fork and fails
-in the diamond. -/
+/-- The diamond is not below the fork: `noDiamondForm` holds in the fork and
+fails in the diamond. -/
 theorem not_sh_kite_fork : ¬ SH (KiteUp 1 1) (ForkUp 1 1) := fun h =>
   noDiamondForm_nvalid_diamond (valid_of_sh h noDiamondForm_valid_fork _)
-
-/-- **Smetanich's axiom derives linearity**, failing as it does in both of
-linearity's refuters. -/
-theorem derives_linearity_of_smetanich :
-    DerivesFromSchema smetanichForm linearityForm :=
-  (derivesFromSchema_linearity_iff _).mpr
-    ⟨fun hv => smetanichForm_nvalid_fork (hv _),
-     fun hv => smetanichForm_nvalid_kite (hv _)⟩
-
-/-- **Linearity derives `NoDiamondF`**, failing as it does in the diamond. -/
-theorem derives_noDiamond_of_linearity :
-    DerivesFromSchema linearityForm noDiamondForm :=
-  (derivesFromSchema_noDiamond_iff _).mpr fun hv => linearityForm_nvalid_kite (hv _)

@@ -3,7 +3,7 @@ import Logics.Lindenbaum
 import Logics.ConcreteEmbed
 
 /-!
-# Where `WeakEmF` sits, exactly
+# Where `weakEmForm` sits, exactly
 
 Weak excluded middle, `¬ a ∨ ¬ ¬ a`, is not one of the combined principles and
 does not belong to their chain of levels; it sits beside it.  This file settles
@@ -41,7 +41,7 @@ theorem weakEm_fork_fail : ∀ a : ForkUp 1 1, (neg a ⊔ neg (neg a)) ≠ ⊤ �
     ∀ z : ForkUp 1 1, z = ⊥ ∨ z = ⊤ ∨ z = neg a ∨ z = neg (neg a) ∨
       z = neg a ⊔ neg (neg a) := by decide
 
-/-- **Nothing below the fork refutes `WeakEmF`.** -/
+/-- **Nothing below the fork refutes `weakEmForm`.** -/
 theorem refuterLB_fork_weakEm : RefuterLB (ForkUp 1 1) weakEmForm :=
   refuterLB_of_coatom fork_coatom' weakEmForm_eval_ge fun _ _ h _ v hv z => by
     have hfail := weakEm_fork_fail _ hv
@@ -55,7 +55,7 @@ theorem refuterLB_fork_weakEm : RefuterLB (ForkUp 1 1) weakEmForm :=
 
 /-! # Part two: which schemas derive the axiom -/
 
-/-- **Every algebra refuting `WeakEmF` carries the fork below it.**  This is
+/-- **Every algebra refuting `weakEmForm` carries the fork below it.**  This is
 `forkUp_embeds` read through the axiom: a valuation refuting the schema is an
 element at which weak excluded middle fails. -/
 theorem sh_forkUp_of_refutes_weakEm (α : Type) (iα : HeytingAlgebra α)
@@ -63,7 +63,7 @@ theorem sh_forkUp_of_refutes_weakEm (α : Type) (iα : HeytingAlgebra α)
   obtain ⟨v, hv⟩ := @exists_ne_top α iα _ h
   exact @sh_forkUp α iα (v 0) hv
 
-/-- **The criterion.**  A schema derives `WeakEmF` exactly when it misses the
+/-- **The criterion.**  A schema derives `weakEmForm` exactly when it misses the
 top value in the fork. -/
 theorem derivesFromSchema_weakEm_iff (X : Form) :
     DerivesFromSchema X weakEmForm ↔ ¬ ∀ w : Nat → ForkUp 1 1, X.eval w = ⊤ := by
@@ -72,12 +72,3 @@ theorem derivesFromSchema_weakEm_iff (X : Form) :
     exact weakEmForm_nvalid_fork (DerivesFromSchema.valid hv h _)
   · exact fun hX => DerivesFromSchema.of_sh fun α iα hnv =>
       ⟨ForkUp 1 1, inferInstance, sh_forkUp_of_refutes_weakEm α iα hnv, hX⟩
-
-/-- **Smetanich's axiom derives weak excluded middle**, failing as it does in
-the fork. -/
-theorem derives_weakEm_of_smetanich : DerivesFromSchema smetanichForm weakEmForm :=
-  (derivesFromSchema_weakEm_iff _).mpr fun hv => smetanichForm_nvalid_fork (hv _)
-
-/-- **And so does linearity**, for the same reason. -/
-theorem derives_weakEm_of_linearity : DerivesFromSchema linearityForm weakEmForm :=
-  (derivesFromSchema_weakEm_iff _).mpr fun hv => linearityForm_nvalid_fork (hv _)

@@ -1,4 +1,4 @@
-import Logics.IntermediateAxioms.Implication
+import Logics.IntermediateAxioms.AxiomDef
 
 /-!
 # The principles in concrete Heyting algebras
@@ -17,20 +17,20 @@ chain: its two
 middle values `x` and `y` are incomparable.
 
 The pattern that emerges is that the principles fall into three strengths.
-`Pierce₁₂OrLukasiewicz₁₂F` reaches the top in every chain and in the diamond.
-`NoDiamondF` reaches it in every chain but not in the diamond, which is what
-its level is.  `DeMorgan₁₂OrLukasiewicz₁₂F` already misses it in the four value
-chain, and excluded middle already in `Fin 3`.
+`pierce₁₂OrLuk₁₂Form` reaches the top in every chain and in the diamond.
+`noDiamondForm` reaches it in every chain but not in the diamond, which is what
+its level is.  `bd2Form` already misses it in the four value chain, and excluded
+middle already in `Fin 3`.
 
 Most measurements come in two shapes: an equation between elements, and the
 same fact for `Form`, evaluating a whole schema under a valuation rather than
-an expression under two arguments.  Every one of them has a consumer, in the
-separation proofs of `StrictImply` or in the `Refuter` files; a measurement
-worth keeping is one some argument rests on.
+an expression under two arguments.  Every one of them has a consumer, in a
+separation proof or in the study of a single axiom; a measurement worth keeping
+is one some argument rests on.
 -/
 
 open HeytingAlgebra in
-/-- `Pierce₁₂OrLukasiewicz₁₂F` holds throughout the diamond, which is not a chain. -/
+/-- `pierce₁₂OrLuk₁₂Form` holds throughout the diamond, which is not a chain. -/
 theorem pierce₁₂OrLuk₁₂_top_diamond : ∀ a b : KiteUp 1 1,
     (((a ⇨ b) ⇨ a) ⇨ a) ⊔ ((neg a ⇨ neg b) ⇨ (b ⇨ a)) = ⊤ := by decide
 
@@ -38,8 +38,8 @@ theorem pierce₁₂OrLuk₁₂Form_valid (v : Nat → KiteUp 1 1) : pierce₁�
   pierce₁₂OrLuk₁₂_top_diamond (v 0) (v 1)
 
 open HeytingAlgebra in
-/-- `NoDiamondF` reaches the top value in every chain, and for the plainest of
-reasons: one argument lies below the other, so it lies below the other's join
+/-- `noDiamondForm` reaches the top value in every chain, and for the plainest
+of reasons: one argument lies below the other, so it lies below the other's join
 with its negation, which sends that disjunct to the top. -/
 theorem noDiamond_top_chain {n : Nat} (a b : Fin (n + 1)) :
     (a ⇨ (b ⊔ neg b)) ⊔ (b ⇨ (a ⊔ neg a)) = ⊤ := by
@@ -110,7 +110,8 @@ theorem bd2Form_nvalid_four :
     bd2Form.eval (fun n => if n = 0 then (2 : Fin 4) else 1) ≠ ⊤ := by decide
 
 open HeytingAlgebra in
-/-- `NoDiamondF` holds throughout the fork, bounded depth two being stronger. -/
+/-- `noDiamondForm` holds throughout the fork, bounded depth two being
+stronger. -/
 theorem noDiamond_fork : ∀ a b : ForkUp 1 1,
     (a ⇨ (b ⊔ neg b)) ⊔ (b ⇨ (a ⊔ neg a)) = ⊤ := by decide
 
@@ -138,62 +139,47 @@ theorem pierce₁₂OrPierce₂₁Form_nvalid_kite22 :
 theorem smetanichForm_nvalid_four :
     smetanichForm.eval (fun n => if n = 0 then (2 : Fin 4) else 1) ≠ ⊤ := by decide
 
-/-- And in the fork and the diamond, both of which it therefore separates. -/
+/-- And in the fork, which it therefore separates from the chains. -/
 theorem smetanichForm_nvalid_fork :
     smetanichForm.eval (fun n => if n = 0 then (ForkUp.tails 0 0 : ForkUp 1 1)
       else ForkUp.tails 0 1) ≠ ⊤ := by decide
 
-theorem smetanichForm_nvalid_kite :
-    smetanichForm.eval (fun n => if n = 0 then (KiteUp.tails 0 0 : KiteUp 1 1)
-      else KiteUp.tails 0 1) ≠ ⊤ := by decide
-
-/-- `DeMorgan₁₂OrLukasiewicz₁₂F` already fails in the four value chain. -/
-theorem demorgan₁₂OrLuk₁₂Form_nvalid_four :
-    demorgan₁₂OrLuk₁₂Form.eval (fun n => if n = 0 then (1 : Fin 4) else 2) ≠ ⊤ := by decide
-
-/-- Excluded middle, by contrast, misses the top value already in `Fin 3`. -/
+/-- Excluded middle misses the top value already in `Fin 3`. -/
 theorem excludedMiddleForm_nvalid_three :
     (excludedMiddleForm (.var 0)).eval (fun _ => (1 : Fin 3)) ≠ ⊤ := by decide
 
 open HeytingAlgebra in
-/-- `Peirce₁₂OrImpOr₂₁F` still reaches the top value in the three value chain. -/
-theorem peirce₁₂OrImpOr₂₁_top_three : ∀ a b : Fin 3,
-    (((a ⇨ b) ⇨ a) ⇨ a) ⊔ ((b ⇨ a) ⇨ (neg b ⊔ a)) = ⊤ := by decide
+/-- Smetanich's axiom still reaches the top value in the three value chain. -/
+theorem smetanich_top_three : ∀ a b : Fin 3,
+    ((neg b ⇨ a) ⇨ (((a ⇨ b) ⇨ a) ⇨ a)) = ⊤ := by decide
 
-theorem peirce₁₂OrImpOr₂₁Form_valid_three (v : Nat → Fin 3) :
-    peirce₁₂OrImpOr₂₁Form.eval v = ⊤ := peirce₁₂OrImpOr₂₁_top_three (v 0) (v 1)
+theorem smetanichForm_valid_three (v : Nat → Fin 3) :
+    smetanichForm.eval v = ⊤ := smetanich_top_three (v 0) (v 1)
 
 theorem peirce₁₂OrImpOr₂₁Form_nvalid_four :
     peirce₁₂OrImpOr₂₁Form.eval (fun n => if n = 0 then (2 : Fin 4) else 1) ≠ ⊤ := by decide
 
-open HeytingAlgebra in
-/-- `DeMorgan₁₂OrLukasiewicz₁₂F` reaches the top value throughout the fork. -/
-theorem demorgan₁₂OrLuk₁₂_top_fork : ∀ a b : ForkUp 1 1,
-    (neg (neg a ⊓ neg b) ⇨ (a ⊔ b)) ⊔ ((neg a ⇨ neg b) ⇨ (b ⇨ a)) = ⊤ := by decide
-
-theorem demorgan₁₂OrLuk₁₂Form_valid_fork (v : Nat → ForkUp 1 1) : demorgan₁₂OrLuk₁₂Form.eval v = ⊤ :=
-  demorgan₁₂OrLuk₁₂_top_fork (v 0) (v 1)
-
-/-- `Peirce₁₂OrImpOr₂₁F` does not: it drops short at `a = tails 0 0`,
+/-- `peirce₁₂OrImpOr₂₁Form` does not: it drops short at `a = tails 0 0`,
 `b = tails 0 1`, where the two incomparable elements fail to join to the top. -/
 theorem peirce₁₂OrImpOr₂₁Form_nvalid_fork :
     peirce₁₂OrImpOr₂₁Form.eval (fun n => if n = 0 then (ForkUp.tails 0 0 : ForkUp 1 1) else ForkUp.tails 0 1) ≠ ⊤ := by decide
 
 open HeytingAlgebra in
-/-- `Pierce₁₂OrPierce₂₁F` reaches the top value throughout the kite. -/
+/-- `pierce₁₂OrPierce₂₁Form` reaches the top value throughout the kite. -/
 theorem pierce₁₂OrPierce₂₁_top_kite : ∀ a b : KiteUp 1 2,
     (((a ⇨ b) ⇨ a) ⇨ a) ⊔ (((b ⇨ a) ⇨ b) ⇨ b) = ⊤ := by decide
 
 theorem pierce₁₂OrPierce₂₁Form_valid_kite (v : Nat → KiteUp 1 2) :
     pierce₁₂OrPierce₂₁Form.eval v = ⊤ := pierce₁₂OrPierce₂₁_top_kite (v 0) (v 1)
 
-/-- `Pierce₁₂OrLukasiewicz₁₂F` does not: it drops below the top at `a = m5`,
+/-- `pierce₁₂OrLuk₁₂Form` does not: it drops below the top at `a = m5`,
 `b = m3`, the two elements the uneven paths pull apart. -/
 theorem pierce₁₂OrLuk₁₂Form_nvalid_kite :
     pierce₁₂OrLuk₁₂Form.eval (fun n => if n = 0 then (KiteUp.tails 1 1 : KiteUp 1 2) else KiteUp.tails 0 2) ≠ ⊤ := by decide
 
-/-- Even `Pierce₁₂OrPierce₂₁F`, the weakest principle of this development, misses
-the top value in the tall fork, at `a = m1`, `b = m2` -- the two branch tips. -/
+/-- Even `pierce₁₂OrPierce₂₁Form`, the weakest principle of this development,
+misses the top value in the tall fork, at `a = m1`, `b = m2` -- the two branch
+tips. -/
 theorem pierce₁₂OrPierce₂₁Form_nvalid_tallFork :
     pierce₁₂OrPierce₂₁Form.eval (fun n => if n = 0 then (ForkUp.tails 1 2 : ForkUp 2 2) else ForkUp.tails 2 1) ≠ ⊤ := by
   decide
@@ -229,8 +215,9 @@ theorem scottForm_valid_kite22 (v : Nat → KiteUp 2 2) : scottForm.eval v = ⊤
 theorem scottForm_nvalid_fork12 :
     scottForm.eval (fun _ => (ForkUp.tails 1 1 : ForkUp 1 2)) ≠ ⊤ := by decide
 
+
 open HeytingAlgebra in
-/-- `NoDiamondF` survives the uneven fork, which is how the two are told
+/-- `noDiamondForm` survives the uneven fork, which is how the two are told
 apart. -/
 theorem noDiamond_fork12 : ∀ a b : ForkUp 1 2,
     (a ⇨ (b ⊔ neg b)) ⊔ (b ⇨ (a ⊔ neg a)) = ⊤ := by decide
@@ -265,6 +252,14 @@ theorem kreiselPutnam_kite22 : ∀ a b c : KiteUp 2 2,
 
 theorem kreiselPutnamForm_valid_kite22 (v : Nat → KiteUp 2 2) :
     kreiselPutnamForm.eval v = ⊤ := kreiselPutnam_kite22 (v 0) (v 1) (v 2)
+
+open HeytingAlgebra in
+/-- The uneven fork, where Scott's axiom fails, validates it too. -/
+theorem kreiselPutnam_fork12 : ∀ a b c : ForkUp 1 2,
+    ((neg a ⇨ (b ⊔ c)) ⇨ ((neg a ⇨ b) ⊔ (neg a ⇨ c))) = ⊤ := by decide
+
+theorem kreiselPutnamForm_valid_fork12 (v : Nat → ForkUp 1 2) :
+    kreiselPutnamForm.eval v = ⊤ := kreiselPutnam_fork12 (v 0) (v 1) (v 2)
 
 /-- It fails in the three branch fork, at the three branch tips. -/
 theorem kreiselPutnamForm_nvalid_fork3 :

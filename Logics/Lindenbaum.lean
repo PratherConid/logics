@@ -270,19 +270,12 @@ theorem eval_mk (X : Form) (σ : Nat → Form) : ∀ p : Form,
       show (p.eval _ ⇨ q.eval _) = mk X (.imp (p.subst σ) (q.subst σ))
       rw [eval_mk X σ p, eval_mk X σ q]; rfl
 
-theorem subst_var : ∀ p : Form, p.subst .var = p
-  | .var _ => rfl
-  | .fls => rfl
-  | .and p q => by show Form.and _ _ = _; rw [subst_var p, subst_var q]
-  | .or p q => by show Form.or _ _ = _; rw [subst_var p, subst_var q]
-  | .imp p q => by show Form.imp _ _ = _; rw [subst_var p, subst_var q]
-
 /-- The valuation sending each variable to its own class. -/
 def vars (X : Form) : Nat → Lindenbaum X := fun n => mk X (.var n)
 
 theorem eval_vars (X p : Form) : p.eval (vars X) = mk X p := by
   show p.eval (fun n => mk X (Form.var n)) = mk X p
-  rw [eval_mk X Form.var p, subst_var p]
+  rw [eval_mk X Form.var p, Form.subst_var p]
 
 /-- **The algebra validates its own schema.**  A valuation is a substitution up
 to choice of representatives, so `X` evaluates to the class of one of its own
@@ -364,18 +357,6 @@ theorem bot_ne_top : (⊥ : Lindenbaum Form.tru) ≠ ⊤ := fun h =>
   not_derives_fls (derivesFromSchema_tru_iff.mp ((mk_eq_top_iff Form.tru Form.fls).mp h))
 
 end Lindenbaum
-
-
-/-- **Derivability from a schema is transitive.**  Semantically it is plain: an
-algebra validating `X` validates everything `X` derives, so it validates `Y`,
-so it validates `Z`.  The return trip from that to an actual derivation is
-completeness, which is why the fact lives here rather than beside the
-definition. -/
-theorem DerivesFromSchema.trans {X Y Z : Form}
-    (h₁ : DerivesFromSchema X Y) (h₂ : DerivesFromSchema Y Z) :
-    DerivesFromSchema X Z :=
-  Lindenbaum.schema_completeness fun _ _ hX v =>
-    DerivesFromSchema.valid (fun w => DerivesFromSchema.valid hX h₁ w) h₂ v
 
 /-- **Deriving through the order.**  If below every algebra refuting `p` lies
 one refuting the schema, the schema derives `p`: an algebra validating the

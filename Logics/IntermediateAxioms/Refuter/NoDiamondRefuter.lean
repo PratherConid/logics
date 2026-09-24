@@ -3,7 +3,7 @@ import Logics.Lindenbaum
 import Logics.ConcreteEmbed
 
 /-!
-# Where `NoDiamondF` sits, exactly
+# Where `noDiamondForm` sits, exactly
 
 `(a → (b ∨ ¬ b)) ∨ (b → (a ∨ ¬ a))` axiomatises the level below bounded depth
 two.  This file answers for it the two questions `BD2Refuter` answers for that
@@ -61,7 +61,7 @@ theorem noDiamond_kite_fail : ∀ a b : KiteUp 1 1,
       ∀ z : KiteUp 1 1,
         z = ⊥ ∨ z = ⊤ ∨ z = a ∨ z = b ∨ z = a ⊓ b ∨ z = a ⊔ b := by decide
 
-/-- **Nothing below the diamond refutes `NoDiamondF`.** -/
+/-- **Nothing below the diamond refutes `noDiamondForm`.** -/
 theorem refuterLB_kite_noDiamond : RefuterLB (KiteUp 1 1) noDiamondForm :=
   refuterLB_of_coatom kite_coatom' noDiamondForm_eval_ge fun _ _ h _ v hv z => by
     have hfail := noDiamond_kite_fail _ _ hv
@@ -122,8 +122,8 @@ theorem right_himp_left : (right a b ⇨ left a b) = left a b := by
 end NoDiamondWitness
 
 open NoDiamondWitness in
-/-- **Every algebra refuting `NoDiamondF` carries the diamond below it.**  The
-axiom's own value is the join of the two disjuncts, so the refutation is
+/-- **Every algebra refuting `noDiamondForm` carries the diamond below it.**
+The axiom's own value is the join of the two disjuncts, so the refutation is
 exactly the hypothesis the embedding needs. -/
 theorem sh_kite_of_refutes_noDiamond (α : Type) (iα : HeytingAlgebra α)
     (h : ¬ ∀ v : Nat → α, noDiamondForm.eval v = ⊤) : @SH (KiteUp 1 1) α _ iα := by
@@ -132,8 +132,8 @@ theorem sh_kite_of_refutes_noDiamond (α : Type) (iα : HeytingAlgebra α)
     (left_himp_right (v 0) (v 1)) (right_himp_left (v 0) (v 1))
     (neg_left (v 0) (v 1)) (neg_right (v 0) (v 1)) hv
 
-/-- **The criterion.**  A schema derives `NoDiamondF` exactly when it misses the
-top value in the diamond. -/
+/-- **The criterion.**  A schema derives `noDiamondForm` exactly when it misses
+the top value in the diamond. -/
 theorem derivesFromSchema_noDiamond_iff (X : Form) :
     DerivesFromSchema X noDiamondForm ↔ ¬ ∀ w : Nat → KiteUp 1 1, X.eval w = ⊤ := by
   constructor

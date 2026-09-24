@@ -80,6 +80,7 @@ theorem neg_sup_neg_eq_bot (a : α) : neg (a ⊔ neg a) = ⊥ := by
 /-- `neg ⊥` is the top. -/
 theorem neg_bot : neg (⊥ : α) = ⊤ := himp_eq_top_of_le le_rfl
 
+
 /-! ### Implication and the lattice operations
 
 The identities a congruence needs: implication composes, and it is monotone in
@@ -575,6 +576,57 @@ theorem cut {Γ : List Form} {p q : Form} (d₁ : Γ ⊢ p) (d₂ : (p :: Γ) �
 /-- `⊤` is derivable in every context. -/
 theorem tru {Γ : List Form} : Γ ⊢ Form.tru := .impI (.ax (by simp))
 
+/-! ### Hypotheses by position
+
+`impI` and `orE` put each new hypothesis at the front of the context, so the
+most recent one is `h₀`, the one before it `h₁`, and so on. -/
+
+section Position
+
+variable {Γ : List Form} {p₀ p₁ p₂ p₃ p₄ p₅ : Form}
+
+theorem h₀ : (p₀ :: Γ) ⊢ p₀ := .ax (by simp)
+theorem h₁ : (p₀ :: p₁ :: Γ) ⊢ p₁ := .ax (by simp)
+theorem h₂ : (p₀ :: p₁ :: p₂ :: Γ) ⊢ p₂ := .ax (by simp)
+theorem h₃ : (p₀ :: p₁ :: p₂ :: p₃ :: Γ) ⊢ p₃ := .ax (by simp)
+theorem h₄ : (p₀ :: p₁ :: p₂ :: p₃ :: p₄ :: Γ) ⊢ p₄ := .ax (by simp)
+theorem h₅ : (p₀ :: p₁ :: p₂ :: p₃ :: p₄ :: p₅ :: Γ) ⊢ p₅ := .ax (by simp)
+
+end Position
+
+/-- **The deduction theorem**, both ways: a hypothesis can be discharged into an
+implication, and an implication taken apart into a hypothesis. -/
+theorem deduction {Γ : List Form} {p q : Form} : ((p :: Γ) ⊢ q) ↔ (Γ ⊢ .imp p q) :=
+  ⟨impI, fun d => .impE (d.weaken _ fun _ hr => List.mem_cons_of_mem _ hr)
+    (.ax (List.mem_cons_self ..))⟩
+
+/-- Whatever one context derives of another survives adding the same
+hypothesis to both. -/
+theorem derives_cons {Γ Δ : List Form} (hs : ∀ q ∈ Δ, Γ ⊢ q) (p : Form) :
+    ∀ q ∈ p :: Δ, (p :: Γ) ⊢ q := by
+  intro q hq
+  rcases List.mem_cons.mp hq with rfl | hq
+  · exact .ax (List.mem_cons_self ..)
+  · exact (hs q hq).weaken _ fun _ hr => List.mem_cons_of_mem _ hr
+
+/-- **Cut against a whole context.**  A derivation from `Δ` gives one from `Γ` as
+soon as every hypothesis in `Δ` is derivable from `Γ`: each use of a hypothesis
+is replaced by its derivation. -/
+theorem trans {Δ : List Form} {r : Form} (d : Δ ⊢ r) :
+    ∀ {Γ : List Form}, (∀ q ∈ Δ, Γ ⊢ q) → (Γ ⊢ r) := by
+  induction d with
+  | ax h => intro _ hs; exact hs _ h
+  | flsE _ ih => intro _ hs; exact .flsE (ih hs)
+  | andI _ _ ih₁ ih₂ => intro _ hs; exact .andI (ih₁ hs) (ih₂ hs)
+  | andE₁ _ ih => intro _ hs; exact .andE₁ (ih hs)
+  | andE₂ _ ih => intro _ hs; exact .andE₂ (ih hs)
+  | orI₁ _ ih => intro _ hs; exact .orI₁ (ih hs)
+  | orI₂ _ ih => intro _ hs; exact .orI₂ (ih hs)
+  | orE _ _ _ ih ih₁ ih₂ =>
+      intro _ hs; exact .orE (ih hs) (ih₁ (derives_cons hs _)) (ih₂ (derives_cons hs _))
+  | impI _ ih => intro _ hs; exact .impI (ih (derives_cons hs _))
+  | impE _ _ ih₁ ih₂ => intro _ hs; exact .impE (ih₁ hs) (ih₂ hs)
+
 theorem evalCtx_le_of_mem {α : Type u} [HeytingAlgebra α] (v : Nat → α) {p : Form}
     {Γ : List Form} (h : p ∈ Γ) : evalCtx v Γ ⊑ p.eval v := by
   induction h with
@@ -701,6 +753,44 @@ theorem Form.eval_subst {α : Type u} [HeytingAlgebra α] (v : Nat → α) (σ :
   | .or p q => by simp only [Form.subst, Form.eval, eval_subst v σ p, eval_subst v σ q]
   | .imp p q => by simp only [Form.subst, Form.eval, eval_subst v σ p, eval_subst v σ q]
 
+/-- The substitution applying a formula to arguments: the `n`th variable
+becomes the `n`th entry of `l`, and variables past its end stay as they are. -/
+def Form.args (l : List Form) : Nat → Form := fun n => l.getD n (.var n)
+
+/-- Substituting each variable for itself changes nothing. -/
+theorem Form.subst_var : ∀ p : Form, p.subst .var = p
+  | .var _ => rfl
+  | .fls => rfl
+  | .and p q => by show Form.and _ _ = _; rw [subst_var p, subst_var q]
+  | .or p q => by show Form.or _ _ = _; rw [subst_var p, subst_var q]
+  | .imp p q => by show Form.imp _ _ = _; rw [subst_var p, subst_var q]
+
+/-- Substituting twice is substituting once, by the composite. -/
+theorem Form.subst_subst (σ τ : Nat → Form) :
+    ∀ p : Form, (p.subst σ).subst τ = p.subst (fun n => (σ n).subst τ)
+  | .var _ => rfl
+  | .fls => rfl
+  | .and p q => by show Form.and _ _ = Form.and _ _; rw [subst_subst σ τ p, subst_subst σ τ q]
+  | .or p q => by show Form.or _ _ = Form.or _ _; rw [subst_subst σ τ p, subst_subst σ τ q]
+  | .imp p q => by show Form.imp _ _ = Form.imp _ _; rw [subst_subst σ τ p, subst_subst σ τ q]
+
+/-- **Substitution preserves derivations.**  Replacing the variables throughout
+a derivation, in its hypotheses and its conclusion alike, gives a derivation
+again, since every rule is schematic in the formulas it mentions. -/
+theorem Derives.subst (σ : Nat → Form) {Γ : List Form} {p : Form} (d : Γ ⊢ p) :
+    Γ.map (Form.subst σ) ⊢ p.subst σ := by
+  induction d with
+  | ax h => exact .ax (List.mem_map_of_mem h)
+  | flsE _ ih => exact .flsE ih
+  | andI _ _ ih₁ ih₂ => exact .andI ih₁ ih₂
+  | andE₁ _ ih => exact .andE₁ ih
+  | andE₂ _ ih => exact .andE₂ ih
+  | orI₁ _ ih => exact .orI₁ ih
+  | orI₂ _ ih => exact .orI₂ ih
+  | orE _ _ _ ih ih₁ ih₂ => exact .orE ih ih₁ ih₂
+  | impI _ ih => exact .impI ih
+  | impE _ _ ih₁ ih₂ => exact .impE ih₁ ih₂
+
 /-- `p` follows from the schema `X` when some finite list of substitution
 instances of `X` derives it. -/
 def DerivesFromSchema (X p : Form) : Prop :=
@@ -728,7 +818,74 @@ theorem valid {α : Type u} [HeytingAlgebra α] {X p : Form}
       exact BoundedLattice.inf_top ⊤
   exact (BoundedLattice.eq_top_iff _).mpr (hctx ▸ Derives.soundness v d)
 
+/-- Every schema derives itself: it is its own instance, under the identity
+substitution. -/
+theorem refl (X : Form) : DerivesFromSchema X X :=
+  ⟨[X], fun q hq => ⟨.var, by rw [List.mem_singleton.mp hq, Form.subst_var]⟩,
+    .ax (List.mem_singleton.mpr rfl)⟩
+
+/-- **Derivability from a schema is transitive.**  Each instance of `Y` that
+the derivation of `Z` uses is derived from instances of `X`, by substituting
+into the derivation of `Y` (`Derives.subst`); an instance of an instance of `X`
+is an instance of `X` (`Form.subst_subst`); and cutting those derivations
+against the hypotheses of the derivation of `Z` (`Derives.trans`) leaves one
+from instances of `X` alone. -/
+theorem trans {X Y Z : Form} (h₁ : DerivesFromSchema X Y) (h₂ : DerivesFromSchema Y Z) :
+    DerivesFromSchema X Z := by
+  obtain ⟨Γ, hΓ, dY⟩ := h₁
+  obtain ⟨Δ, hΔ, dZ⟩ := h₂
+  suffices H : ∀ Δ : List Form, (∀ q ∈ Δ, ∃ τ : Nat → Form, q = Y.subst τ) →
+      ∃ Θ : List Form, (∀ r ∈ Θ, ∃ ρ : Nat → Form, r = X.subst ρ) ∧ ∀ q ∈ Δ, Θ ⊢ q by
+    obtain ⟨Θ, hΘ, hq⟩ := H Δ hΔ
+    exact ⟨Θ, hΘ, dZ.trans hq⟩
+  intro Δ hΔ
+  induction Δ with
+  | nil => exact ⟨[], (fun _ h => nomatch h), (fun _ h => nomatch h)⟩
+  | cons q Δ ih =>
+    obtain ⟨τ, rfl⟩ := hΔ q (List.mem_cons_self ..)
+    obtain ⟨Θ, hΘ, hd⟩ := ih fun r hr => hΔ r (List.mem_cons_of_mem _ hr)
+    refine ⟨Γ.map (Form.subst τ) ++ Θ, fun r hr => ?_, fun r hr => ?_⟩
+    · rcases List.mem_append.mp hr with hr | hr
+      · obtain ⟨s, hs, rfl⟩ := List.mem_map.mp hr
+        obtain ⟨σ, rfl⟩ := hΓ s hs
+        exact ⟨_, Form.subst_subst σ τ X⟩
+      · exact hΘ r hr
+    · rcases List.mem_cons.mp hr with rfl | hr
+      · exact (dY.subst τ).weaken _ fun _ h => List.mem_append_left _ h
+      · exact (hd r hr).weaken _ fun _ h => List.mem_append_right _ h
+
+/-- A schema derives what one of its instances entails. -/
+theorem of_ent {X A p : Form} (h : Ent A p) (hA : ∃ σ : Nat → Form, A = X.subst σ) :
+    DerivesFromSchema X p :=
+  ⟨[A], fun _ hq => List.mem_singleton.mp hq ▸ hA, h⟩
+
+/-- A schema derives what two of its instances entail together. -/
+theorem of_ent₂ {X A B p : Form} (h : Ent A (.imp B p)) (hA : ∃ σ : Nat → Form, A = X.subst σ)
+    (hB : ∃ σ : Nat → Form, B = X.subst σ) : DerivesFromSchema X p := by
+  refine ⟨[B, A], fun q hq => ?_, Derives.deduction.mpr h⟩
+  rcases List.mem_cons.mp hq with rfl | hq
+  · exact hB
+  · exact List.mem_singleton.mp hq ▸ hA
+
+/-- A schema derives what it entails itself, being its own instance. -/
+theorem of_ent_self {X p : Form} (h : Ent X p) : DerivesFromSchema X p :=
+  of_ent h ⟨.var, (Form.subst_var X).symm⟩
+
 end DerivesFromSchema
+
+/-- Two schemas derive each other: they axiomatise the same logic. -/
+def SchemaEquiv (X Y : Form) : Prop := DerivesFromSchema X Y ∧ DerivesFromSchema Y X
+
+namespace SchemaEquiv
+
+theorem refl (X : Form) : SchemaEquiv X X := ⟨DerivesFromSchema.refl X, DerivesFromSchema.refl X⟩
+
+theorem symm {X Y : Form} (h : SchemaEquiv X Y) : SchemaEquiv Y X := ⟨h.2, h.1⟩
+
+theorem trans {X Y Z : Form} (h₁ : SchemaEquiv X Y) (h₂ : SchemaEquiv Y Z) : SchemaEquiv X Z :=
+  ⟨h₁.1.trans h₂.1, h₂.2.trans h₁.2⟩
+
+end SchemaEquiv
 
 /-! ## Naming the elements of an algebra by formulas
 

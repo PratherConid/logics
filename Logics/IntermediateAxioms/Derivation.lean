@@ -1,0 +1,1128 @@
+import Logics.IntermediateAxioms.AxiomDef
+
+/-!
+# Derivations between the principles
+
+The derivations the hierarchy of principles rests on, in the calculus of
+`Logics/Heyting.lean`: those joining the members of each class, and every edge
+between the classes.
+
+**The statements.**  That a principle `X`, taken at arguments `s, t`, yields a
+principle `Y` is `Ent (X.subst (Form.args [s, t])) Y`: that substitution
+instance of `X` entails `Y`, whose variables `.var 0`, `.var 1` are the `a`, `b`
+of the descriptions.  Two premises become a curried `Ent A (.imp B C)`.  A
+lemma used at many arguments is stated for arbitrary formulas.
+
+**The proofs.**  Each is a natural deduction tree.  Hypotheses are named by
+position (`Derives.h₀`, `h₁`, …), the most recent first, and the comments
+beside a tree read it as a proof in Lean's own logic, naming the hypotheses: a
+case split is `orE`, `Or.inl` is `orI₁`, introducing a hypothesis is `impI`,
+applying one is `impE`, `absurd` is `flsE` of an `impE` into `fls`, a `have` is
+a `cut` at the formula it states, and using another entailment is `Ent.mp`.
+
+**The derivations.**  An entailment from an instance of `X` is a derivation
+from the schema `X` (`DerivesFromSchema.of_ent`, `of_ent₂` for two
+instances), and each class ends with its members' equivalence to the class's
+representative (`SchemaEquiv`).
+
+**The shifts.**  Most entailments take one principle at a *shifted* instance
+and conclude another at the plain one.  The shifts are what make the combined
+principles interderivable: `¬ a ∨ b` and `a ∨ b` relate the De Morgan and
+`impOrForm` versions, `b ∨ (b → a)` relates the De Morgan version to the
+swapped Peirce one, and `a → b` and `a ∨ b` place the swapped `impOrForm`
+version between two others.  In each case the shift makes the left disjunct's
+own premise provable, so that disjunct collapses to a bare disjunction whose
+cases can be dispatched separately.  Swapping an argument does not always
+change anything: for a principle whose left disjunct is symmetric the swap
+merely transposes it, while for the others it moves the principle to a
+different strength.
+
+Where several proofs run the same argument, it is proved once, among the steps
+after the one argument principles, and the proofs call it.
+-/
+
+open Derives
+
+/-! ## The basic principles -/
+
+/-- `impOrForm` at equal arguments is excluded middle. -/
+theorem impOr_ent_em (p : Form) : Ent (impOrForm p p) (excludedMiddleForm p) :=
+  -- Or.symm (hImpOr id)
+  .orE (.impE .h₀ (.impI .h₀)) (.orI₂ .h₀) (.orI₁ .h₀)
+
+/-- Excluded middle at `p` gives `impOrForm p q`. -/
+theorem em_ent_impOr (p q : Form) : Ent (excludedMiddleForm p) (impOrForm p q) :=
+  .impI (.orE .h₁                  -- intro hab; cases hEx
+    (.orI₂ (.impE .h₁ .h₀))       -- | inl ha => Or.inr (hab ha)
+    (.orI₁ .h₀))                  -- | inr hna => Or.inl hna
+
+/-- Excluded middle gives double negation elimination. -/
+theorem em_ent_notNot (p : Form) : Ent (excludedMiddleForm p) (notNotForm p) :=
+  .impI (.orE .h₁ .h₀              -- intro nna; cases hEm; | inl ha => ha
+    (.flsE (.impE .h₁ .h₀)))      -- | inr hna => False.elim (nna hna)
+
+/-- Excluded middle gives consequentia mirabilis. -/
+theorem em_ent_cm (p : Form) : Ent (excludedMiddleForm p) (consequentiaMirabilisForm p) :=
+  .orE .h₀                        -- cases hEm
+    (.impI .h₁)                   -- | inl h => fun _ => h
+    (.impI (.impE .h₀ .h₁))       -- | inr h => fun f => f h
+
+/-- Consequentia mirabilis at `p ∨ ¬ p` is excluded middle at `p`. -/
+theorem cm_ent_em (p : Form) :
+    Ent (consequentiaMirabilisForm (excludedMiddleForm p)) (excludedMiddleForm p) :=
+  .impE .h₀ (.impI                -- apply hCm; intro hn
+    (.orI₂ (.impI (.impE .h₁ (.orI₁ .h₀)))))  -- Or.inr (not_or.mp hn).left
+
+/-- Consequentia mirabilis gives double negation elimination. -/
+theorem cm_ent_notNot (p : Form) : Ent (consequentiaMirabilisForm p) (notNotForm p) :=
+  .impI (.impE .h₁ (.impI         -- intro hnna; apply hCm; intro hna
+    (.flsE (.impE .h₁ .h₀))))     -- contradiction
+
+/-- Double negation elimination gives consequentia mirabilis. -/
+theorem notNot_ent_cm (p : Form) : Ent (notNotForm p) (consequentiaMirabilisForm p) :=
+  .impI (.impE .h₁ (.impI         -- intro hi; apply hnn; intro hna
+    (.impE .h₀ (.impE .h₁ .h₀)))) -- hna (hi hna)
+
+/-- Consequentia mirabilis at `p` gives Peirce's law at `p` and any `q`. -/
+theorem cm_ent_peirce (p q : Form) : Ent (consequentiaMirabilisForm p) (peirceForm p q) :=
+  .impI (.impE .h₁ (.impI         -- intro hab; apply hCm; intro hna
+    (.impE .h₁ (.impI             -- apply hab; intro ha
+      (.flsE (.impE .h₁ .h₀))))))  -- contradiction
+
+/-- Peirce's law at `p` against its own negation is consequentia mirabilis. -/
+theorem peirce_ent_cm (p : Form) :
+    Ent (peirceForm p (Form.neg p)) (consequentiaMirabilisForm p) :=
+  .impI (.impE .h₁ (.impI         -- intro h; apply hPc; intro hana
+    (.impE .h₁ (.impI             -- apply h; intro ha
+      (.impE (.impE .h₁ .h₀) .h₀)))))  -- hana ha ha
+
+/-! ## Steps shared between proofs
+
+Each of these is a stretch of argument that two or more of the proofs below
+would otherwise spell out separately. -/
+
+/-- Excluded middle gives Peirce's law, through consequentia mirabilis.  In
+every proof from excluded middle to a principle with Peirce as a disjunct. -/
+theorem em_ent_peirce (p q : Form) : Ent (excludedMiddleForm p) (peirceForm p q) :=
+  (em_ent_cm p).trans (cm_ent_peirce p q)
+
+/-- An arrow out of `a ∨ ¬ a` is an arrow out of `a`: `fun ha => k (Or.inl ha)`.
+In `bd2_ent_em₁OrLuk₂₁`, and in both halves of `notNotAnd_ent_noDiamond` and of
+`linearity_ent_noDiamond`. -/
+theorem imp_em_ent (p q : Form) : Ent (.imp (excludedMiddleForm p) q) (.imp p q) :=
+  .impI (.impE .h₁ (.orI₁ .h₀))
+
+/-- `¬ ¬ (a ∨ ¬ a)`, derivable anywhere:
+`fun hn => hn (Or.inr (fun ha => hn (Or.inl ha)))`. -/
+theorem nn_em (p : Form) {Γ : List Form} :
+    Γ ⊢ Form.neg (Form.neg (excludedMiddleForm p)) :=
+  .impI (.impE .h₀ (.orI₂ (.impI (.impE .h₁ (.orI₁ .h₀)))))
+
+/-- **An arrow into an excluded middle gives the converse of contraposition**:
+from `a → b ∨ ¬ b`, `¬ b → ¬ a` yields `a → b`.  Both halves of
+`noDiamond_ent_luk₁₂OrLuk₂₁`, and `bd2_ent_em₁OrLuk₂₁`. -/
+theorem himp_em_ent_luk (p q : Form) : Ent (.imp p (excludedMiddleForm q)) (lukForm q p) :=
+  .impI (.impI (.orE (.impE .h₂ .h₀)   -- fun hn ha => cases k ha
+    .h₀                                 -- | inl hb => hb
+    (.flsE (.impE (.impE .h₂ .h₀) .h₁))))  -- | inr hnb => absurd ha (hn hnb)
+
+/-- Łukasiewicz at `a` and `a ∨ b` gives it at `a` and `b`.  In
+`impOr₁₂OrLuk₂₁_ent_pierce₁₂OrLuk₁₂` and
+`impOr₁₂OrLuk₁₂_ent_demorgan₁₂OrLuk₁₂`. -/
+theorem luk_sup_ent (p q : Form) : Ent (lukForm p (.or p q)) (lukForm p q) :=
+  .impI (.impI                          -- intro hnn hb
+    (.cut (p := .imp (Form.neg p) (Form.neg (.or p q)))  -- have hpre : ¬ a → ¬ (a ∨ b)
+      (.impI (.impI (.orE .h₀           --   intro hna hab; cases hab
+        (.impE .h₂ .h₀)                 --   | inl ha => hna ha
+        (.impE (.impE .h₄ .h₂) .h₀))))  --   | inr hb' => hnn hna hb'
+      (.impE (.impE .h₃ .h₀) (.orI₂ .h₁))))  -- hLuk hpre (Or.inr hb)
+
+/-- From `¬ a → ¬ b` and `b`, `¬ a` gives anything, `a` being doubly negated.
+In `demorgan₁₂OrLuk₁₂_ent_impOr₁₂OrLuk₁₂` and
+`pierce₁₂OrLuk₂₁_ent_demorgan₁₂OrLuk₁₂`. -/
+theorem neg_imp_neg_ent (p q r : Form) :
+    Ent (.and (.imp (Form.neg p) (Form.neg q)) q) (.imp (Form.neg p) r) :=
+  .cut (p := Form.neg (Form.neg p))     -- have hnna : ¬ ¬ a
+    (.impI (.impE (.impE (.andE₁ .h₁) .h₀) (.andE₂ .h₁)))  --   fun hna => hnn hna hb
+    (.impI (.flsE (.impE .h₁ .h₀)))    -- fun hna => absurd hna hnna
+
+/-- Łukasiewicz at `b → a` and `b` gives it at `a` and `b`.  In
+`emAOrB₁₂OrLuk₁₂_ent_demorgan₁₂OrLuk₁₂` and `demorgan₁₂OrLuk₁₂_himp_ent`. -/
+theorem luk_himp_ent (p q : Form) : Ent (lukForm (.imp q p) q) (lukForm p q) :=
+  .impI (.impI                          -- intro h hb
+    (.impE (.impE (.impE .h₂            -- hLuk (fun hn hb' => …) hb hb
+      (.impI (.impI (.impE (.impE .h₃   --   h (fun ha => hn (fun _ => ha)) hb'
+        (.impI (.impE .h₂ (.impI .h₁)))) .h₀)))) .h₀) .h₀))
+
+/-- `demorgan₁₂OrLuk₁₂Form` at `a → b` and `a` gives `a`, or Łukasiewicz at `b`
+and `a`.  Four proofs run this and then place the two cases in their targets:
+`demorgan₁₂OrLuk₁₂_ent_em₁OrLuk₂₁`, `demorgan₁₂OrLuk₁₂_ent_emAOrB₁₂OrLuk₂₁`,
+`demorgan₁₂OrLuk₁₂_ent_emAOrNotB₁₂OrLuk₂₁`, and with the arguments swapped
+`demorgan₁₂OrLuk₁₂_ent_emAOrB₁₂OrLuk₁₂`. -/
+theorem demorgan₁₂OrLuk₁₂_himp_ent (p q : Form) :
+    Ent (.or (demorganForm (.imp p q) p) (lukForm (.imp p q) p)) (.or p (lukForm q p)) :=
+  .orE .h₀                              -- cases h
+    (.orE (.impE .h₀                    -- | inl hDeM => cases hDeM (fun hc => …)
+        (.impI (.impE (.andE₁ .h₀)      --   hc.left (fun ha => absurd ha hc.right)
+          (.impI (.flsE (.impE (.andE₂ .h₁) .h₀))))))
+      (.orI₂ (.impI .h₁))               --   | inl hab => Or.inr (fun _ => hab)
+      (.orI₁ .h₀))                      --   | inr ha => a
+    (.orI₂ ((luk_himp_ent q p).mp .h₀)) -- | inr hLuk
+
+/-- Łukasiewicz between two excluded middles gives the arrow between them:
+`fun hb => k (fun hx => absurd hx hna) (Or.inl hb)`.  Both halves of
+`luk₁₂OrLuk₂₁_ent_noDiamond`. -/
+theorem luk_em_ent (p q : Form) :
+    Ent (lukForm (excludedMiddleForm p) (excludedMiddleForm q)) (.imp q (excludedMiddleForm p)) :=
+  .impI (.impE (.impE .h₁ (.impI (.flsE (.impE (nn_em p) .h₀)))) (.orI₁ .h₀))
+
+/-- `impOrForm` at `a` and `a ∧ b` gives Łukasiewicz at `a` and `b`.  In
+`peirce₁₂OrImpOr₁₂_ent_pierce₁₂OrLuk₁₂` and
+`impOr₁₂OrLuk₂₁_ent_luk₁₂OrLuk₂₁`. -/
+theorem impOr_and_ent_luk (p q : Form) : Ent (impOrForm p (.and p q)) (lukForm p q) :=
+  .impI (.impI                          -- intro hn hb
+    (.orE (.impE .h₂ (.impI (.andI .h₀ .h₁)))  -- cases hIO (fun ha => ⟨ha, hb⟩)
+      (.flsE (.impE (.impE .h₂ .h₀) .h₁))  -- | inl hna => absurd hb (hn hna)
+      (.andE₁ .h₀)))                    -- | inr hab => hab.1
+
+/-- Under Peirce's antecedent `(a → b) → a`, the antecedent at `a ∨ c` and
+`a → b` holds: `fun hAB => Or.inl (hi (fun ha => hAB (Or.inl ha) ha))`.  In
+`pierce₁₂OrLuk₁₂_ent_pierce₁₂OrPierce₂₁` and
+`pierce₁₂OrLuk₁₂_ent_peirce₁₂OrImpOr₁₂`. -/
+theorem peirce_ante_ent (p q r : Form) :
+    Ent (.imp (.imp p q) p) (.imp (.imp (.or p r) (.imp p q)) (.or p r)) :=
+  .impI (.orI₁ (.impE .h₁ (.impI (.impE (.impE .h₁ (.orI₁ .h₀)) .h₀))))
+
+/-- Łukasiewicz at `a ∨ ¬ a` and `a → b` gives `impOrForm` at `a` and `b`, its
+hypothesis being free.  In `luk₁₂OrLuk₂₁_ent_impOr₁₂OrLuk₂₁` and
+`pierce₁₂OrLuk₁₂_ent_peirce₁₂OrImpOr₁₂`. -/
+theorem luk_em_ent_impOr (p q : Form) :
+    Ent (lukForm (excludedMiddleForm p) (.imp p q)) (impOrForm p q) :=
+  .impI (.orE                           -- intro hab; cases hL (fun hn => absurd hn hnn) hab
+    (.impE (.impE .h₁ (.impI (.flsE (.impE (nn_em p) .h₀)))) .h₀)
+    (.orI₂ (.impE .h₁ .h₀))             -- | inl ha => Or.inr (hab ha)
+    (.orI₁ .h₀))                        -- | inr hna => Or.inl hna
+
+/-- An excluded middle whose second case is refuted is its first case.  In
+`pierce₁₂OrDeMorgan₁₂_ent_em` and `demorgan₁₂OrImpOr₁₂_ent_em`. -/
+theorem em_and_nn_ent (p : Form) :
+    Ent (.and (excludedMiddleForm p) (Form.neg (Form.neg p))) p :=
+  .orE (.andE₁ .h₀) .h₀                 -- | inl hX => hX
+    (.flsE (.impE (.andE₂ .h₁) .h₀))    -- | inr hnX => absurd hnX hnn
+
+/-! ## Excluded middle's class
+
+The two three way splits are excluded middle on their own, each collapsing
+under a substitution that makes one of its three disjuncts refutable.  The
+other members join two basic principles without Łukasiewicz, and at suitable
+arguments each disjunct collapses to excluded middle by itself. -/
+
+/-- `emAOrNotBForm` is excluded middle: at `b := a` its third disjunct
+`¬ (a → a)` is refutable, leaving the first two. -/
+theorem emAOrNotB_ent_em :
+    Ent ((emAOrNotBForm (.var 0) (.var 1)).subst (Form.args [.var 0, .var 0]))
+      (excludedMiddleForm (.var 0)) :=
+  .orE .h₀ (.orI₁ .h₀)                  -- cases h; | inl ha => Or.inl ha
+    (.orE .h₀ (.orI₂ .h₀)               -- | inr h2 => cases h2; | inl hna => Or.inr hna
+      (.flsE (.impE .h₀ (.impI .h₀))))  --   | inr hn => absurd (id : a → a) hn
+
+/-- The converse needs excluded middle at *both* arguments, one for each of the
+two ways the split can fail to reach `a`. -/
+theorem em_ent_emAOrNotB :
+    Ent (excludedMiddleForm (.var 0))
+      (.imp ((excludedMiddleForm (.var 0)).subst (Form.args [.var 1]))
+        (emAOrNotBForm (.var 0) (.var 1))) :=
+  .impI (.orE .h₁ (.orI₁ .h₀)           -- intro hB; cases hA; | inl ha => Or.inl ha
+    (.orE .h₁                           -- | inr hna => cases hB
+      (.orI₂ (.orI₂ (.impI (.impE .h₂ (.impE .h₀ .h₁)))))  -- | inl hb => … (fun h => hna (h hb))
+      (.orI₂ (.orI₁ .h₀))))             --   | inr hnb => Or.inr (Or.inl hnb)
+
+/-- `emAOrBForm` is excluded middle too, collapsing at `b := fls`: there `¬ b`
+is provable, so `¬ b → a` is `a` and the third disjunct is `¬ a`. -/
+theorem emAOrB_ent_em :
+    Ent ((emAOrBForm (.var 0) (.var 1)).subst (Form.args [.var 0, .fls]))
+      (excludedMiddleForm (.var 0)) :=
+  .orE .h₀ (.orI₁ .h₀)                  -- cases h; | inl ha => Or.inl ha
+    (.orE .h₀ (.flsE .h₀)               -- | inr h2 => cases h2; | inl hf => hf.elim
+      (.orI₂ (.impI (.impE .h₁ (.impI .h₁)))))  -- | inr hn => Or.inr (fun ha => hn (fun _ => ha))
+
+/-- The converse, again from excluded middle at both arguments. -/
+theorem em_ent_emAOrB :
+    Ent (excludedMiddleForm (.var 0))
+      (.imp ((excludedMiddleForm (.var 0)).subst (Form.args [.var 1]))
+        (emAOrBForm (.var 0) (.var 1))) :=
+  .impI (.orE .h₁ (.orI₁ .h₀)           -- intro hB; cases hA; | inl ha => Or.inl ha
+    (.orE .h₁ (.orI₂ (.orI₁ .h₀))       -- | inr hna => cases hB; | inl hb => Or.inr (Or.inl hb)
+      (.orI₂ (.orI₂ (.impI (.impE .h₂ (.impE .h₀ .h₁)))))))  -- | inr hnb => … (fun h => hna (h hnb))
+
+/-- Joining Peirce with De Morgan rather than with Łukasiewicz gives excluded
+middle back, so `pierce₁₂OrDeMorgan₁₂Form` is not an intermediate principle at
+all.  At `a ∨ ¬ a` against its own negation both disjuncts collapse: Peirce
+becomes consequentia mirabilis there, which is excluded middle, and De Morgan's
+premise becomes provable, leaving `(a ∨ ¬ a) ∨ ¬ (a ∨ ¬ a)`, whose second case
+`nn_em` refutes. -/
+theorem pierce₁₂OrDeMorgan₁₂_ent_em :
+    Ent (pierce₁₂OrDeMorgan₁₂Form.subst
+        (Form.args [excludedMiddleForm (.var 0), Form.neg (excludedMiddleForm (.var 0))]))
+      (excludedMiddleForm (.var 0)) :=
+  .orE .h₀                              -- cases h
+    ((cm_ent_em _).mp ((peirce_ent_cm _).mp .h₀))  -- | inl hPc => cm_ent_em (peirce_ent_cm hPc)
+    ((em_and_nn_ent _).mp (.andI        -- | inr hDeM => cases hDeM (fun hc => hc.right hc.left)
+      (.impE .h₀ (.impI (.impE (.andE₂ .h₀) (.andE₁ .h₀)))) (nn_em _)))
+
+/-- Excluded middle gives it back, through the Peirce disjunct. -/
+theorem em_ent_pierce₁₂OrDeMorgan₁₂ :
+    Ent (excludedMiddleForm (.var 0)) pierce₁₂OrDeMorgan₁₂Form :=
+  .orI₁ ((em_ent_peirce _ _).mp .h₀)
+
+/-- Joining De Morgan with `impOrForm` is classical too, and needs no shift
+beyond taking both arguments to be `a ∨ ¬ a`.  There De Morgan's premise is
+provable, by `nn_em`, and its conclusion is the disjunction itself, while
+`impOrForm` at equal arguments is excluded middle by `impOr_ent_em`. -/
+theorem demorgan₁₂OrImpOr₁₂_ent_em :
+    Ent (demorgan₁₂OrImpOr₁₂Form.subst
+        (Form.args [excludedMiddleForm (.var 0), excludedMiddleForm (.var 0)]))
+      (excludedMiddleForm (.var 0)) :=
+  .orE .h₀                              -- cases h
+    (.orE (.impE .h₀ (.impI (.impE (nn_em _) (.andE₁ .h₀)))) .h₀ .h₀)
+                                        -- | inl hDeM => (hDeM (fun hc => hnn hc.left)).elim id id
+    ((em_and_nn_ent _).mp (.andI ((impOr_ent_em _).mp .h₀) (nn_em _)))
+                                        -- | inr hIO => cases impOr_ent_em hIO
+
+/-- Excluded middle gives it back, through the `impOrForm` disjunct. -/
+theorem em_ent_demorgan₁₂OrImpOr₁₂ : Ent (excludedMiddleForm (.var 0)) demorgan₁₂OrImpOr₁₂Form :=
+  .orI₂ ((em_ent_impOr _ _).mp .h₀)
+
+/-- Doubling `impOrForm` is classical, and at equal arguments needs no work at
+all: either disjunct is `impOrForm a a`, already excluded middle. -/
+theorem impOr₁₂OrImpOr₂₁_ent_em :
+    Ent (impOr₁₂OrImpOr₂₁Form.subst (Form.args [.var 0, .var 0])) (excludedMiddleForm (.var 0)) :=
+  .orE .h₀ ((impOr_ent_em _).mp .h₀) ((impOr_ent_em _).mp .h₀)
+
+/-- Excluded middle gives it back, through the left disjunct. -/
+theorem em_ent_impOr₁₂OrImpOr₂₁ : Ent (excludedMiddleForm (.var 0)) impOr₁₂OrImpOr₂₁Form :=
+  .orI₁ ((em_ent_impOr _ _).mp .h₀)
+
+theorem emAOrNotB_equiv_em :
+    SchemaEquiv (emAOrNotBForm (.var 0) (.var 1)) (excludedMiddleForm (.var 0)) :=
+  ⟨.of_ent emAOrNotB_ent_em ⟨_, rfl⟩,
+   .of_ent₂ em_ent_emAOrNotB ⟨.var, (Form.subst_var _).symm⟩ ⟨_, rfl⟩⟩
+
+theorem emAOrB_equiv_em :
+    SchemaEquiv (emAOrBForm (.var 0) (.var 1)) (excludedMiddleForm (.var 0)) :=
+  ⟨.of_ent emAOrB_ent_em ⟨_, rfl⟩,
+   .of_ent₂ em_ent_emAOrB ⟨.var, (Form.subst_var _).symm⟩ ⟨_, rfl⟩⟩
+
+theorem pierce₁₂OrDeMorgan₁₂_equiv_em :
+    SchemaEquiv pierce₁₂OrDeMorgan₁₂Form (excludedMiddleForm (.var 0)) :=
+  ⟨.of_ent pierce₁₂OrDeMorgan₁₂_ent_em ⟨_, rfl⟩, .of_ent_self em_ent_pierce₁₂OrDeMorgan₁₂⟩
+
+theorem demorgan₁₂OrImpOr₁₂_equiv_em :
+    SchemaEquiv demorgan₁₂OrImpOr₁₂Form (excludedMiddleForm (.var 0)) :=
+  ⟨.of_ent demorgan₁₂OrImpOr₁₂_ent_em ⟨_, rfl⟩, .of_ent_self em_ent_demorgan₁₂OrImpOr₁₂⟩
+
+theorem impOr₁₂OrImpOr₂₁_equiv_em :
+    SchemaEquiv impOr₁₂OrImpOr₂₁Form (excludedMiddleForm (.var 0)) :=
+  ⟨.of_ent impOr₁₂OrImpOr₂₁_ent_em ⟨_, rfl⟩, .of_ent_self em_ent_impOr₁₂OrImpOr₂₁⟩
+
+/-! ## Smetanich's class
+
+Smetanich's is the named axiom for this level; `peirce₁₂OrImpOr₂₁Form` is the
+form the disjunctions of this development put there, and the other members are
+joined to it.  The two directions between the pair are not alike.
+`peirce₁₂OrImpOr₂₁Form` gives Smetanich's axiom at the same arguments, with no
+shift at all.  Going back needs *two* instances: the target has to be fed in as
+an argument first, to obtain `¬ b → a`, which is exactly what the instance at
+`a, b` consumes.
+
+Two members pair a three way split with Peirce.  The splits are excluded middle
+on their own, but paired with a two argument principle they need not be: the
+pairing is only classical when one side implies the other. -/
+
+/-- `peirce₁₂OrImpOr₂₁Form` gives Smetanich's axiom at the same arguments. -/
+theorem peirce₁₂OrImpOr₂₁_ent_smetanich : Ent peirce₁₂OrImpOr₂₁Form smetanichForm :=
+  .impI (.impI (.orE .h₂                -- intro hnb k; cases h
+    (.impE .h₀ .h₁)                     -- | inl hp => hp k
+    (.orE (.impE .h₀ (.impI (.impE .h₂ (.impI .h₁))))  -- | inr himp => cases himp (fun hb => k (fun _ => hb))
+      (.impE .h₃ .h₀)                   --   | inl hnb' => hnb hnb'
+      .h₀)))                            --   | inr ha => ha
+
+/-- Back, from two instances: Smetanich's axiom at `peirce₁₂OrImpOr₂₁Form` and
+`a`, then at `a` and `b`. -/
+theorem smetanich_ent_peirce₁₂OrImpOr₂₁ :
+    Ent (smetanichForm.subst (Form.args [peirce₁₂OrImpOr₂₁Form, .var 0]))
+      (.imp smetanichForm peirce₁₂OrImpOr₂₁Form) :=
+  .impI (.cut (p := .imp (Form.neg (.var 1)) peirce₁₂OrImpOr₂₁Form)
+    (.impI (.orI₂ (.impI (.orI₁ .h₁))))  -- have hnb := fun nb => Or.inr (fun _ => Or.inl nb)
+    (.impE (.impE .h₂                   -- refine h₁ (fun na => …) ?_
+      (.impI (.orI₂ (.impI (.orI₁ (.impI (.impE .h₂ (.impE .h₁ .h₀))))))))
+                                        --   Or.inr (fun hba => Or.inl (fun hb => na (hba hb)))
+      (.impI (.orI₁ (.impE .h₂          -- intro k; Or.inl (h₂ (fun nb => k (hnb nb)))
+        (.impI (.impE .h₁ (.impE .h₂ .h₀))))))))
+
+/-- `em₁OrPeirce₂₁Form` at `b, a` gives `peirce₁₂OrImpOr₂₁Form`: excluded middle
+at `b` gives `impOrForm` at `b, a`. -/
+theorem em₁OrPeirce₂₁_ent_peirce₁₂OrImpOr₂₁ :
+    Ent (em₁OrPeirce₂₁Form.subst (Form.args [.var 1, .var 0])) peirce₁₂OrImpOr₂₁Form :=
+  .orE .h₀ (.orI₂ ((em_ent_impOr _ _).mp .h₀)) (.orI₁ .h₀)
+
+/-- Back, at `a ∨ b` and `a`. -/
+theorem peirce₁₂OrImpOr₂₁_ent_em₁OrPeirce₂₁ :
+    Ent (peirce₁₂OrImpOr₂₁Form.subst (Form.args [.or (.var 0) (.var 1), .var 0]))
+      em₁OrPeirce₂₁Form :=
+  .orE .h₀                              -- cases h
+    (.orI₂ (.impI (.orE                 -- | inl hPc => Or.inr; intro hi
+      (.impE .h₁ (.impI (.orI₂ (.impE .h₁ (.impI (.impE .h₁ (.orI₂ .h₀)))))))
+                                        --   cases hPc (fun hx => Or.inr (hi (fun hb => hx (Or.inr hb))))
+      (.impE .h₁ (.impI .h₁))           --   | inl ha => hi (fun _ => ha)
+      .h₀)))                            --   | inr hb => hb
+    (.orE (.impE .h₀ (.impI (.orI₁ .h₀)))  -- | inr hIO => cases hIO Or.inl
+      (.orI₁ (.orI₂ .h₀))               --   | inl hna => Or.inl (Or.inr hna)
+      (.orE .h₀ (.orI₁ (.orI₁ .h₀))     --   | inr hab => cases hab; | inl ha => …
+        (.orI₂ (.impI .h₁))))           --     | inr hb => Or.inr (fun _ => hb)
+
+/-- `emAOrNotB₁₂OrPeirce₁₂Form` reaches `peirce₁₂OrImpOr₂₁Form` at the plain
+arguments: the three way split is exactly what `impOrForm` at `b, a` needs once
+`b → a` is assumed. -/
+theorem emAOrNotB₁₂OrPeirce₁₂_ent_peirce₁₂OrImpOr₂₁ :
+    Ent emAOrNotB₁₂OrPeirce₁₂Form peirce₁₂OrImpOr₂₁Form :=
+  .orE .h₀                              -- cases h
+    (.orI₂ (.impI (.orE .h₁             -- | inl hE => Or.inr; intro hba; cases hE
+      (.orI₂ .h₀)                       --   | inl ha => Or.inr ha
+      (.orE .h₀ (.orI₁ .h₀)             --   | inr h2 => cases h2; | inl hnb => Or.inl hnb
+        (.flsE (.impE .h₀ .h₂))))))     --     | inr hn => absurd hba hn
+    (.orI₁ .h₀)                         -- | inr hPc => Or.inl hPc
+
+/-- Back, at `a ∨ b` and `b`. -/
+theorem peirce₁₂OrImpOr₂₁_ent_emAOrNotB₁₂OrPeirce₁₂ :
+    Ent (peirce₁₂OrImpOr₂₁Form.subst (Form.args [.or (.var 0) (.var 1), .var 1]))
+      emAOrNotB₁₂OrPeirce₁₂Form :=
+  .orE .h₀                              -- cases h
+    (.orI₂ (.impI (.orE                 -- | inl hPc => Or.inr; intro hi
+      (.impE .h₁ (.impI (.orI₁ (.impE .h₁ (.impI (.impE .h₁ (.orI₁ .h₀)))))))
+                                        --   cases hPc (fun hx => Or.inl (hi (fun ha => hx (Or.inl ha))))
+      .h₀                               --   | inl ha => ha
+      (.impE .h₁ (.impI .h₁)))))        --   | inr hb => hi (fun _ => hb)
+    (.orE (.impE .h₀ (.impI (.orI₂ .h₀)))  -- | inr hIO => cases hIO Or.inr
+      (.orI₁ (.orI₂ (.orI₁ .h₀)))       --   | inl hnb => Or.inl (Or.inr (Or.inl hnb))
+      (.orE .h₀ (.orI₁ (.orI₁ .h₀))     --   | inr hab => cases hab; | inl ha => …
+        (.orI₂ (.impI (.impE .h₀ (.impI .h₂))))))  --  | inr hb => Or.inr (fun hi => hi (fun _ => hb))
+
+/-- Taking the split at `b, a` instead reaches the same level, now with the
+split feeding `impOrForm` at `b, a` directly in all three cases. -/
+theorem emAOrNotB₁₂OrPeirce₂₁_ent_peirce₁₂OrImpOr₂₁ :
+    Ent (emAOrNotB₁₂OrPeirce₂₁Form.subst (Form.args [.var 1, .var 0])) peirce₁₂OrImpOr₂₁Form :=
+  .orE .h₀                              -- cases h
+    (.orI₂ (.impI (.orE .h₁             -- | inl hE => Or.inr; intro hba; cases hE
+      (.orI₂ (.impE .h₁ .h₀))           --   | inl hb => Or.inr (hba hb)
+      (.orE .h₀                         --   | inr h2 => cases h2
+        (.orI₁ (.impI (.impE .h₁ (.impE .h₃ .h₀))))  -- | inl hna => Or.inl (fun hb => hna (hba hb))
+        (.orI₁ (.impI (.impE .h₁ (.impI .h₁))))))))  -- | inr hn => Or.inl (fun hb => hn (fun _ => hb))
+    (.orI₁ .h₀)                         -- | inr hPc => Or.inl hPc
+
+/-- Back, at the split `a ∨ b ∨ (b → a)` and `b → a`.  That every case of the
+split gives the target is one `cut`, used by both disjuncts. -/
+theorem peirce₁₂OrImpOr₂₁_ent_emAOrNotB₁₂OrPeirce₂₁ :
+    Ent (peirce₁₂OrImpOr₂₁Form.subst (Form.args
+        [.or (.var 0) (.or (.var 1) (.imp (.var 1) (.var 0))), .imp (.var 1) (.var 0)]))
+      emAOrNotB₁₂OrPeirce₂₁Form :=
+  .cut (p := .imp (.or (.var 0) (.or (.var 1) (.imp (.var 1) (.var 0))))
+      emAOrNotB₁₂OrPeirce₂₁Form)       -- have fromA
+    (.impI (.orE .h₀                    --   intro hA; cases hA
+      (.orI₁ (.orI₁ .h₀))               --   | inl ha => Or.inl (Or.inl ha)
+      (.orE .h₀ (.orI₂ (.impI .h₁))     --   | inr h2 => cases h2; | inl hb => Or.inr (fun _ => hb)
+        (.orI₂ (.impI (.impE .h₀ .h₁)))))) --   | inr hba => Or.inr (fun hi => hi hba)
+    (.orE .h₁                           -- cases h
+      (.impE .h₁ (.impE .h₀ (.impI (.orI₂ (.orI₂ (.impI
+        (.impE (.impE .h₁ (.orI₂ (.orI₁ .h₀))) .h₀)))))))
+                                        -- | inl hPc => fromA (hPc (fun hAB => …))
+      (.orE (.impE .h₀ (.impI (.orI₂ (.orI₂ .h₀))))  -- | inr hIO => cases hIO (fun hba => …)
+        (.orI₁ (.orI₂ (.orI₂ .h₀)))     --   | inl hn => Or.inl (Or.inr (Or.inr hn))
+        (.impE .h₂ .h₀)))               --   | inr hA => fromA hA
+
+theorem peirce₁₂OrImpOr₂₁_equiv_smetanich : SchemaEquiv peirce₁₂OrImpOr₂₁Form smetanichForm :=
+  ⟨.of_ent_self peirce₁₂OrImpOr₂₁_ent_smetanich,
+   .of_ent₂ smetanich_ent_peirce₁₂OrImpOr₂₁ ⟨_, rfl⟩ ⟨.var, (Form.subst_var _).symm⟩⟩
+
+theorem em₁OrPeirce₂₁_equiv_smetanich : SchemaEquiv em₁OrPeirce₂₁Form smetanichForm :=
+  SchemaEquiv.trans
+    ⟨.of_ent em₁OrPeirce₂₁_ent_peirce₁₂OrImpOr₂₁ ⟨_, rfl⟩,
+     .of_ent peirce₁₂OrImpOr₂₁_ent_em₁OrPeirce₂₁ ⟨_, rfl⟩⟩
+    peirce₁₂OrImpOr₂₁_equiv_smetanich
+
+theorem emAOrNotB₁₂OrPeirce₁₂_equiv_smetanich :
+    SchemaEquiv emAOrNotB₁₂OrPeirce₁₂Form smetanichForm :=
+  SchemaEquiv.trans
+    ⟨.of_ent_self emAOrNotB₁₂OrPeirce₁₂_ent_peirce₁₂OrImpOr₂₁,
+     .of_ent peirce₁₂OrImpOr₂₁_ent_emAOrNotB₁₂OrPeirce₁₂ ⟨_, rfl⟩⟩
+    peirce₁₂OrImpOr₂₁_equiv_smetanich
+
+theorem emAOrNotB₁₂OrPeirce₂₁_equiv_smetanich :
+    SchemaEquiv emAOrNotB₁₂OrPeirce₂₁Form smetanichForm :=
+  SchemaEquiv.trans
+    ⟨.of_ent emAOrNotB₁₂OrPeirce₂₁_ent_peirce₁₂OrImpOr₂₁ ⟨_, rfl⟩,
+     .of_ent peirce₁₂OrImpOr₂₁_ent_emAOrNotB₁₂OrPeirce₂₁ ⟨_, rfl⟩⟩
+    peirce₁₂OrImpOr₂₁_equiv_smetanich
+
+/-- Excluded middle gives `peirce₁₂OrImpOr₂₁Form`, through the Peirce
+disjunct. -/
+theorem em_ent_peirce₁₂OrImpOr₂₁ : Ent (excludedMiddleForm (.var 0)) peirce₁₂OrImpOr₂₁Form :=
+  .orI₁ ((em_ent_peirce _ _).mp .h₀)
+
+/-- **Excluded middle derives Smetanich's axiom**, through
+`peirce₁₂OrImpOr₂₁Form`. -/
+theorem derives_smetanich_of_em : DerivesFromSchema (excludedMiddleForm (.var 0)) smetanichForm :=
+  (DerivesFromSchema.of_ent_self em_ent_peirce₁₂OrImpOr₂₁).trans
+    peirce₁₂OrImpOr₂₁_equiv_smetanich.1
+
+/-! ## Bounded depth two's class
+
+Every member is reached through `demorgan₁₂OrLuk₁₂Form`, which `em₁OrLuk₂₁Form`
+joins to `bd2Form`.  Between those two, each direction needs one shifted
+instance, and both shifts are the same idea: excluded middle at one argument is
+what the two principles trade in.  `bd2Form` is asked about `a ∨ ¬ a`; coming
+back, the Łukasiewicz principle is asked about `b ∨ ¬ b`, whose negation is
+refuted and so discharges the hypothesis for free.
+
+Five of the six principles joining a one argument principle to a two argument
+one are here.  `em₁OrLuk₂₁Form`, `notNot₁OrLuk₂₁Form` and `cm₁OrLuk₂₁Form` are
+reached from `demorgan₁₂OrLuk₁₂Form` and return to it through
+`pierce₁₂OrLuk₂₁Form`; `cm₁OrPeirce₂₁Form` and `notNot₁OrPeirce₂₁Form` form a
+second cycle to the same level.  The three pairings of a three way split with
+Łukasiewicz are here too. -/
+
+/-- `bd2Form` at `a ∨ ¬ a` and `b` gives `em₁OrLuk₂₁Form`. -/
+theorem bd2_ent_em₁OrLuk₂₁ :
+    Ent (bd2Form.subst (Form.args [excludedMiddleForm (.var 0), .var 1])) em₁OrLuk₂₁Form :=
+  .orE .h₀ (.orI₁ .h₀)                  -- cases h; | inl hem => Or.inl hem
+    (.orI₂ ((himp_em_ent_luk _ _).mp ((imp_em_ent _ _).mp .h₀)))
+                                        -- | inr k => Or.inr (fun hn ha => … k (Or.inl ha) …)
+
+/-- Back, at `a` and `b ∨ ¬ b`, where the premise `¬ ¬ (b ∨ ¬ b)` is
+`nn_em`. -/
+theorem em₁OrLuk₂₁_ent_bd2 :
+    Ent (em₁OrLuk₂₁Form.subst (Form.args [.var 0, excludedMiddleForm (.var 1)])) bd2Form :=
+  .orE .h₀                              -- cases h
+    (.orE .h₀ (.orI₁ .h₀)               -- | inl hem => cases hem; | inl ha => Or.inl ha
+      (.orI₂ (.impI (.flsE (.impE .h₁ .h₀)))))  -- | inr na => Or.inr (fun ha => absurd ha na)
+    (.orI₂ (.impE .h₀ (.impI (.flsE (.impE (nn_em _) .h₀)))))  -- | inr k => Or.inr (k (fun hn => …))
+
+/-- `demorgan₁₂OrLuk₁₂Form` at `a` and `¬ a ∨ b` gives `impOr₁₂OrLuk₁₂Form`. -/
+theorem demorgan₁₂OrLuk₁₂_ent_impOr₁₂OrLuk₁₂ :
+    Ent (demorgan₁₂OrLuk₁₂Form.subst (Form.args [.var 0, .or (Form.neg (.var 0)) (.var 1)]))
+      impOr₁₂OrLuk₁₂Form :=
+  .orE .h₀                              -- cases h
+    (.cut (p := Form.neg (.and (Form.neg (.var 0)) (Form.neg (.or (Form.neg (.var 0)) (.var 1)))))
+      (.impI (.impE (.andE₂ .h₀) (.orI₁ (.andE₁ .h₀))))  -- | inl hDeM => have hpre
+      (.orI₁ (.impI (.orE (.impE .h₂ .h₁)  -- Or.inl; intro hab; cases hDeM hpre
+        (.orI₂ (.impE .h₁ .h₀))         --   | inl ha => Or.inr (hab ha)
+        .h₀))))                         --   | inr hnab => hnab
+    (.orI₂ (.impI (.impI (.impE (.impE .h₂  -- | inr hLuk => Or.inr; intro hnn hb
+      ((neg_imp_neg_ent _ _ _).mp (.andI .h₁ .h₀))) (.orI₂ .h₀)))))
+                                        --   hLuk (fun hna => absurd hna hnna) (Or.inr hb)
+
+/-- Back, at `a` and `a ∨ b`. -/
+theorem impOr₁₂OrLuk₁₂_ent_demorgan₁₂OrLuk₁₂ :
+    Ent (impOr₁₂OrLuk₁₂Form.subst (Form.args [.var 0, .or (.var 0) (.var 1)]))
+      demorgan₁₂OrLuk₁₂Form :=
+  .orE .h₀                              -- cases h
+    (.orE (.impE .h₀ (.impI (.orI₁ .h₀)))  -- | inl hIO => cases hIO Or.inl
+      (.orI₂ (.impI (.impI (.flsE (.impE (.impE .h₁ .h₂) .h₀)))))
+                                        --   | inl hna => Or.inr (fun hnn hb => absurd hb (hnn hna))
+      (.orI₁ (.impI .h₁)))              --   | inr hab => Or.inl (fun _ => hab)
+    (.orI₂ ((luk_sup_ent _ _).mp .h₀))  -- | inr hLuk
+
+/-- `demorgan₁₂OrLuk₁₂Form` at `b, a` gives `pierce₁₂OrLuk₂₁Form`: under
+Peirce's premise the De Morgan premise holds. -/
+theorem demorgan₁₂OrLuk₁₂_ent_pierce₁₂OrLuk₂₁ :
+    Ent (demorgan₁₂OrLuk₁₂Form.subst (Form.args [.var 1, .var 0])) pierce₁₂OrLuk₂₁Form :=
+  .orE .h₀                              -- cases h
+    (.orI₁ (.impI                       -- | inl hDeM => Or.inl; intro hi
+      (.cut (p := Form.neg (.and (Form.neg (.var 1)) (Form.neg (.var 0))))
+        (.impI (.impE (.andE₂ .h₀) (.impE .h₁ (.impI (.flsE (.impE (.andE₂ .h₁) .h₀))))))
+                                        --   have hpre := fun hc => hc.right (hi (fun ha => …))
+        (.orE (.impE .h₂ .h₀)           --   cases hDeM hpre
+          (.impE .h₂ (.impI .h₁))       --   | inl hb => hi (fun _ => hb)
+          .h₀))))                       --   | inr ha => ha
+    (.orI₂ .h₀)                         -- | inr hLuk => Or.inr hLuk
+
+/-- Back, at `b ∨ (b → a)` and `a`. -/
+theorem pierce₁₂OrLuk₂₁_ent_demorgan₁₂OrLuk₁₂ :
+    Ent (pierce₁₂OrLuk₂₁Form.subst (Form.args [.or (.var 1) (.imp (.var 1) (.var 0)), .var 0]))
+      demorgan₁₂OrLuk₁₂Form :=
+  .orE .h₀                              -- cases h
+    (.orE (.impE .h₀ (.impI (.orI₂ (.impI (.impE .h₁ (.orI₁ .h₀))))))
+                                        -- | inl hPc => cases hPc (fun hAa => Or.inr (fun hb => …))
+      (.orI₁ (.impI (.orI₂ .h₁)))       --   | inl hb => Or.inl (fun _ => Or.inr hb)
+      (.orI₂ (.impI .h₁)))              --   | inr hba => Or.inr (fun _ => hba)
+    (.orI₂ (.impI (.impI (.impE (.impE .h₂  -- | inr hLuk => Or.inr; intro hnn hb
+      ((neg_imp_neg_ent _ _ _).mp (.andI .h₁ .h₀))) (.orI₁ .h₀)))))
+                                        --   hLuk (fun hna => absurd hna hnna) (Or.inl hb)
+
+/-- `demorgan₁₂OrLuk₁₂Form` at `a → b` and `a` gives `em₁OrLuk₂₁Form`, through
+`demorgan₁₂OrLuk₁₂_himp_ent`. -/
+theorem demorgan₁₂OrLuk₁₂_ent_em₁OrLuk₂₁ :
+    Ent (demorgan₁₂OrLuk₁₂Form.subst (Form.args [.imp (.var 0) (.var 1), .var 0]))
+      em₁OrLuk₂₁Form :=
+  .orE ((demorgan₁₂OrLuk₁₂_himp_ent _ _).mp .h₀) (.orI₁ (.orI₁ .h₀)) (.orI₂ .h₀)
+
+/-- Excluded middle gives double negation elimination, in the left disjunct. -/
+theorem em₁OrLuk₂₁_ent_notNot₁OrLuk₂₁ : Ent em₁OrLuk₂₁Form notNot₁OrLuk₂₁Form :=
+  Ent.or_cong (em_ent_notNot _) (Ent.refl _)
+
+/-- Double negation elimination gives consequentia mirabilis, in the left
+disjunct. -/
+theorem notNot₁OrLuk₂₁_ent_cm₁OrLuk₂₁ : Ent notNot₁OrLuk₂₁Form cm₁OrLuk₂₁Form :=
+  Ent.or_cong (notNot_ent_cm _) (Ent.refl _)
+
+/-- Consequentia mirabilis gives Peirce's law, in the left disjunct. -/
+theorem cm₁OrLuk₂₁_ent_pierce₁₂OrLuk₂₁ : Ent cm₁OrLuk₂₁Form pierce₁₂OrLuk₂₁Form :=
+  Ent.or_cong (cm_ent_peirce _ _) (Ent.refl _)
+
+/-- `demorgan₁₂OrLuk₁₂Form` at `a` and `b ∨ (b → a)` gives `cm₁OrPeirce₂₁Form`.
+The shift makes De Morgan's premise provable, and in the Łukasiewicz case the
+implication `B → a` supplies `b → a` through its own left injection, which is
+what closes it. -/
+theorem demorgan₁₂OrLuk₁₂_ent_cm₁OrPeirce₂₁ :
+    Ent (demorgan₁₂OrLuk₁₂Form.subst
+        (Form.args [.var 0, .or (.var 1) (.imp (.var 1) (.var 0))])) cm₁OrPeirce₂₁Form :=
+  .cut (p := Form.neg (Form.neg (.or (.var 1) (.imp (.var 1) (.var 0)))))  -- have hnnB
+    (.impI (.impE .h₀ (.orI₂ (.impI (.flsE (.impE .h₁ (.orI₁ .h₀)))))))
+    (.orE .h₁                           -- cases h
+      (.orE (.impE .h₀ (.impI (.impE .h₂ (.andE₂ .h₀))))  -- | inl hDeM => cases hDeM (fun hc => hnnB hc.right)
+        (.orI₁ (.impI .h₁))             --   | inl ha => Or.inl (fun _ => ha)
+        (.orE .h₀                       --   | inr hB => cases hB
+          (.orI₂ (.impI .h₁))           --     | inl hb => Or.inr (fun _ => hb)
+          (.orI₂ (.impI (.impE .h₀ .h₁)))))  -- | inr hba => Or.inr (fun hi => hi hba)
+      (.orI₁ (.impI                     -- | inr hLuk => Or.inl; intro hcm
+        (.cut (p := Form.neg (Form.neg (.var 0)))  -- have hnn := fun hna => hna (hcm hna)
+          (.impI (.impE .h₀ (.impE .h₁ .h₀)))
+          (.cut (p := .imp (.or (.var 1) (.imp (.var 1) (.var 0))) (.var 0))
+            (.impE .h₂ (.impI (.flsE (.impE .h₁ .h₀))))  -- have g := hLuk (fun hna => absurd hna hnn)
+            (.impE .h₀ (.orI₂ (.impI (.impE .h₁ (.orI₁ .h₀))))))))))
+                                        -- g (Or.inr (fun hb => g (Or.inl hb)))
+
+/-- Consequentia mirabilis gives double negation elimination, in the left
+disjunct. -/
+theorem cm₁OrPeirce₂₁_ent_notNot₁OrPeirce₂₁ : Ent cm₁OrPeirce₂₁Form notNot₁OrPeirce₂₁Form :=
+  Ent.or_cong (cm_ent_notNot _) (Ent.refl _)
+
+/-- Double negation elimination gives consequentia mirabilis, in the left
+disjunct. -/
+theorem notNot₁OrPeirce₂₁_ent_cm₁OrPeirce₂₁ : Ent notNot₁OrPeirce₂₁Form cm₁OrPeirce₂₁Form :=
+  Ent.or_cong (notNot_ent_cm _) (Ent.refl _)
+
+/-- `cm₁OrPeirce₂₁Form` at `b, a` gives `pierce₁₂OrLuk₂₁Form`: consequentia
+mirabilis at `b` gives Łukasiewicz at `b, a`, and Peirce carries over. -/
+theorem cm₁OrPeirce₂₁_ent_pierce₁₂OrLuk₂₁ :
+    Ent (cm₁OrPeirce₂₁Form.subst (Form.args [.var 1, .var 0])) pierce₁₂OrLuk₂₁Form :=
+  .orE .h₀                              -- cases h
+    (.orI₂ (.impI (.impI (.impE .h₂     -- | inl hcm => Or.inr (fun hba ha => hcm (fun hnb => …))
+      (.impI (.flsE (.impE (.impE .h₂ .h₀) .h₁)))))))  -- absurd ha (hba hnb)
+    (.orI₁ .h₀)                         -- | inr hPc => Or.inl hPc
+
+/-- Pairing the second split with Łukasiewicz lands on this level:
+`emAOrB₁₂OrLuk₁₂Form` at `b → a` and `b` gives `demorgan₁₂OrLuk₁₂Form`.  There
+the split's third disjunct is refutable, and its Łukasiewicz half turns on
+`¬ (b → a)` giving `¬ a`. -/
+theorem emAOrB₁₂OrLuk₁₂_ent_demorgan₁₂OrLuk₁₂ :
+    Ent (emAOrB₁₂OrLuk₁₂Form.subst (Form.args [.imp (.var 1) (.var 0), .var 1]))
+      demorgan₁₂OrLuk₁₂Form :=
+  .orE .h₀                              -- cases h
+    (.orE .h₀ (.orI₂ (.impI .h₁))       -- | inl hE => cases hE; | inl hba => Or.inr (fun _ => hba)
+      (.orE .h₀ (.orI₁ (.impI (.orI₂ .h₁)))  -- | inr h2 => cases h2; | inl hb => Or.inl (fun _ => Or.inr hb)
+        (.flsE (.impE .h₀ (.impI (.impI (.flsE (.impE .h₁ .h₀))))))))
+                                        --     | inr hn => absurd (fun hnb hb => absurd hb hnb) hn
+    (.orI₂ ((luk_himp_ent _ _).mp .h₀)) -- | inr hLuk
+
+/-- Back, also at `b → a` and `b`. -/
+theorem demorgan₁₂OrLuk₁₂_ent_emAOrB₁₂OrLuk₁₂ :
+    Ent (demorgan₁₂OrLuk₁₂Form.subst (Form.args [.imp (.var 1) (.var 0), .var 1]))
+      emAOrB₁₂OrLuk₁₂Form :=
+  .orE ((demorgan₁₂OrLuk₁₂_himp_ent _ _).mp .h₀) (.orI₁ (.orI₂ (.orI₁ .h₀))) (.orI₂ .h₀)
+
+/-- Swapping Łukasiewicz's arguments keeps the same level.  Here the forward
+direction, at `b, a`, needs no shift on the Łukasiewicz side at all, and the
+split's third disjunct `¬ (¬ a → b)` delivers `¬ b`, which is enough for
+Łukasiewicz. -/
+theorem emAOrB₁₂OrLuk₂₁_ent_demorgan₁₂OrLuk₁₂ :
+    Ent (emAOrB₁₂OrLuk₂₁Form.subst (Form.args [.var 1, .var 0])) demorgan₁₂OrLuk₁₂Form :=
+  .orE .h₀                              -- cases h
+    (.orE .h₀ (.orI₁ (.impI (.orI₂ .h₁)))  -- | inl hE => cases hE; | inl hb => Or.inl (fun _ => Or.inr hb)
+      (.orE .h₀ (.orI₁ (.impI (.orI₁ .h₁)))  -- | inr h2 => cases h2; | inl ha => Or.inl (fun _ => Or.inl ha)
+        (.orI₂ (.impI (.impI (.flsE (.impE .h₂ (.impI .h₁))))))))
+                                        --     | inr hn => Or.inr (fun _ hb => absurd (fun _ => hb) hn)
+    (.orI₂ .h₀)                         -- | inr hLuk => Or.inr hLuk
+
+/-- Back, at `a → b` and `a`. -/
+theorem demorgan₁₂OrLuk₁₂_ent_emAOrB₁₂OrLuk₂₁ :
+    Ent (demorgan₁₂OrLuk₁₂Form.subst (Form.args [.imp (.var 0) (.var 1), .var 0]))
+      emAOrB₁₂OrLuk₂₁Form :=
+  .orE ((demorgan₁₂OrLuk₁₂_himp_ent _ _).mp .h₀) (.orI₁ (.orI₁ .h₀)) (.orI₂ .h₀)
+
+/-- The last pairing, again at this level, at `b, a`.  Every case of the split
+feeds Łukasiewicz: `¬ a` directly, and `¬ (a → b)` through `¬ b`. -/
+theorem emAOrNotB₁₂OrLuk₂₁_ent_demorgan₁₂OrLuk₁₂ :
+    Ent (emAOrNotB₁₂OrLuk₂₁Form.subst (Form.args [.var 1, .var 0])) demorgan₁₂OrLuk₁₂Form :=
+  .orE .h₀                              -- cases h
+    (.orE .h₀ (.orI₁ (.impI (.orI₂ .h₁)))  -- | inl hE => cases hE; | inl hb => Or.inl (fun _ => Or.inr hb)
+      (.orE .h₀                         --   | inr h2 => cases h2
+        (.orI₂ (.impI (.impI (.flsE (.impE (.impE .h₁ .h₂) .h₀)))))
+                                        --     | inl hna => Or.inr (fun hx hb => absurd hb (hx hna))
+        (.orI₂ (.impI (.impI (.flsE (.impE .h₂ (.impI .h₁))))))))
+                                        --     | inr hn => Or.inr (fun _ hb => absurd (fun _ => hb) hn)
+    (.orI₂ .h₀)                         -- | inr hLuk => Or.inr hLuk
+
+/-- Back, at `a → b` and `a`. -/
+theorem demorgan₁₂OrLuk₁₂_ent_emAOrNotB₁₂OrLuk₂₁ :
+    Ent (demorgan₁₂OrLuk₁₂Form.subst (Form.args [.imp (.var 0) (.var 1), .var 0]))
+      emAOrNotB₁₂OrLuk₂₁Form :=
+  .orE ((demorgan₁₂OrLuk₁₂_himp_ent _ _).mp .h₀) (.orI₁ (.orI₁ .h₀)) (.orI₂ .h₀)
+
+theorem derives_bd2_of_em₁OrLuk₂₁ : DerivesFromSchema em₁OrLuk₂₁Form bd2Form :=
+  .of_ent em₁OrLuk₂₁_ent_bd2 ⟨_, rfl⟩
+
+theorem derives_em₁OrLuk₂₁_of_bd2 : DerivesFromSchema bd2Form em₁OrLuk₂₁Form :=
+  .of_ent bd2_ent_em₁OrLuk₂₁ ⟨_, rfl⟩
+
+theorem derives_em₁OrLuk₂₁_of_demorgan₁₂OrLuk₁₂ :
+    DerivesFromSchema demorgan₁₂OrLuk₁₂Form em₁OrLuk₂₁Form :=
+  .of_ent demorgan₁₂OrLuk₁₂_ent_em₁OrLuk₂₁ ⟨_, rfl⟩
+
+theorem derives_notNot₁OrLuk₂₁_of_em₁OrLuk₂₁ :
+    DerivesFromSchema em₁OrLuk₂₁Form notNot₁OrLuk₂₁Form :=
+  .of_ent_self em₁OrLuk₂₁_ent_notNot₁OrLuk₂₁
+
+theorem derives_cm₁OrLuk₂₁_of_notNot₁OrLuk₂₁ :
+    DerivesFromSchema notNot₁OrLuk₂₁Form cm₁OrLuk₂₁Form :=
+  .of_ent_self notNot₁OrLuk₂₁_ent_cm₁OrLuk₂₁
+
+theorem derives_pierce₁₂OrLuk₂₁_of_cm₁OrLuk₂₁ :
+    DerivesFromSchema cm₁OrLuk₂₁Form pierce₁₂OrLuk₂₁Form :=
+  .of_ent_self cm₁OrLuk₂₁_ent_pierce₁₂OrLuk₂₁
+
+theorem derives_demorgan₁₂OrLuk₁₂_of_pierce₁₂OrLuk₂₁ :
+    DerivesFromSchema pierce₁₂OrLuk₂₁Form demorgan₁₂OrLuk₁₂Form :=
+  .of_ent pierce₁₂OrLuk₂₁_ent_demorgan₁₂OrLuk₁₂ ⟨_, rfl⟩
+
+theorem derives_pierce₁₂OrLuk₂₁_of_cm₁OrPeirce₂₁ :
+    DerivesFromSchema cm₁OrPeirce₂₁Form pierce₁₂OrLuk₂₁Form :=
+  .of_ent cm₁OrPeirce₂₁_ent_pierce₁₂OrLuk₂₁ ⟨_, rfl⟩
+
+theorem derives_cm₁OrPeirce₂₁_of_demorgan₁₂OrLuk₁₂ :
+    DerivesFromSchema demorgan₁₂OrLuk₁₂Form cm₁OrPeirce₂₁Form :=
+  .of_ent demorgan₁₂OrLuk₁₂_ent_cm₁OrPeirce₂₁ ⟨_, rfl⟩
+
+/-- **`demorgan₁₂OrLuk₁₂Form` axiomatises bounded depth two's level**: down
+through `em₁OrLuk₂₁Form`, and back up along the cycle through
+`notNot₁OrLuk₂₁Form`, `cm₁OrLuk₂₁Form` and `pierce₁₂OrLuk₂₁Form`. -/
+theorem demorgan₁₂OrLuk₁₂_equiv_bd2 : SchemaEquiv demorgan₁₂OrLuk₁₂Form bd2Form :=
+  ⟨derives_em₁OrLuk₂₁_of_demorgan₁₂OrLuk₁₂.trans derives_bd2_of_em₁OrLuk₂₁,
+   derives_em₁OrLuk₂₁_of_bd2.trans (derives_notNot₁OrLuk₂₁_of_em₁OrLuk₂₁.trans
+     (derives_cm₁OrLuk₂₁_of_notNot₁OrLuk₂₁.trans (derives_pierce₁₂OrLuk₂₁_of_cm₁OrLuk₂₁.trans
+       derives_demorgan₁₂OrLuk₁₂_of_pierce₁₂OrLuk₂₁)))⟩
+
+/-- A member joined to `demorgan₁₂OrLuk₁₂Form` both ways is at bounded depth
+two's level. -/
+theorem SchemaEquiv.bd2_of_demorgan₁₂OrLuk₁₂ {X : Form}
+    (h₁ : DerivesFromSchema X demorgan₁₂OrLuk₁₂Form)
+    (h₂ : DerivesFromSchema demorgan₁₂OrLuk₁₂Form X) : SchemaEquiv X bd2Form :=
+  SchemaEquiv.trans ⟨h₁, h₂⟩ demorgan₁₂OrLuk₁₂_equiv_bd2
+
+theorem em₁OrLuk₂₁_equiv_bd2 : SchemaEquiv em₁OrLuk₂₁Form bd2Form :=
+  ⟨derives_bd2_of_em₁OrLuk₂₁, derives_em₁OrLuk₂₁_of_bd2⟩
+
+theorem impOr₁₂OrLuk₁₂_equiv_bd2 : SchemaEquiv impOr₁₂OrLuk₁₂Form bd2Form :=
+  .bd2_of_demorgan₁₂OrLuk₁₂ (.of_ent impOr₁₂OrLuk₁₂_ent_demorgan₁₂OrLuk₁₂ ⟨_, rfl⟩)
+    (.of_ent demorgan₁₂OrLuk₁₂_ent_impOr₁₂OrLuk₁₂ ⟨_, rfl⟩)
+
+theorem pierce₁₂OrLuk₂₁_equiv_bd2 : SchemaEquiv pierce₁₂OrLuk₂₁Form bd2Form :=
+  .bd2_of_demorgan₁₂OrLuk₁₂ derives_demorgan₁₂OrLuk₁₂_of_pierce₁₂OrLuk₂₁
+    (.of_ent demorgan₁₂OrLuk₁₂_ent_pierce₁₂OrLuk₂₁ ⟨_, rfl⟩)
+
+theorem notNot₁OrLuk₂₁_equiv_bd2 : SchemaEquiv notNot₁OrLuk₂₁Form bd2Form :=
+  .bd2_of_demorgan₁₂OrLuk₁₂
+    (derives_cm₁OrLuk₂₁_of_notNot₁OrLuk₂₁.trans (derives_pierce₁₂OrLuk₂₁_of_cm₁OrLuk₂₁.trans
+      derives_demorgan₁₂OrLuk₁₂_of_pierce₁₂OrLuk₂₁))
+    (derives_em₁OrLuk₂₁_of_demorgan₁₂OrLuk₁₂.trans derives_notNot₁OrLuk₂₁_of_em₁OrLuk₂₁)
+
+theorem cm₁OrLuk₂₁_equiv_bd2 : SchemaEquiv cm₁OrLuk₂₁Form bd2Form :=
+  .bd2_of_demorgan₁₂OrLuk₁₂
+    (derives_pierce₁₂OrLuk₂₁_of_cm₁OrLuk₂₁.trans derives_demorgan₁₂OrLuk₁₂_of_pierce₁₂OrLuk₂₁)
+    (derives_em₁OrLuk₂₁_of_demorgan₁₂OrLuk₁₂.trans (derives_notNot₁OrLuk₂₁_of_em₁OrLuk₂₁.trans
+      derives_cm₁OrLuk₂₁_of_notNot₁OrLuk₂₁))
+
+theorem cm₁OrPeirce₂₁_equiv_bd2 : SchemaEquiv cm₁OrPeirce₂₁Form bd2Form :=
+  .bd2_of_demorgan₁₂OrLuk₁₂
+    (derives_pierce₁₂OrLuk₂₁_of_cm₁OrPeirce₂₁.trans derives_demorgan₁₂OrLuk₁₂_of_pierce₁₂OrLuk₂₁)
+    derives_cm₁OrPeirce₂₁_of_demorgan₁₂OrLuk₁₂
+
+theorem notNot₁OrPeirce₂₁_equiv_bd2 : SchemaEquiv notNot₁OrPeirce₂₁Form bd2Form :=
+  .bd2_of_demorgan₁₂OrLuk₁₂
+    ((DerivesFromSchema.of_ent_self notNot₁OrPeirce₂₁_ent_cm₁OrPeirce₂₁).trans
+      (derives_pierce₁₂OrLuk₂₁_of_cm₁OrPeirce₂₁.trans derives_demorgan₁₂OrLuk₁₂_of_pierce₁₂OrLuk₂₁))
+    (derives_cm₁OrPeirce₂₁_of_demorgan₁₂OrLuk₁₂.trans
+      (.of_ent_self cm₁OrPeirce₂₁_ent_notNot₁OrPeirce₂₁))
+
+theorem emAOrB₁₂OrLuk₁₂_equiv_bd2 : SchemaEquiv emAOrB₁₂OrLuk₁₂Form bd2Form :=
+  .bd2_of_demorgan₁₂OrLuk₁₂ (.of_ent emAOrB₁₂OrLuk₁₂_ent_demorgan₁₂OrLuk₁₂ ⟨_, rfl⟩)
+    (.of_ent demorgan₁₂OrLuk₁₂_ent_emAOrB₁₂OrLuk₁₂ ⟨_, rfl⟩)
+
+theorem emAOrB₁₂OrLuk₂₁_equiv_bd2 : SchemaEquiv emAOrB₁₂OrLuk₂₁Form bd2Form :=
+  .bd2_of_demorgan₁₂OrLuk₁₂ (.of_ent emAOrB₁₂OrLuk₂₁_ent_demorgan₁₂OrLuk₁₂ ⟨_, rfl⟩)
+    (.of_ent demorgan₁₂OrLuk₁₂_ent_emAOrB₁₂OrLuk₂₁ ⟨_, rfl⟩)
+
+theorem emAOrNotB₁₂OrLuk₂₁_equiv_bd2 : SchemaEquiv emAOrNotB₁₂OrLuk₂₁Form bd2Form :=
+  .bd2_of_demorgan₁₂OrLuk₁₂ (.of_ent emAOrNotB₁₂OrLuk₂₁_ent_demorgan₁₂OrLuk₁₂ ⟨_, rfl⟩)
+    (.of_ent demorgan₁₂OrLuk₁₂_ent_emAOrNotB₁₂OrLuk₂₁ ⟨_, rfl⟩)
+
+/-- Swapping `impOrForm`'s arguments makes the principle strong enough to reach
+`demorgan₁₂OrLuk₁₂Form`, which the unswapped version cannot.  The shift is to
+the three way disjunction `a ∨ b ∨ (b → a)`, whose every case settles the
+target: `a` and `b` give De Morgan's conclusion, and `b → a` is Łukasiewicz's.
+That is one `cut`, used by both disjuncts.  Peirce reaches the disjunction
+because its premise `(A → a) → A` is provable there, and `impOrForm` because
+`a → A` is. -/
+theorem peirce₁₂OrImpOr₂₁_ent_demorgan₁₂OrLuk₁₂ :
+    Ent (peirce₁₂OrImpOr₂₁Form.subst
+        (Form.args [.or (.var 0) (.or (.var 1) (.imp (.var 1) (.var 0))), .var 0]))
+      demorgan₁₂OrLuk₁₂Form :=
+  .cut (p := .imp (.or (.var 0) (.or (.var 1) (.imp (.var 1) (.var 0)))) demorgan₁₂OrLuk₁₂Form)
+    (.impI (.orE .h₀                    -- have key; intro hA; cases hA
+      (.orI₁ (.impI (.orI₁ .h₁)))       --   | inl ha => Or.inl (fun _ => Or.inl ha)
+      (.orE .h₀                         --   | inr hbr => cases hbr
+        (.orI₁ (.impI (.orI₂ .h₁)))     --     | inl hb => Or.inl (fun _ => Or.inr hb)
+        (.orI₂ (.impI .h₁)))))          --     | inr hba => Or.inr (fun _ => hba)
+    (.orE .h₁                           -- cases h
+      (.impE .h₁ (.impE .h₀ (.impI (.orI₂ (.orI₂ (.impI
+        (.impE .h₁ (.orI₂ (.orI₁ .h₀)))))))))
+                                        -- | inl hPc => key (hPc (fun hAa => Or.inr (Or.inr …)))
+      (.orE (.impE .h₀ (.impI (.orI₁ .h₀)))  -- | inr hIO => cases hIO (fun ha => Or.inl ha)
+        (.orI₂ (.impI (.impI (.flsE (.impE (.impE .h₁ .h₂) .h₀)))))
+                                        --   | inl hna => Or.inr (fun hn hb => absurd hb (hn hna))
+        (.impE .h₂ .h₀)))               --   | inr hA => key hA
+
+/-- **Smetanich's axiom derives bounded depth two**, through
+`peirce₁₂OrImpOr₂₁Form` and `demorgan₁₂OrLuk₁₂Form`. -/
+theorem derives_bd2_of_smetanich : DerivesFromSchema smetanichForm bd2Form :=
+  peirce₁₂OrImpOr₂₁_equiv_smetanich.2.trans
+    ((DerivesFromSchema.of_ent peirce₁₂OrImpOr₂₁_ent_demorgan₁₂OrLuk₁₂ ⟨_, rfl⟩).trans
+      demorgan₁₂OrLuk₁₂_equiv_bd2.1)
+
+/-! ## `noDiamondForm`'s class
+
+`notNotAndForm` says the same level differently, that the two arguments are
+comparable as soon as they are jointly consistent.  Every return trip to
+`noDiamondForm` is the same shift, to `a ∨ ¬ a` and `b ∨ ¬ b`.  The principles
+returning have a hypothesis that the shift discharges for free, since the
+negation of an excluded middle is refuted, and what survives is a comparison
+between the two excluded middles.  That is already `noDiamondForm`, because `a`
+gives `a ∨ ¬ a` on its own.
+
+`bd2Form` gives `noDiamondForm` at the same arguments, with nothing shifted:
+the one change between them is the bare left disjunct `a`, which gives the
+mirror image of the right one. -/
+
+/-- Each disjunct of `noDiamondForm`, an arrow into an excluded middle, gives
+one of Łukasiewicz's. -/
+theorem noDiamond_ent_luk₁₂OrLuk₂₁ : Ent noDiamondForm luk₁₂OrLuk₂₁Form :=
+  .orE .h₀                              -- cases h
+    (.orI₂ ((himp_em_ent_luk _ _).mp .h₀))  -- | inl k => Or.inr (fun hn ha => …)
+    (.orI₁ ((himp_em_ent_luk _ _).mp .h₀))  -- | inr k => Or.inl (fun hn hb => …)
+
+/-- Back, at `a ∨ ¬ a` and `b ∨ ¬ b`. -/
+theorem luk₁₂OrLuk₂₁_ent_noDiamond :
+    Ent (luk₁₂OrLuk₂₁Form.subst
+        (Form.args [excludedMiddleForm (.var 0), excludedMiddleForm (.var 1)])) noDiamondForm :=
+  .orE .h₀                              -- cases h
+    (.orI₂ ((luk_em_ent _ _).mp .h₀))   -- | inl k => Or.inr (fun hb => …)
+    (.orI₁ ((luk_em_ent _ _).mp .h₀))   -- | inr k => Or.inl (fun ha => …)
+
+/-- `noDiamondForm` gives `notNotAndForm` at the same arguments.  Its two halves
+differ in which half of `a ∧ b` they take, so they are not one argument. -/
+theorem noDiamond_ent_notNotAnd : Ent noDiamondForm notNotAndForm :=
+  .impI (.orE .h₁                       -- intro hnn; cases h
+    (.orI₁ (.impI (.orE (.impE .h₁ .h₀) .h₀  -- | inl k => Or.inl (fun ha => cases k ha); | inl hb => hb
+      (.flsE (.impE .h₃ (.impI (.impE .h₁ (.andE₂ .h₀))))))))
+                                        --   | inr hnb => absurd (fun hab => hnb hab.2) hnn
+    (.orI₂ (.impI (.orE (.impE .h₁ .h₀) .h₀  -- | inr k => Or.inr (fun hb => cases k hb); | inl ha => ha
+      (.flsE (.impE .h₃ (.impI (.impE .h₁ (.andE₁ .h₀)))))))))
+                                        --   | inr hna => absurd (fun hab => hna hab.1) hnn
+
+/-- Back, at `a ∨ ¬ a` and `b ∨ ¬ b`, where the premise holds by `nn_em`
+twice. -/
+theorem notNotAnd_ent_noDiamond :
+    Ent (notNotAndForm.subst
+        (Form.args [excludedMiddleForm (.var 0), excludedMiddleForm (.var 1)])) noDiamondForm :=
+  .orE (.impE .h₀ (.impI (.impE (nn_em _) (.impI (.impE (nn_em _) (.impI
+      (.impE .h₂ (.andI .h₁ .h₀))))))))  -- cases h (fun hn => hna (fun hx => hnb (fun hy => hn ⟨hx, hy⟩)))
+    (.orI₁ ((imp_em_ent _ _).mp .h₀))  -- | inl k => Or.inl (fun ha => k (Or.inl ha))
+    (.orI₂ ((imp_em_ent _ _).mp .h₀))  -- | inr k => Or.inr (fun hb => k (Or.inl hb))
+
+/-- Doubling Łukasiewicz lands on this level too.  The shift to `a ∧ b` makes
+`impOrForm`'s premise available under `b` and turns Łukasiewicz's conclusion
+into `a → b`. -/
+theorem impOr₁₂OrLuk₂₁_ent_luk₁₂OrLuk₂₁ :
+    Ent (impOr₁₂OrLuk₂₁Form.subst (Form.args [.var 0, .and (.var 0) (.var 1)]))
+      luk₁₂OrLuk₂₁Form :=
+  .orE .h₀                              -- cases h
+    (.orI₁ ((impOr_and_ent_luk _ _).mp .h₀))  -- | inl hIO => Or.inl (…)
+    (.orI₂ (.impI (.impI (.andE₂ (.impE (.impE .h₂  -- | inr hLuk => Or.inr; intro hba ha
+      (.impI (.impI (.impE (.impE .h₃ (.impI (.impE .h₂ (.andI .h₁ .h₀)))) .h₀)))) .h₀)))))
+                                        --   (hLuk (fun k ha' => hba (fun hb => k ⟨ha', hb⟩) ha') ha).2
+
+/-- The converse, at `a → b` against excluded middle on `a`.  Both source
+disjuncts have a premise that is free because `¬ (a ∨ ¬ a)` is refuted, and
+the `a` assumed by the target is what supplies `a ∨ ¬ a` in the first case. -/
+theorem luk₁₂OrLuk₂₁_ent_impOr₁₂OrLuk₂₁ :
+    Ent (luk₁₂OrLuk₂₁Form.subst
+        (Form.args [.imp (.var 0) (.var 1), excludedMiddleForm (.var 0)])) impOr₁₂OrLuk₂₁Form :=
+  .orE .h₀                              -- cases h
+    (.orI₂ (.impI (.impI                -- | inl hL => Or.inr; intro hba ha
+      (.cut (p := Form.neg (Form.neg (.imp (.var 0) (.var 1))))
+        (.impI (.impE (.impE .h₂ (.impI (.impE .h₁ (.impI .h₁)))) .h₁))
+                                        --   have hnn := fun hn => hba (fun hb => hn (fun _ => hb)) ha
+        (.impE (.impE (.impE .h₃ (.impI (.flsE (.impE .h₁ .h₀)))) (.orI₁ .h₁)) .h₁)))))
+                                        --   hL (fun hnx => absurd hnx hnn) (Or.inl ha) ha
+    (.orI₁ ((luk_em_ent_impOr _ _).mp .h₀))  -- | inr hL => Or.inl (…)
+
+theorem derives_luk₁₂OrLuk₂₁_of_noDiamond : DerivesFromSchema noDiamondForm luk₁₂OrLuk₂₁Form :=
+  .of_ent_self noDiamond_ent_luk₁₂OrLuk₂₁
+
+theorem derives_impOr₁₂OrLuk₂₁_of_luk₁₂OrLuk₂₁ :
+    DerivesFromSchema luk₁₂OrLuk₂₁Form impOr₁₂OrLuk₂₁Form :=
+  .of_ent luk₁₂OrLuk₂₁_ent_impOr₁₂OrLuk₂₁ ⟨_, rfl⟩
+
+theorem luk₁₂OrLuk₂₁_equiv_noDiamond : SchemaEquiv luk₁₂OrLuk₂₁Form noDiamondForm :=
+  ⟨.of_ent luk₁₂OrLuk₂₁_ent_noDiamond ⟨_, rfl⟩, derives_luk₁₂OrLuk₂₁_of_noDiamond⟩
+
+theorem notNotAnd_equiv_noDiamond : SchemaEquiv notNotAndForm noDiamondForm :=
+  ⟨.of_ent notNotAnd_ent_noDiamond ⟨_, rfl⟩, .of_ent_self noDiamond_ent_notNotAnd⟩
+
+theorem impOr₁₂OrLuk₂₁_equiv_noDiamond : SchemaEquiv impOr₁₂OrLuk₂₁Form noDiamondForm :=
+  SchemaEquiv.trans
+    ⟨.of_ent impOr₁₂OrLuk₂₁_ent_luk₁₂OrLuk₂₁ ⟨_, rfl⟩, derives_impOr₁₂OrLuk₂₁_of_luk₁₂OrLuk₂₁⟩
+    luk₁₂OrLuk₂₁_equiv_noDiamond
+
+/-- `bd2Form` gives `noDiamondForm` at the same arguments. -/
+theorem bd2_ent_noDiamond : Ent bd2Form noDiamondForm :=
+  .orE .h₀                              -- cases h
+    (.orI₂ (.impI (.orI₁ .h₁)))         -- | inl ha => Or.inr (fun _ => Or.inl ha)
+    (.orI₁ .h₀)                         -- | inr k => Or.inl k
+
+/-- **Bounded depth two derives `noDiamondForm`.** -/
+theorem derives_noDiamond_of_bd2 : DerivesFromSchema bd2Form noDiamondForm :=
+  .of_ent_self bd2_ent_noDiamond
+
+/-! ## Linearity and weak excluded middle
+
+Neither is a combination of two principles, so neither belongs to the chain of
+levels; each sits beside it.  Linearity is the stronger, and reaches weak
+excluded middle by being asked about a formula against its own negation.
+
+Smetanich's level reaches linearity: `peirce₁₂OrImpOr₂₁Form`, asked about
+linearity itself and `b`, gives it back.  Each disjunct has a premise that
+holds there, Peirce's because `a → b` follows from anything that turns
+linearity into `b`, and `impOrForm`'s because `b` gives `a → b`.
+
+The last entailment places linearity exactly.  Linearity gives weak excluded
+middle and `noDiamondForm`, and those two give it back, at the plain arguments
+and with no shift: once neither argument can be refuted, the disjunct of
+`noDiamondForm` that holds delivers the comparison outright. -/
+
+/-- `peirce₁₂OrImpOr₂₁Form` at linearity and `b` gives linearity. -/
+theorem peirce₁₂OrImpOr₂₁_ent_linearity :
+    Ent (peirce₁₂OrImpOr₂₁Form.subst (Form.args [linearityForm, .var 1])) linearityForm :=
+  .orE .h₀                              -- cases h
+    (.impE .h₀ (.impI (.orI₁ (.impI (.impE .h₁ (.orI₂ (.impI .h₁)))))))
+                                        -- | inl hPc => hPc (fun f => Or.inl (fun ha => f (Or.inr …)))
+    (.orE (.impE .h₀ (.impI (.orI₁ (.impI .h₁))))  -- | inr hIO => cases hIO (fun hb => Or.inl (fun _ => hb))
+      (.orI₂ (.impI (.flsE (.impE .h₁ .h₀))))  -- | inl hnb => Or.inr (fun hb => absurd hb hnb)
+      .h₀)                              --   | inr hL => hL
+
+/-- Linearity at `a` against `¬ a` is weak excluded middle. -/
+theorem linearity_ent_weakEm :
+    Ent (linearityForm.subst (Form.args [.var 0, Form.neg (.var 0)])) weakEmForm :=
+  .orE .h₀                              -- cases h
+    (.orI₁ (.impI (.impE (.impE .h₁ .h₀) .h₀)))  -- | inl k => Or.inl (fun ha => k ha ha)
+    (.orI₂ (.impI (.impE .h₀ (.impE .h₁ .h₀))))  -- | inr k => Or.inr (fun na => na (k na))
+
+/-- Linearity between `a ∨ ¬ a` and `b ∨ ¬ b` gives `noDiamondForm`. -/
+theorem linearity_ent_noDiamond :
+    Ent (linearityForm.subst
+        (Form.args [excludedMiddleForm (.var 0), excludedMiddleForm (.var 1)])) noDiamondForm :=
+  .orE .h₀                              -- cases h
+    (.orI₁ ((imp_em_ent _ _).mp .h₀))   -- | inl k => Or.inl (fun ha => k (Or.inl ha))
+    (.orI₂ ((imp_em_ent _ _).mp .h₀))   -- | inr k => Or.inr (fun hb => k (Or.inl hb))
+
+/-- **Smetanich's axiom derives linearity**, through `peirce₁₂OrImpOr₂₁Form`. -/
+theorem derives_linearity_of_smetanich : DerivesFromSchema smetanichForm linearityForm :=
+  peirce₁₂OrImpOr₂₁_equiv_smetanich.2.trans (.of_ent peirce₁₂OrImpOr₂₁_ent_linearity ⟨_, rfl⟩)
+
+/-- **Linearity derives weak excluded middle.** -/
+theorem derives_weakEm_of_linearity : DerivesFromSchema linearityForm weakEmForm :=
+  .of_ent linearity_ent_weakEm ⟨_, rfl⟩
+
+/-- **Linearity derives `noDiamondForm`.** -/
+theorem derives_noDiamond_of_linearity : DerivesFromSchema linearityForm noDiamondForm :=
+  .of_ent linearity_ent_noDiamond ⟨_, rfl⟩
+
+/-- **Weak excluded middle at both arguments, with `noDiamondForm`, gives
+linearity.**  Each argument is either refutable, which settles the comparison
+one way, or doubly negated, and then the `noDiamondForm` disjunct that holds
+turns an excluded middle into the comparison itself. -/
+theorem weakEm_noDiamond_ent_linearity :
+    Ent (.and weakEmForm (.and (weakEmForm.subst (Form.args [.var 1])) noDiamondForm))
+      linearityForm :=
+  .orE (.andE₁ .h₀)                     -- cases ha
+    (.orI₁ (.impI (.flsE (.impE .h₁ .h₀))))  -- | inl na => Or.inl (fun x => absurd x na)
+    (.orE (.andE₁ (.andE₂ .h₁))         -- | inr nna => cases hb
+      (.orI₂ (.impI (.flsE (.impE .h₁ .h₀))))  -- | inl nb => Or.inr (fun y => absurd y nb)
+      (.orE (.andE₂ (.andE₂ .h₂))       --   | inr nnb => cases hnd
+        (.orI₁ (.impI (.orE (.impE .h₁ .h₀) .h₀  -- | inl k => Or.inl (fun x => cases k x); | inl y => y
+          (.flsE (.impE .h₃ .h₀)))))    --     | inr nb => absurd nb nnb
+        (.orI₂ (.impI (.orE (.impE .h₁ .h₀) .h₀  -- | inr k => Or.inr (fun y => cases k y); | inl x => x
+          (.flsE (.impE .h₄ .h₀)))))))  --     | inr na => absurd na nna
+
+/-! ## From `noDiamondForm` down to `pierce₁₂OrLuk₁₂Form`, and its class -/
+
+/-- `impOr₁₂OrLuk₂₁Form` at `a ∨ b` and `a` gives `pierce₁₂OrLuk₁₂Form`. -/
+theorem impOr₁₂OrLuk₂₁_ent_pierce₁₂OrLuk₁₂ :
+    Ent (impOr₁₂OrLuk₂₁Form.subst (Form.args [.or (.var 0) (.var 1), .var 0]))
+      pierce₁₂OrLuk₁₂Form :=
+  .orE .h₀                              -- cases h
+    (.orI₁ (.impI                       -- | inl hIO => Or.inl; intro hi
+      (.cut (p := .imp (.or (.var 0) (.var 1)) (.var 0))  -- have hxa : (a ∨ b) → a
+        (.impI (.orE .h₀ .h₀ (.impE .h₂ (.impI .h₁))))  --   fun hab => hab.elim id (fun hb => hi (fun _ => hb))
+        (.orE (.impE .h₂ .h₀)           --   cases hIO hxa
+          (.impE .h₂ (.impI (.flsE (.impE .h₁ (.orI₁ .h₀)))))
+                                        --   | inl hn => hi (fun ha => absurd (Or.inl ha) hn)
+          .h₀))))                       --   | inr ha => ha
+    (.orI₂ ((luk_sup_ent _ _).mp .h₀))  -- | inr hLuk
+
+theorem derives_pierce₁₂OrLuk₁₂_of_impOr₁₂OrLuk₂₁ :
+    DerivesFromSchema impOr₁₂OrLuk₂₁Form pierce₁₂OrLuk₁₂Form :=
+  .of_ent impOr₁₂OrLuk₂₁_ent_pierce₁₂OrLuk₁₂ ⟨_, rfl⟩
+
+/-- **`noDiamondForm` derives `pierce₁₂OrLuk₁₂Form`**, through two other members
+of its class. -/
+theorem derives_pierce₁₂OrLuk₁₂_of_noDiamond :
+    DerivesFromSchema noDiamondForm pierce₁₂OrLuk₁₂Form :=
+  derives_luk₁₂OrLuk₂₁_of_noDiamond.trans
+    (derives_impOr₁₂OrLuk₂₁_of_luk₁₂OrLuk₂₁.trans derives_pierce₁₂OrLuk₁₂_of_impOr₁₂OrLuk₂₁)
+
+/-- Shifting the second argument to `a ∧ b` turns `peirce₁₂OrImpOr₁₂Form` into
+`pierce₁₂OrLuk₁₂Form`.  Peirce transfers because `a → a ∧ b` and `a → b` say the
+same thing under the assumption `a`, and `impOrForm` transfers because its own
+premise is available once `b` is assumed, as Łukasiewicz's conclusion does. -/
+theorem peirce₁₂OrImpOr₁₂_ent_pierce₁₂OrLuk₁₂ :
+    Ent (peirce₁₂OrImpOr₁₂Form.subst (Form.args [.var 0, .and (.var 0) (.var 1)]))
+      pierce₁₂OrLuk₁₂Form :=
+  .orE .h₀                              -- cases h
+    (.orI₁ (.impI (.impE .h₁ (.impI     -- | inl hPc => Or.inl; intro hi; hPc (fun hand => …)
+      (.impE .h₁ (.impI (.andE₂ (.impE .h₁ .h₀))))))))  -- hi (fun ha => (hand ha).2)
+    (.orI₂ ((impOr_and_ent_luk _ _).mp .h₀))  -- | inr hIO => Or.inr (…)
+
+/-- The converse, which needs a deeper shift: `peirce₁₂OrImpOr₁₂Form` at `a` and
+`b` comes from `pierce₁₂OrLuk₁₂Form` at excluded middle on `a` and at `a → b`.
+
+Both disjuncts turn on `(a ∨ ¬ a) → (a → b)` being interderivable with `a → b`,
+which collapses Peirce's premise to `(a → b) → (a ∨ ¬ a)`; Peirce then hands
+back excluded middle on `a`, and Łukasiewicz hands back the same thing because
+its own premise is free, `¬ (a ∨ ¬ a)` being refuted. -/
+theorem pierce₁₂OrLuk₁₂_ent_peirce₁₂OrImpOr₁₂ :
+    Ent (pierce₁₂OrLuk₁₂Form.subst
+        (Form.args [excludedMiddleForm (.var 0), .imp (.var 0) (.var 1)])) peirce₁₂OrImpOr₁₂Form :=
+  .orE .h₀                              -- cases h
+    (.orI₁ (.impI (.orE                 -- | inl hPc => Or.inl; intro hi
+      (.impE .h₁ ((peirce_ante_ent _ _ _).mp .h₀))  --   cases hPc (fun hAB => …)
+      .h₀                               --   | inl ha => ha
+      (.impE .h₁ (.impI (.flsE (.impE .h₁ .h₀)))))))  -- | inr hna => hi (fun ha => absurd ha hna)
+    (.orI₂ ((luk_em_ent_impOr _ _).mp .h₀))  -- | inr hLuk => Or.inr (…)
+
+theorem peirce₁₂OrImpOr₁₂_equiv_pierce₁₂OrLuk₁₂ :
+    SchemaEquiv peirce₁₂OrImpOr₁₂Form pierce₁₂OrLuk₁₂Form :=
+  ⟨.of_ent peirce₁₂OrImpOr₁₂_ent_pierce₁₂OrLuk₁₂ ⟨_, rfl⟩,
+   .of_ent pierce₁₂OrLuk₁₂_ent_peirce₁₂OrImpOr₁₂ ⟨_, rfl⟩⟩
+
+/-! ## The bottom step -/
+
+/-- Doubling Peirce gives the weakest principle here, below even
+`pierce₁₂OrLuk₁₂Form`.  At `a ∨ b` against `a → b` each source disjunct
+supplies one half of the target: Peirce's premise is provable once
+`(a → b) → a` is assumed, and Łukasiewicz's once `(b → a) → b` is. -/
+theorem pierce₁₂OrLuk₁₂_ent_pierce₁₂OrPierce₂₁ :
+    Ent (pierce₁₂OrLuk₁₂Form.subst (Form.args [.or (.var 0) (.var 1), .imp (.var 0) (.var 1)]))
+      pierce₁₂OrPierce₂₁Form :=
+  .orE .h₀                              -- cases h
+    (.orI₁ (.impI (.orE                 -- | inl hPc => Or.inl; intro hi
+      (.impE .h₁ ((peirce_ante_ent _ _ _).mp .h₀))  --   cases hPc (fun hAB => …)
+      .h₀                               --   | inl ha => ha
+      (.impE .h₁ (.impI .h₁)))))        --   | inr hb => hi (fun _ => hb)
+    (.orI₂ (.impI                       -- | inr hLuk => Or.inr; intro hi
+      (.cut (p := .imp (.var 0) (.var 1))  -- have hab := fun ha => hi (fun _ => ha)
+        (.impI (.impE .h₁ (.impI .h₁)))
+        (.cut (p := .imp (Form.neg (.or (.var 0) (.var 1))) (Form.neg (.imp (.var 0) (.var 1))))
+          (.impI (.impI (.impE .h₁ (.orI₂ (.impE .h₃ (.impI (.flsE (.impE .h₂ (.orI₂ .h₀)))))))))
+                                        --   have hpre := fun hn _ => hn (Or.inr (hi (fun hb => …)))
+          (.orE (.impE (.impE .h₃ .h₀) .h₁)  -- cases hLuk hpre hab
+            (.impE .h₃ (.impI .h₁))     --   | inl ha => hi (fun _ => ha)
+            .h₀)))))                    --   | inr hb => hb
+
+/-- **`pierce₁₂OrLuk₁₂Form` derives `pierce₁₂OrPierce₂₁Form`.** -/
+theorem derives_pierce₁₂OrPierce₂₁_of_pierce₁₂OrLuk₁₂ :
+    DerivesFromSchema pierce₁₂OrLuk₁₂Form pierce₁₂OrPierce₂₁Form :=
+  .of_ent pierce₁₂OrLuk₁₂_ent_pierce₁₂OrPierce₂₁ ⟨_, rfl⟩
+
+/-! ## Scott's axiom
+
+It follows from weak excluded middle at the plain argument, with nothing
+shifted: its conclusion *is* weak excluded middle, so the hypothesis is never
+needed.  It also follows from bounded depth two. -/
+
+/-- Weak excluded middle gives Scott's axiom, whose conclusion it is. -/
+theorem weakEm_ent_scott : Ent weakEmForm scottForm :=
+  .impI .h₁                             -- fun h _ => h
+
+/-- Bounded depth two, asked about `¬ ¬ a` and `a`, gives Scott's axiom.  Either
+`¬ ¬ a` holds, which is weak excluded middle's second case, or the arrow from it
+into `a ∨ ¬ a` is double negation elimination at `a`, which Scott's hypothesis
+turns into excluded middle. -/
+theorem bd2_ent_scott :
+    Ent (bd2Form.subst (Form.args [Form.neg (Form.neg (.var 0)), .var 0])) scottForm :=
+  .impI (.orE .h₁                       -- intro hS; cases h
+    (.orI₂ .h₀)                         -- | inl hnn => Or.inr hnn
+    (.cut (p := .imp (Form.neg (Form.neg (.var 0))) (.var 0))  -- | inr k => have hnna
+      (.impI (.orE (.impE .h₁ .h₀) .h₀ (.flsE (.impE .h₁ .h₀))))
+                                        --   fun hnn => (k hnn).elim id (fun hna => absurd hna hnn)
+      (.orE (.impE .h₂ .h₀)             --   cases hS hnna
+        (.orI₂ (.impI (.impE .h₀ .h₁))) --   | inl ha => Or.inr (fun hna => hna ha)
+        (.orI₁ .h₀))))                  --   | inr hna => Or.inl hna
+
+/-- **Weak excluded middle derives Scott's axiom.** -/
+theorem derives_scott_of_weakEm : DerivesFromSchema weakEmForm scottForm :=
+  .of_ent_self weakEm_ent_scott
+
+/-- **Bounded depth two derives Scott's axiom.** -/
+theorem derives_scott_of_bd2 : DerivesFromSchema bd2Form scottForm :=
+  .of_ent bd2_ent_scott ⟨_, rfl⟩
+
+/-! ## Kreisel and Putnam's axiom from weak excluded middle
+
+It follows at the plain first argument, with nothing shifted, the two cases of
+weak excluded middle being its two disjuncts.  If the first argument is doubly
+negated then its negation is refuted, so either implication holds vacuously;
+and if it is refutable then the hypothesis can be discharged outright, and
+whichever disjunct it yields is the one to take. -/
+
+/-- Weak excluded middle gives Kreisel and Putnam's axiom. -/
+theorem weakEm_ent_kreiselPutnam : Ent weakEmForm kreiselPutnamForm :=
+  .impI (.orE .h₁                       -- intro k; cases h
+    (.orE (.impE .h₁ .h₀)               -- | inl na => cases k na
+      (.orI₁ (.impI .h₁))               --   | inl hb => Or.inl (fun _ => hb)
+      (.orI₂ (.impI .h₁)))              --   | inr hc => Or.inr (fun _ => hc)
+    (.orI₁ (.impI (.flsE (.impE .h₁ .h₀)))))  -- | inr nna => Or.inl (fun na => absurd na nna)
+
+/-- **Weak excluded middle derives Kreisel and Putnam's axiom.** -/
+theorem derives_kreiselPutnam_of_weakEm : DerivesFromSchema weakEmForm kreiselPutnamForm :=
+  .of_ent_self weakEm_ent_kreiselPutnam

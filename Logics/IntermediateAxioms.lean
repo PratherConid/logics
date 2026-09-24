@@ -1,5 +1,5 @@
 import Logics.IntermediateAxioms.AxiomDef
-import Logics.IntermediateAxioms.Implication
+import Logics.IntermediateAxioms.Derivation
 import Logics.IntermediateAxioms.Model
 import Logics.IntermediateAxioms.StrictImply
 import Logics.IntermediateAxioms.Refuter.ClassicalRefuter
@@ -12,6 +12,7 @@ import Logics.IntermediateAxioms.Refuter.ScottRefuter
 import Logics.IntermediateAxioms.Refuter.KPRefuter
 import Logics.IntermediateAxioms.Refuter.KPMinimal
 import Logics.IntermediateAxioms.Refuter.KPInfinite
+import Logics.IntermediateAxioms.Hierarchy
 
 /-!
 # Axioms of the intermediate logics
@@ -21,8 +22,9 @@ that combining or weakening them produces.  Only some are equivalent to
 classical logic; the rest axiomatise logics strictly between it and the
 intuitionistic calculus, which is what makes the hierarchy worth drawing.
 
-* `AxiomDef`     -- the principles, as predicates on propositions and as formulas
-* `Implication`  -- which principle proves which, and at which arguments
+* `AxiomDef`     -- the principles, as formulas
+* `Derivation`   -- which principle derives which, and at which arguments, as
+  natural deduction derivations from a schema
 * `Model`        -- how each one fares in concrete Heyting algebras
 * `StrictImply`  -- what none of their instances prove
 
@@ -35,7 +37,7 @@ infinite one.
 * `Refuter.ClassicalRefuter` -- excluded middle, refuted by `Fin 3` alone
 * `Refuter.SmetanichRefuter` -- Smetanich's axiom, by `Fin 4` and `ForkUp 1 1`
 * `Refuter.BD2Refuter`       -- bounded depth two, by `Fin 4` alone
-* `Refuter.NoDiamondRefuter` -- `NoDiamondF`, by `KiteUp 1 1` alone
+* `Refuter.NoDiamondRefuter` -- `noDiamondForm`, by `KiteUp 1 1` alone
 * `Refuter.KCRefuter`        -- weak excluded middle, by `ForkUp 1 1` alone
 * `Refuter.LCRefuter`        -- linearity, by `ForkUp 1 1` and `KiteUp 1 1`
 * `Refuter.ScottRefuter`     -- Scott's axiom, by `ForkUp 1 2` alone
@@ -46,4 +48,7 @@ infinite one.
   regimes, one with at most three frames and one with a fixed pure part
 * `Refuter.KPInfinite`       -- those minimal members are infinitely many: a
   ladder of frames, one of each size from seven points up
+
+`Hierarchy` puts the two halves together: for every principle in the classes
+of the hierarchy, it decides exactly which derives which.
 -/

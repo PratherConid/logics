@@ -4,7 +4,7 @@ import Logics.ConcreteEmbed
 import Logics.Filter
 
 /-!
-# How far `ScottF` can be shrunk
+# How far `scottForm` can be shrunk
 
 Scott's axiom is refuted by `ForkUp 1 2`, the fork with one branch a single
 step and the other two steps, and this file shows that nothing below the uneven
@@ -24,7 +24,7 @@ element does *not* work: what the embedding needs is
 
     `neg (neg t) ⇨ t  =  t ⊔ neg t`,
 
-and a refutation of `ScottF` only says that this arrow's value does not lie
+and a refutation of `scottForm` only says that this arrow's value does not lie
 below `neg t ⊔ neg (neg t)`, not that it is the top.  In a product of two
 algebras it need not be, and then the seven values are not closed under the
 arrow.
@@ -63,7 +63,7 @@ theorem scott_fork12_fail : ∀ a : ForkUp 1 2,
       ∀ z : ForkUp 1 2, z = ⊥ ∨ z = ⊤ ∨ z = neg a ∨ z = a ∨ z = a ⊔ neg a ∨
         z = neg (neg a) ∨ z = neg a ⊔ neg (neg a) := by decide
 
-/-- **Nothing below the uneven fork refutes `ScottF`.** -/
+/-- **Nothing below the uneven fork refutes `scottForm`.** -/
 theorem refuterLB_fork12_scott : RefuterLB (ForkUp 1 2) scottForm :=
   refuterLB_of_coatom fork12_coatom' scottForm_fork12_eval_ge fun _ _ h _ v hv z => by
     have hfail := scott_fork12_fail _ hv
@@ -79,7 +79,7 @@ theorem refuterLB_fork12_scott : RefuterLB (ForkUp 1 2) scottForm :=
 
 /-! # Part two: which schemas derive the axiom -/
 
-/-- **Every algebra refuting `ScottF` carries the uneven fork below it.**
+/-- **Every algebra refuting `scottForm` carries the uneven fork below it.**
 
 The quotient by the filter above `A`, the value of Scott's antecedent, sends
 `A` to the top, which is exactly the identity the embedding needs; and it does
@@ -106,8 +106,8 @@ theorem sh_fork12_of_refutes_scott (α : Type) (iα : HeytingAlgebra α)
   obtain ⟨v, hv⟩ := @exists_ne_top α iα _ h
   exact @sh_fork12_of_scott_fails α iα (v 0) hv
 
-/-- **The criterion.**  A schema derives `ScottF` exactly when it misses the top
-value in the uneven fork. -/
+/-- **The criterion.**  A schema derives `scottForm` exactly when it misses the
+top value in the uneven fork. -/
 theorem derivesFromSchema_scott_iff (X : Form) :
     DerivesFromSchema X scottForm ↔ ¬ ∀ w : Nat → ForkUp 1 2, X.eval w = ⊤ := by
   constructor

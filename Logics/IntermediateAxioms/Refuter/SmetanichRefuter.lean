@@ -9,7 +9,7 @@ The other files of this directory are organised by technique and cover every
 principle at once.  This one is about a single axiom, and answers two questions
 about it that the general machinery makes askable.  The axiom is Smetanich's,
 `(¬ b → a) → (((a → b) → a) → a)`, which axiomatises the level of the
-hierarchy that `Peirce₁₂OrImpOr₂₁F` occupies.
+hierarchy that `peirce₁₂OrImpOr₂₁Form` occupies.
 
 **Which algebras separate it, and can they be shrunk?**  `Fin 4` and
 `ForkUp 1 1` both refute the axiom, and neither can be replaced by
@@ -72,7 +72,7 @@ theorem smetanich_four_eval_ge (v : Nat → Fin 4) :
     (2 : Fin 4) ⊑ smetanichForm.eval v :=
   inf_eq_left_iff.mp (smetanich_four_ge_two (v 0) (v 1))
 
-/-- **No algebra strictly below `Fin 4` refutes `Peirce₁₂OrImpOr₂₁F`.** -/
+/-- **No algebra strictly below `Fin 4` refutes `peirce₁₂OrImpOr₂₁Form`.** -/
 theorem refuterLB_four : RefuterLB (Fin 4) smetanichForm :=
   refuterLB_of_coatom four_coatom' smetanich_four_eval_ge fun _ _ h _ v hv y => by
     have hfail := smetanich_four_fail _ _ hv
@@ -105,7 +105,8 @@ theorem smetanich_fork_eval_ge (v : Nat → ForkUp 1 1) :
     (ForkUp.tails 0 0 : ForkUp 1 1) ⊑ smetanichForm.eval v :=
   inf_eq_left_iff.mp (smetanich_fork_ge_coatom (v 0) (v 1))
 
-/-- **No algebra strictly below `ForkUp 1 1` refutes `Peirce₁₂OrImpOr₂₁F`.** -/
+/-- **No algebra strictly below `ForkUp 1 1` refutes
+`peirce₁₂OrImpOr₂₁Form`.** -/
 theorem refuterLB_fork : RefuterLB (ForkUp 1 1) smetanichForm :=
   refuterLB_of_coatom fork_coatom' smetanich_fork_eval_ge fun _ _ h _ v hv y => by
     have hfail := smetanich_fork_fail _ _ hv
@@ -241,7 +242,7 @@ end ChainWitness
 /-! ## The two algebras exhaust the refuters -/
 
 open ChainWitness in
-/-- **Every algebra refuting `Peirce₁₂OrImpOr₂₁F` carries `Fin 4` or
+/-- **Every algebra refuting `peirce₁₂OrImpOr₂₁Form` carries `Fin 4` or
 `ForkUp 1 1` below it.**  Weak excluded middle at `b` decides which. -/
 theorem sh_four_or_fork_of_refutes (α : Type) (iα : HeytingAlgebra α)
     (h : ¬ ∀ v : Nat → α, smetanichForm.eval v = ⊤) :
@@ -255,7 +256,7 @@ theorem sh_four_or_fork_of_refutes (α : Type) (iα : HeytingAlgebra α)
       (upper_himp_lower (v 0) (v 1) hW) hT
   · exact Or.inr (@sh_forkUp α iα (v 1) hW)
 
-/-- **The criterion.**  A schema derives `Peirce₁₂OrImpOr₂₁F` exactly when it
+/-- **The criterion.**  A schema derives `peirce₁₂OrImpOr₂₁Form` exactly when it
 misses the top value in both separating algebras.
 
 Forward is soundness.  Backward goes through completeness for a schema: an
