@@ -1,62 +1,64 @@
-import Logics.Heyting
+import Logics.IntermediateAxioms.AxiomDef
+import Logics.FiniteFrame
 
 /-!
 # Kreisel and Putnam's axiom, read on frames
 
-Every other axiom in this directory gets a *criterion*: a short list of
-algebras refuting it minimally, and a theorem saying a schema derives the axiom
-exactly when it misses the top value in all of them.  Kreisel and Putnam's
-axiom,
+Every other axiom in this directory gets a criterion from a short list of
+algebras: a schema derives the axiom exactly when it misses the top value in
+all of them.  Kreisel and Putnam's axiom,
 
     (¬a → b ⊔ c) → (¬a → b) ⊔ (¬a → c),
 
-gets none, and this file explains why rather than supplying one.
+gets its criterion from an *infinite* list instead.  This file supplies that
+list, proves it sound, and proves it complete wherever completeness can be had.
 
 ## The condition
 
 A point `r` and an upward closed set `a` cut out a region, `↑r ⊓ ¬a`: the
-points above `r` that refute `a` outright.  Then
+points above `r` that refute `a` outright.  The axiom holds at `r` for every
+`b` and `c` exactly when that region is entered at a single point
+(`kp_top_iff_principal`), and fails exactly when it is entered at two
+unrelated points (`kp_ntop_iff_splits`).  So refuting the axiom is never about
+the two disjuncts; they only witness a fork the frame already has.
 
-* the axiom holds at `r` for every `b` and `c` exactly when that region is
-  entered at a single point (`kp_top_iff_principal`), and
-* it fails exactly when the region is entered at two unrelated points
-  (`kp_ntop_iff_splits`).
+One entrance suffices in any frame, with no finiteness at all.  The converse
+needs minimal points, which `HasMinimal` names and every finite frame has
+(`hasMinimal_of_list`).  Everything is stated for preorders, so the proofs
+never compare points for equality.
 
-So refuting the axiom is never about the two disjuncts.  They only witness a
-fork that the frame already has, and any `b`, `c` splitting the region will do.
-That is the whole reason the refuters are so much freer here than elsewhere: a
-frame refutes the axiom as soon as some region has two entrances, and there are
-many unrelated ways to arrange that.
+## The list
 
-`¬a` is what keeps the regions from being arbitrary.  In a finite frame a point
-lies in `¬a` exactly when every maximal point above it avoids `a`, so the
-regions are the sets of points *pure* for a set of maximal points.  That
-reading is not formalised here -- it needs maximal points to exist, a second
-use of finiteness -- and nothing below depends on it.
+`𝓛` is the class of finite rooted frames in which some region is entered at
+two unrelated points (`InKPList`).  By the condition these are exactly the
+finite rooted frames refuting the axiom.
 
-## Both halves, and what each costs
+* **Soundness**, `kpList_sound`: a schema deriving the axiom fails on every
+  frame of `𝓛`.  This needs neither finiteness nor a root.
+* **Completeness against finite frames**, `kpList_complete_finite`: a schema
+  failing on every frame of `𝓛` validates the axiom on every finite frame it
+  holds on.  Where the axiom fails, the points above the failure form a rooted
+  frame of `𝓛` (`Above`), and restricting to them is onto, so the schema still
+  holds there.
+* **The criterion**, `kpList_criterion`, for every schema with the finite
+  model property at the axiom (`HasFMPAtKP`): one that derives the axiom as
+  soon as every finite frame validating it validates the axiom.  Every schema
+  whose logic is tabular or locally finite qualifies.
 
-One entrance suffices in *any* frame, with no finiteness at all: the least
-point of the region settles which disjunct to take, and upward closure carries
-it to the rest.  The converse needs minimal points to exist, and that is the
-only thing `HasMinimal` is for.  Given a minimal point `m` of the region, the
-axiom instantiated at the region with that point's cone removed, and at the
-cone itself, forces the point below the whole region -- the first disjunct
-being refuted by the point itself.
+Whether the criterion holds for *every* schema is open.  It fails exactly if
+some finitely axiomatised logic validates the axiom on all its finite frames
+without deriving it, and such a logic would have to lack the finite model
+property.  No computation over finite frames can reach that question.
 
-Everything is stated for preorders, since a frame here carries no antisymmetry,
-so the proofs never compare points for equality.
+## Why the list is infinite
 
-## Why there is no criterion
-
-A search outside Lean, over every frame with at most nine points, turns up new
-minimal refuters at each size: one with four points, two with five, three with
-six, three with seven, five with eight and six with nine, with no sign of
-stopping.  From seven points on they are strikingly uniform -- exactly two
-maximal points, and a fixed pure part of two points over a shared tip, with all
-the variation in the impure layer routing the root to them.  None of that is
-formalised, and it is evidence rather than proof; but it is why this file
-carries a condition on frames instead of a list of algebras.
+This section is argued, not formalised.  A list that is a criterion must
+contain every member of `𝓜`, the frames of `𝓛` minimal in the Jankov order.
+A list that decided the axiom on arbitrary algebras, rather than schema by
+schema, would by compactness have to be finite.  A search outside Lean over
+every frame with at most nine points finds new members of `𝓜` at each size --
+one with four points, two with five, three with six, three with seven, five
+with eight and six with nine -- so neither kind of finite list is expected.
 -/
 
 open PartialOrder Lattice BoundedLattice HeytingAlgebra
@@ -64,6 +66,13 @@ open PartialOrder Lattice BoundedLattice HeytingAlgebra
 /-- The axiom's value at a triple, as an expression. -/
 abbrev kpAt {α : Type} [HeytingAlgebra α] (a b c : α) : α :=
   (neg a ⇨ (b ⊔ c)) ⇨ ((neg a ⇨ b) ⊔ (neg a ⇨ c))
+
+/-- The formula and the expression agree, the formula having three
+variables. -/
+theorem kreiselPutnamForm_valid_iff {α : Type} [HeytingAlgebra α] :
+    (∀ v : Nat → α, kreiselPutnamForm.eval v = ⊤) ↔ ∀ a b c : α, kpAt a b c = ⊤ :=
+  ⟨fun h a b c => h (fun n => if n = 0 then a else if n = 1 then b else c),
+   fun h v => h (v 0) (v 1) (v 2)⟩
 
 /-! ## Regions -/
 
@@ -95,17 +104,17 @@ theorem kp_top_of_principal {P : Type} [Frame P]
     · exact Or.inr fun s' hrs' hna' => c.upward (hmin s' ⟨hrs', hna'⟩) hc
   · exact Or.inl fun s' hrs' hna' => absurd ⟨s', hrs', hna'⟩ hemp
 
-/-- **And it is necessary.**  Given a minimal point `m` of the region, the
-axiom at `kpTrim r a m` and `↑m` -- the region with the cone of `m` removed,
-and that cone -- forces `m` to lie below the whole region. -/
-theorem principal_of_kp_top {P : Type} [Frame P] (hm : HasMinimal P)
-    (h : ∀ a b c : Upset P, kpAt a b c = ⊤) (r : P) (a : Upset P) :
-    (kpRegion r a).Principal := by
-  intro p hp
-  obtain ⟨m, hmem, hmin⟩ := hm (kpRegion r a).mem ⟨p, hp⟩
-  refine ⟨m, hmem, ?_⟩
+/-- **Under the axiom a minimal point is least.**  The axiom at `kpTrim r a m`
+and `↑m` -- the region with the cone of `m` removed, and that cone -- forces
+`m` below the whole region, the first disjunct being refuted by `m` itself.
+Only that one instance of the axiom is used. -/
+theorem least_of_minimal {P : Type} [Frame P] {r : P} {a : Upset P} {m : P}
+    (h : kpAt a (kpTrim r a m) (Upset.up m) = ⊤)
+    (hm : (kpRegion r a).Minimal m) : (kpRegion r a).Least m := by
+  obtain ⟨hmem, hmin⟩ := hm
+  refine ⟨hmem, ?_⟩
   have hkp : (kpAt a (kpTrim r a m) (Upset.up m)).mem r := by
-    rw [h a (kpTrim r a m) (Upset.up m)]; trivial
+    rw [h]; trivial
   have hant : (neg a ⇨ (kpTrim r a m ⊔ Upset.up m)).mem r := by
     intro s hrs hna
     by_cases hsm : s ≼ m
@@ -114,6 +123,21 @@ theorem principal_of_kp_top {P : Type} [Frame P] (hm : HasMinimal P)
   rcases hkp r (Frame.le_refl r) hant with hb | hc
   · exact absurd (Frame.le_refl m) (hb m hmem.1 hmem.2).2
   · exact fun q hq => hc q hq.1 hq.2
+
+/-- **And one entrance is necessary**, wherever minimal points exist. -/
+theorem principal_of_kp_top {P : Type} [Frame P] (hm : HasMinimal P)
+    (h : ∀ a b c : Upset P, kpAt a b c = ⊤) (r : P) (a : Upset P) :
+    (kpRegion r a).Principal := by
+  intro p hp
+  obtain ⟨m, hmem, hmin⟩ := hm (kpRegion r a).mem ⟨p, hp⟩
+  exact ⟨m, least_of_minimal (h _ _ _) ⟨hmem, hmin⟩⟩
+
+/-- **A split refutes the axiom**, in any frame: of two unrelated minimal
+points, the axiom would put each below the other. -/
+theorem kp_ntop_of_splits {P : Type} [Frame P] {r : P} {a : Upset P}
+    (hs : (kpRegion r a).Splits) : ¬ ∀ a b c : Upset P, kpAt a b c = ⊤ := by
+  obtain ⟨m, m', hm, hm', hmm', _⟩ := hs
+  exact fun h => hmm' ((least_of_minimal (h _ _ _) hm).2 m' hm'.1)
 
 /-- **The frame condition.** -/
 theorem kp_top_iff_principal {P : Type} [Frame P] (hm : HasMinimal P) :
@@ -133,6 +157,93 @@ theorem kp_ntop_iff_splits {P : Type} [Frame P] (hm : HasMinimal P) :
     intro r a
     exact Classical.byContradiction fun hnp =>
       hcon ⟨r, a, (Upset.not_principal_iff_splits hm _).mp hnp⟩
-  · rintro ⟨r, a, hsp⟩ hall
-    exact (Upset.not_principal_iff_splits hm _).mpr hsp
-      (principal_of_kp_top hm hall r a)
+  · rintro ⟨r, a, hsp⟩
+    exact kp_ntop_of_splits hsp
+
+/-! ## The points above a point
+
+The points above a failure form a rooted frame (`Above`), and the region at
+the failure is the region at that frame's root. -/
+
+namespace Above
+
+variable {P : Type} [Frame P] {r : P}
+
+/-- A point above `r` is in the region at the root exactly when it is in the
+region at `r` of the whole frame. -/
+theorem region_iff (a : Upset P) (q : Above r) :
+    (kpRegion (root r) (restrict a)).mem q ↔ (kpRegion r a).mem q.pt :=
+  ⟨fun ⟨_, hn⟩ => ⟨q.above, fun p hqp hap =>
+      hn ⟨p, Frame.le_trans q.above hqp⟩ hqp hap⟩,
+   fun ⟨_, hn⟩ => ⟨q.above, fun q' hqq' haq' => hn q'.pt hqq' haq'⟩⟩
+
+/-- A split at `r` is a split at the root of the points above `r`. -/
+theorem splits {a : Upset P} (hs : (kpRegion r a).Splits) :
+    (kpRegion (root r) (restrict a)).Splits := by
+  obtain ⟨m, m', ⟨hm, hmin⟩, ⟨hm', hmin'⟩, hmm', hm'm⟩ := hs
+  refine ⟨⟨m, hm.1⟩, ⟨m', hm'.1⟩,
+    ⟨(region_iff a _).mpr hm,
+      fun q hq hqm => hmin q.pt ((region_iff a q).mp hq) hqm⟩,
+    ⟨(region_iff a _).mpr hm',
+      fun q hq hqm => hmin' q.pt ((region_iff a q).mp hq) hqm⟩,
+    hmm', hm'm⟩
+
+end Above
+
+/-! ## The list -/
+
+/-- **The list `𝓛`**: finite rooted frames in which some region is entered at
+two unrelated points. -/
+structure InKPList (P : Type) [Frame P] : Prop where
+  finite : ∃ l : List P, ∀ p, p ∈ l
+  rooted : ∃ r : P, ∀ p, r ≼ p
+  splits : ∃ (r : P) (a : Upset P), (kpRegion r a).Splits
+
+/-- **Soundness.**  A schema deriving the axiom fails on every frame of `𝓛`,
+since the split refutes the axiom there. -/
+theorem kpList_sound {X : Form} (h : DerivesFromSchema X kreiselPutnamForm)
+    {P : Type} [Frame P] (hP : InKPList P) :
+    ¬ ∀ w : Nat → Upset P, X.eval w = ⊤ := fun hv => by
+  obtain ⟨_, _, hs⟩ := hP.splits
+  exact kp_ntop_of_splits hs
+    (kreiselPutnamForm_valid_iff.mp (DerivesFromSchema.valid hv h))
+
+/-- **Completeness against finite frames.**  A schema failing on every frame of
+`𝓛` validates the axiom on every finite frame it holds on: where the axiom
+fails, the points above the failure would be a frame of `𝓛` validating the
+schema. -/
+theorem kpList_complete_finite {X : Form}
+    (hX : ∀ (Q : Type) [Frame Q], InKPList Q → ¬ ∀ w : Nat → Upset Q, X.eval w = ⊤)
+    {P : Type} [Frame P] (hfin : ∃ l : List P, ∀ p, p ∈ l)
+    (hv : ∀ w : Nat → Upset P, X.eval w = ⊤) :
+    ∀ v : Nat → Upset P, kreiselPutnamForm.eval v = ⊤ := by
+  obtain ⟨l, hl⟩ := hfin
+  refine kreiselPutnamForm_valid_iff.mpr (Classical.byContradiction fun hkp => ?_)
+  obtain ⟨r, a, hs⟩ := (kp_ntop_iff_splits (hasMinimal_of_list l hl)).mp hkp
+  exact hX (Above r)
+    ⟨⟨Above.cover r l, Above.mem_cover hl⟩, ⟨Above.root r, fun q => q.above⟩,
+      ⟨Above.root r, Above.restrict a, Above.splits hs⟩⟩
+    (valid_of_onto (Above.onto r) hv)
+
+/-- The finite model property of a schema at the axiom: it derives the axiom
+as soon as every finite frame validating it validates the axiom.  Every schema
+whose logic has the finite model property has it here. -/
+def HasFMPAtKP (X : Form) : Prop :=
+  (∀ (P : Type) [Frame P], (∃ l : List P, ∀ p, p ∈ l) →
+      (∀ w : Nat → Upset P, X.eval w = ⊤) →
+      ∀ v : Nat → Upset P, kreiselPutnamForm.eval v = ⊤) →
+    DerivesFromSchema X kreiselPutnamForm
+
+/-- **Completeness**, for a schema with the finite model property at the
+axiom. -/
+theorem kpList_complete {X : Form} (hfmp : HasFMPAtKP X)
+    (hX : ∀ (Q : Type) [Frame Q], InKPList Q → ¬ ∀ w : Nat → Upset Q, X.eval w = ⊤) :
+    DerivesFromSchema X kreiselPutnamForm :=
+  hfmp fun P iP hfin hv => @kpList_complete_finite X hX P iP hfin hv
+
+/-- **The criterion.**  For a schema with the finite model property at the
+axiom, deriving the axiom is the same as failing on every frame of `𝓛`. -/
+theorem kpList_criterion {X : Form} (hfmp : HasFMPAtKP X) :
+    DerivesFromSchema X kreiselPutnamForm ↔
+      ∀ (Q : Type) [Frame Q], InKPList Q → ¬ ∀ w : Nat → Upset Q, X.eval w = ⊤ :=
+  ⟨fun h _ _ hQ => kpList_sound h hQ, kpList_complete hfmp⟩

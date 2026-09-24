@@ -335,41 +335,47 @@ An upward closed set is entered at its minimal points, and whether it has one
 entrance or several is a property of the frame rather than of any formula.  It
 is what decides several of the weaker principles, so it is recorded here. -/
 
-/-- Every inhabited set of points has a minimal one.  This is the only thing a
-frame's finiteness is needed for. -/
+/-- Every inhabited set of points has a minimal one, as it does in any finite
+frame (`hasMinimal_of_list`). -/
 def HasMinimal (P : Type u) [Frame P] : Prop :=
   ∀ S : P → Prop, (∃ p, S p) → ∃ m, S m ∧ ∀ q, S q → q ≼ m → m ≼ q
 
-/-- A rank dropping along strict descent.  A frame carrying one has minimal
-points, which is how a finite frame supplies them. -/
-class Graded (P : Type u) [Frame P] where
-  rank : P → Nat
-  rank_lt {p q : P} : p ≼ q → ¬ q ≼ p → rank p < rank q
-
-theorem hasMinimal_of_graded {P : Type u} [Frame P] [Graded P] : HasMinimal P := by
-  intro S hS
-  obtain ⟨p₀, hp₀⟩ := hS
-  suffices H : ∀ n p, S p → Graded.rank p ≤ n →
-      ∃ m, S m ∧ ∀ q, S q → q ≼ m → m ≼ q by
-    exact H (Graded.rank p₀) p₀ hp₀ (Nat.le_refl _)
-  intro n
-  induction n with
-  | zero =>
-    intro p hp hr
-    refine ⟨p, hp, fun q hq hqp => Classical.byContradiction fun hpq => ?_⟩
-    have := Graded.rank_lt hqp hpq
-    omega
-  | succ k ih =>
-    intro p hp hr
-    by_cases hmin : ∀ q, S q → q ≼ p → p ≼ q
-    · exact ⟨p, hp, hmin⟩
-    · have hex : ∃ q, S q ∧ q ≼ p ∧ ¬ p ≼ q :=
-        Classical.byContradiction fun hcon =>
-          hmin (fun q hq hqp => Classical.byContradiction fun hpq =>
-            hcon ⟨q, hq, hqp, hpq⟩)
-      obtain ⟨q, hq, hqp, hpq⟩ := hex
-      have hlt := Graded.rank_lt hqp hpq
-      exact ih q hq (by omega)
+/-- A frame whose points a list can name has minimal points: run through the
+list keeping the lowest point met so far, and the one kept at the end has
+nothing below it. -/
+theorem hasMinimal_of_list {P : Type u} [Frame P] (l : List P) (hl : ∀ p, p ∈ l) :
+    HasMinimal P := by
+  have key : ∀ (l : List P) (S : P → Prop), (∃ p, p ∈ l ∧ S p) →
+      ∃ m, S m ∧ ∀ q, q ∈ l → S q → q ≼ m → m ≼ q := by
+    intro l S
+    induction l with
+    | nil => intro ⟨p, hp, _⟩; cases hp
+    | cons a t ih =>
+      intro hex
+      by_cases ht : ∃ p, p ∈ t ∧ S p
+      · obtain ⟨m, hSm, hmin⟩ := ih ht
+        by_cases hlow : S a ∧ a ≼ m ∧ ¬ m ≼ a
+        · refine ⟨a, hlow.1, fun q hq hSq hqa => ?_⟩
+          rcases List.mem_cons.mp hq with rfl | hqt
+          · exact Frame.le_refl _
+          · exact Frame.le_trans hlow.2.1
+              (hmin q hqt hSq (Frame.le_trans hqa hlow.2.1))
+        · refine ⟨m, hSm, fun q hq hSq hqm => ?_⟩
+          rcases List.mem_cons.mp hq with rfl | hqt
+          · exact Classical.byContradiction fun hmq => hlow ⟨hSq, hqm, hmq⟩
+          · exact hmin q hqt hSq hqm
+      · obtain ⟨p, hp, hSp⟩ := hex
+        have hSa : S a := by
+          rcases List.mem_cons.mp hp with rfl | hpt
+          · exact hSp
+          · exact absurd ⟨p, hpt, hSp⟩ ht
+        refine ⟨a, hSa, fun q hq hSq _ => ?_⟩
+        rcases List.mem_cons.mp hq with rfl | hqt
+        · exact Frame.le_refl _
+        · exact absurd ⟨q, hqt, hSq⟩ ht
+  intro S ⟨p, hp⟩
+  obtain ⟨m, hSm, hmin⟩ := key l S ⟨p, hl p, hp⟩
+  exact ⟨m, hSm, fun q hSq hqm => hmin q (hl q) hSq hqm⟩
 
 namespace Upset
 
