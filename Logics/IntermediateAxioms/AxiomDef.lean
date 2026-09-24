@@ -69,6 +69,15 @@ def LinearityF := fun (a b : Prop) => (a → b) ∨ (b → a)
 which unlike excluded middle itself leaves room below the classical logic. -/
 def WeakEmF := fun (a : Prop) => ¬ a ∨ ¬ ¬ a
 
+/-- **Kreisel and Putnam's axiom**: a disjunction established from a negation
+splits, one of its disjuncts already following from that negation alone. -/
+def KreiselPutnamF := fun (a b c : Prop) =>
+  (¬ a → b ∨ c) → ((¬ a → b) ∨ (¬ a → c))
+
+/-- **Scott's axiom**: weak excluded middle, granted that double negation
+elimination at `a` would already settle excluded middle there. -/
+def ScottF := fun (a : Prop) => ((¬ ¬ a → a) → (a ∨ ¬ a)) → (¬ a ∨ ¬ ¬ a)
+
 def Pierce₁₂OrPierce₂₁F := fun (a b : Prop) => (((a → b) → a) → a) ∨ (((b → a) → b) → b)
 
 def ImpOr₁₂OrImpOr₂₁F := fun (a b : Prop) =>
@@ -188,6 +197,13 @@ def linearityForm : Form := .or (.imp (.var 0) (.var 1)) (.imp (.var 1) (.var 0)
 
 def weakEmForm : Form :=
   .or (Form.neg (.var 0)) (Form.neg (Form.neg (.var 0)))
+
+def kreiselPutnamForm : Form :=
+  .imp (.imp (Form.neg (.var 0)) (.or (.var 1) (.var 2)))
+    (.or (.imp (Form.neg (.var 0)) (.var 1)) (.imp (Form.neg (.var 0)) (.var 2)))
+
+def scottForm : Form :=
+  .imp (.imp (notNotForm (.var 0)) (excludedMiddleForm (.var 0))) weakEmForm
 
 def pierce₁₂OrLuk₁₂Form : Form := .or (peirceForm (.var 0) (.var 1)) (lukForm (.var 0) (.var 1))
 

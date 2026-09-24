@@ -198,3 +198,85 @@ theorem pierce₁₂OrPierce₂₁Form_nvalid_tallFork :
     pierce₁₂OrPierce₂₁Form.eval (fun n => if n = 0 then (ForkUp.tails 1 2 : ForkUp 2 2) else ForkUp.tails 2 1) ≠ ⊤ := by
   decide
 
+/-! ### Scott's axiom
+
+It survives the chains, the fork with two single step branches, and the kites,
+and falls only when a branch is longer than a step: the uneven fork is what
+separates it. -/
+
+open HeytingAlgebra in
+theorem scott_four : ∀ a : Fin 4,
+    (((neg (neg a) ⇨ a) ⇨ (a ⊔ neg a)) ⇨ (neg a ⊔ neg (neg a))) = ⊤ := by decide
+
+theorem scottForm_valid_four (v : Nat → Fin 4) : scottForm.eval v = ⊤ :=
+  scott_four (v 0)
+
+open HeytingAlgebra in
+theorem scott_fork : ∀ a : ForkUp 1 1,
+    (((neg (neg a) ⇨ a) ⇨ (a ⊔ neg a)) ⇨ (neg a ⊔ neg (neg a))) = ⊤ := by decide
+
+theorem scottForm_valid_fork (v : Nat → ForkUp 1 1) : scottForm.eval v = ⊤ :=
+  scott_fork (v 0)
+
+open HeytingAlgebra in
+theorem scott_kite22 : ∀ a : KiteUp 2 2,
+    (((neg (neg a) ⇨ a) ⇨ (a ⊔ neg a)) ⇨ (neg a ⊔ neg (neg a))) = ⊤ := by decide
+
+theorem scottForm_valid_kite22 (v : Nat → KiteUp 2 2) : scottForm.eval v = ⊤ :=
+  scott_kite22 (v 0)
+
+/-- But it fails in the uneven fork, at the tip of the longer branch. -/
+theorem scottForm_nvalid_fork12 :
+    scottForm.eval (fun _ => (ForkUp.tails 1 1 : ForkUp 1 2)) ≠ ⊤ := by decide
+
+open HeytingAlgebra in
+/-- `NoDiamondF` survives the uneven fork, which is how the two are told
+apart. -/
+theorem noDiamond_fork12 : ∀ a b : ForkUp 1 2,
+    (a ⇨ (b ⊔ neg b)) ⊔ (b ⇨ (a ⊔ neg a)) = ⊤ := by decide
+
+theorem noDiamondForm_valid_fork12 (v : Nat → ForkUp 1 2) :
+    noDiamondForm.eval v = ⊤ := noDiamond_fork12 (v 0) (v 1)
+
+/-! ### Kreisel and Putnam's axiom
+
+Two branches never refute it, so the algebras of the rest of this file all
+validate it; the three branch fork is what it takes.  There the negation of one
+branch tip is the join of the other two, so a disjunction proved from that
+negation need not have either disjunct proved from it. -/
+
+open HeytingAlgebra in
+theorem kreiselPutnam_four : ∀ a b c : Fin 4,
+    ((neg a ⇨ (b ⊔ c)) ⇨ ((neg a ⇨ b) ⊔ (neg a ⇨ c))) = ⊤ := by decide
+
+theorem kreiselPutnamForm_valid_four (v : Nat → Fin 4) :
+    kreiselPutnamForm.eval v = ⊤ := kreiselPutnam_four (v 0) (v 1) (v 2)
+
+open HeytingAlgebra in
+theorem kreiselPutnam_fork : ∀ a b c : ForkUp 1 1,
+    ((neg a ⇨ (b ⊔ c)) ⇨ ((neg a ⇨ b) ⊔ (neg a ⇨ c))) = ⊤ := by decide
+
+theorem kreiselPutnamForm_valid_fork (v : Nat → ForkUp 1 1) :
+    kreiselPutnamForm.eval v = ⊤ := kreiselPutnam_fork (v 0) (v 1) (v 2)
+
+open HeytingAlgebra in
+theorem kreiselPutnam_kite22 : ∀ a b c : KiteUp 2 2,
+    ((neg a ⇨ (b ⊔ c)) ⇨ ((neg a ⇨ b) ⊔ (neg a ⇨ c))) = ⊤ := by decide
+
+theorem kreiselPutnamForm_valid_kite22 (v : Nat → KiteUp 2 2) :
+    kreiselPutnamForm.eval v = ⊤ := kreiselPutnam_kite22 (v 0) (v 1) (v 2)
+
+/-- It fails in the three branch fork, at the three branch tips. -/
+theorem kreiselPutnamForm_nvalid_fork3 :
+    kreiselPutnamForm.eval (fun n =>
+      if n = 0 then (ForkUp3.tails 0 1 1 : ForkUp3 1 1 1)
+      else if n = 1 then ForkUp3.tails 1 0 1
+      else ForkUp3.tails 1 1 0) ≠ ⊤ := by decide
+
+open HeytingAlgebra in
+/-- Bounded depth two survives there, the fork having depth two however many
+branches it has. -/
+theorem bd2_fork3 : ∀ a b : ForkUp3 1 1 1, a ⊔ (a ⇨ (b ⊔ neg b)) = ⊤ := by decide
+
+theorem bd2Form_valid_fork3 (v : Nat → ForkUp3 1 1 1) : bd2Form.eval v = ⊤ :=
+  bd2_fork3 (v 0) (v 1)

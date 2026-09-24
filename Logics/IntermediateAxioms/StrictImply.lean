@@ -285,3 +285,57 @@ theorem weakEm_nderiv_pierce₁₂OrPierce₂₁ :
     ¬ DerivesFromSchema weakEmForm pierce₁₂OrPierce₂₁Form := fun h =>
   pierce₁₂OrPierce₂₁Form_nvalid_kite22
     (DerivesFromSchema.valid weakEmForm_valid_kite22 h _)
+
+/-! ## Scott's axiom
+
+`ScottF` lies strictly below weak excluded middle and strictly below bounded
+depth two, and is incomparable with `NoDiamondF` and everything under it.
+Three separations settle that, the rest following by `DerivesFromSchema.trans`:
+it does not reach bounded depth two, nor weak excluded middle, nor the bottom
+level; and `NoDiamondF` does not reach it, so neither does anything
+`NoDiamondF` derives. -/
+
+theorem scott_nderiv_bd2 : ¬ DerivesFromSchema scottForm bd2Form := fun h =>
+  bd2Form_nvalid_four (DerivesFromSchema.valid scottForm_valid_four h _)
+
+theorem scott_nderiv_weakEm : ¬ DerivesFromSchema scottForm weakEmForm := fun h =>
+  weakEmForm_nvalid_fork (DerivesFromSchema.valid scottForm_valid_fork h _)
+
+theorem scott_nderiv_pierce₁₂OrPierce₂₁ :
+    ¬ DerivesFromSchema scottForm pierce₁₂OrPierce₂₁Form := fun h =>
+  pierce₁₂OrPierce₂₁Form_nvalid_kite22
+    (DerivesFromSchema.valid scottForm_valid_kite22 h _)
+
+theorem noDiamond_nderiv_scott :
+    ¬ DerivesFromSchema noDiamondForm scottForm := fun h =>
+  scottForm_nvalid_fork12 (DerivesFromSchema.valid noDiamondForm_valid_fork12 h _)
+
+/-! ## Kreisel and Putnam's axiom
+
+`KreiselPutnamF` lies strictly below weak excluded middle and is incomparable
+with bounded depth two and with everything under `NoDiamondF`.  Four
+separations settle that, the rest following by `DerivesFromSchema.trans`: it
+reaches neither bounded depth two, nor weak excluded middle, nor the bottom
+level, and bounded depth two does not reach it, so neither does anything
+bounded depth two derives.
+
+Its separating algebra is the one place in this development where two branches
+are not enough.  Every algebra above validates it, and only the three branch
+fork refutes it. -/
+
+theorem kreiselPutnam_nderiv_bd2 :
+    ¬ DerivesFromSchema kreiselPutnamForm bd2Form := fun h =>
+  bd2Form_nvalid_four (DerivesFromSchema.valid kreiselPutnamForm_valid_four h _)
+
+theorem kreiselPutnam_nderiv_weakEm :
+    ¬ DerivesFromSchema kreiselPutnamForm weakEmForm := fun h =>
+  weakEmForm_nvalid_fork (DerivesFromSchema.valid kreiselPutnamForm_valid_fork h _)
+
+theorem kreiselPutnam_nderiv_pierce₁₂OrPierce₂₁ :
+    ¬ DerivesFromSchema kreiselPutnamForm pierce₁₂OrPierce₂₁Form := fun h =>
+  pierce₁₂OrPierce₂₁Form_nvalid_kite22
+    (DerivesFromSchema.valid kreiselPutnamForm_valid_kite22 h _)
+
+theorem bd2_nderiv_kreiselPutnam :
+    ¬ DerivesFromSchema bd2Form kreiselPutnamForm := fun h =>
+  kreiselPutnamForm_nvalid_fork3 (DerivesFromSchema.valid bd2Form_valid_fork3 h _)

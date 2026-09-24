@@ -903,3 +903,28 @@ theorem weakEmF_noDiamondF_linearityF (a b : Prop)
               cases k hy with
               | inl hx => exact hx
               | inr na => exact absurd na nna
+
+/-! ## Kreisel and Putnam's axiom, and Scott's
+
+Both follow from weak excluded middle at the plain first argument, with nothing
+shifted, and that is the whole of their upward connection: neither derives
+anything else in this development.
+
+For `KreiselPutnamF` the two cases of weak excluded middle are the two
+disjuncts.  If the first argument is doubly negated then its negation is
+absurd, so either implication holds vacuously; and if it is refutable then the
+hypothesis can be discharged outright, and whichever disjunct it yields is the
+one to take.  `ScottF` is even shorter: its conclusion *is* weak excluded
+middle, so the hypothesis is never needed. -/
+
+theorem weakEmF_kreiselPutnamF (a b c : Prop) :
+    WeakEmF a → KreiselPutnamF a b c := by
+  intro h k
+  cases h with
+  | inl na =>
+      cases k na with
+      | inl hb => exact Or.inl (fun _ => hb)
+      | inr hc => exact Or.inr (fun _ => hc)
+  | inr nna => exact Or.inl (fun na => absurd na nna)
+
+theorem weakEmF_scottF (a : Prop) : WeakEmF a → ScottF a := fun h _ => h

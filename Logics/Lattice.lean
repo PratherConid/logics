@@ -166,3 +166,53 @@ theorem sup_top : a ⊔ ⊤ = ⊤ := (eq_top_iff _).mpr (le_sup_right a ⊤)
 theorem top_sup : (⊤ : α) ⊔ a = ⊤ := by rw [sup_comm]; exact sup_top a
 
 end BoundedLattice
+
+/-! ## Products
+
+Two orders side by side, compared componentwise.  Nothing here is specific to
+this development; the product of partial orders is a partial order, and meets,
+joins and bounds are all taken in each component separately. -/
+
+namespace HProd
+
+variable {α β : Type u}
+
+instance [PartialOrder α] [PartialOrder β] : PartialOrder (α × β) where
+  le p q := p.1 ⊑ q.1 ∧ p.2 ⊑ q.2
+  le_refl _ := ⟨PartialOrder.le_rfl, PartialOrder.le_rfl⟩
+  le_trans h₁ h₂ :=
+    ⟨PartialOrder.le_trans h₁.1 h₂.1, PartialOrder.le_trans h₁.2 h₂.2⟩
+  le_antisymm h₁ h₂ :=
+    Prod.ext (PartialOrder.le_antisymm h₁.1 h₂.1) (PartialOrder.le_antisymm h₁.2 h₂.2)
+
+/-- The order on a product is decidable when each component's is.  Instance
+resolution cannot see this for itself, since `⊑` is a class field. -/
+instance decLe [PartialOrder α] [PartialOrder β]
+    [∀ a b : α, Decidable (a ⊑ b)] [∀ a b : β, Decidable (a ⊑ b)]
+    (p q : α × β) : Decidable (p ⊑ q) :=
+  inferInstanceAs (Decidable (p.1 ⊑ q.1 ∧ p.2 ⊑ q.2))
+
+instance [Lattice α] [Lattice β] : Lattice (α × β) where
+  inf p q := (p.1 ⊓ q.1, p.2 ⊓ q.2)
+  sup p q := (p.1 ⊔ q.1, p.2 ⊔ q.2)
+  inf_le_left _ _ := ⟨Lattice.inf_le_left _ _, Lattice.inf_le_left _ _⟩
+  inf_le_right _ _ := ⟨Lattice.inf_le_right _ _, Lattice.inf_le_right _ _⟩
+  le_inf h₁ h₂ := ⟨Lattice.le_inf h₁.1 h₂.1, Lattice.le_inf h₁.2 h₂.2⟩
+  le_sup_left _ _ := ⟨Lattice.le_sup_left _ _, Lattice.le_sup_left _ _⟩
+  le_sup_right _ _ := ⟨Lattice.le_sup_right _ _, Lattice.le_sup_right _ _⟩
+  sup_le h₁ h₂ := ⟨Lattice.sup_le h₁.1 h₂.1, Lattice.sup_le h₁.2 h₂.2⟩
+
+instance [BoundedLattice α] [BoundedLattice β] : BoundedLattice (α × β) where
+  top := (⊤, ⊤)
+  bot := (⊥, ⊥)
+  le_top _ := ⟨BoundedLattice.le_top _, BoundedLattice.le_top _⟩
+  bot_le _ := ⟨BoundedLattice.bot_le _, BoundedLattice.bot_le _⟩
+
+/-- Deciding a property of every pair, one component at a time. -/
+instance (p : α × β → Prop) [DecidablePred p]
+    [Decidable (∀ a : α, ∀ b : β, p (a, b))] : Decidable (∀ x : α × β, p x) :=
+  if h : ∀ a : α, ∀ b : β, p (a, b) then
+    isTrue (fun x => by cases x; exact h _ _)
+  else isFalse (fun hall => h (fun a b => hall (a, b)))
+
+end HProd

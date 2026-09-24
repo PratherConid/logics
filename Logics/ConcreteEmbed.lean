@@ -249,105 +249,24 @@ theorem join_sup_right : (neg t ⊔ neg (neg t)) ⊔ neg (neg t) = neg t ⊔ neg
 @[simp] theorem right_himp_join : (neg (neg t) ⇨ (neg t ⊔ neg (neg t))) = ⊤ :=
   himp_eq_top_of_le (right_le_join t)
 
-/-! The 75 composite reductions, each definitional: every composite of two of
-the five elements is already one of them, so `simp` can compute the fork side. -/
-
-@[simp] theorem mi_a_a : map t (ForkUp.all ⊓ ForkUp.all) = ⊤ := rfl
-@[simp] theorem mi_a_00 : map t (ForkUp.all ⊓ ForkUp.tails 0 0) = (neg t ⊔ neg (neg t)) := rfl
-@[simp] theorem mi_a_01 : map t (ForkUp.all ⊓ ForkUp.tails 0 1) = neg t := rfl
-@[simp] theorem mi_a_10 : map t (ForkUp.all ⊓ ForkUp.tails 1 0) = neg (neg t) := rfl
-@[simp] theorem mi_a_11 : map t (ForkUp.all ⊓ ForkUp.tails 1 1) = ⊥ := rfl
-@[simp] theorem mi_00_a : map t (ForkUp.tails 0 0 ⊓ ForkUp.all) = (neg t ⊔ neg (neg t)) := rfl
-@[simp] theorem mi_00_00 : map t (ForkUp.tails 0 0 ⊓ ForkUp.tails 0 0) = (neg t ⊔ neg (neg t)) := rfl
-@[simp] theorem mi_00_01 : map t (ForkUp.tails 0 0 ⊓ ForkUp.tails 0 1) = neg t := rfl
-@[simp] theorem mi_00_10 : map t (ForkUp.tails 0 0 ⊓ ForkUp.tails 1 0) = neg (neg t) := rfl
-@[simp] theorem mi_00_11 : map t (ForkUp.tails 0 0 ⊓ ForkUp.tails 1 1) = ⊥ := rfl
-@[simp] theorem mi_01_a : map t (ForkUp.tails 0 1 ⊓ ForkUp.all) = neg t := rfl
-@[simp] theorem mi_01_00 : map t (ForkUp.tails 0 1 ⊓ ForkUp.tails 0 0) = neg t := rfl
-@[simp] theorem mi_01_01 : map t (ForkUp.tails 0 1 ⊓ ForkUp.tails 0 1) = neg t := rfl
-@[simp] theorem mi_01_10 : map t (ForkUp.tails 0 1 ⊓ ForkUp.tails 1 0) = ⊥ := rfl
-@[simp] theorem mi_01_11 : map t (ForkUp.tails 0 1 ⊓ ForkUp.tails 1 1) = ⊥ := rfl
-@[simp] theorem mi_10_a : map t (ForkUp.tails 1 0 ⊓ ForkUp.all) = neg (neg t) := rfl
-@[simp] theorem mi_10_00 : map t (ForkUp.tails 1 0 ⊓ ForkUp.tails 0 0) = neg (neg t) := rfl
-@[simp] theorem mi_10_01 : map t (ForkUp.tails 1 0 ⊓ ForkUp.tails 0 1) = ⊥ := rfl
-@[simp] theorem mi_10_10 : map t (ForkUp.tails 1 0 ⊓ ForkUp.tails 1 0) = neg (neg t) := rfl
-@[simp] theorem mi_10_11 : map t (ForkUp.tails 1 0 ⊓ ForkUp.tails 1 1) = ⊥ := rfl
-@[simp] theorem mi_11_a : map t (ForkUp.tails 1 1 ⊓ ForkUp.all) = ⊥ := rfl
-@[simp] theorem mi_11_00 : map t (ForkUp.tails 1 1 ⊓ ForkUp.tails 0 0) = ⊥ := rfl
-@[simp] theorem mi_11_01 : map t (ForkUp.tails 1 1 ⊓ ForkUp.tails 0 1) = ⊥ := rfl
-@[simp] theorem mi_11_10 : map t (ForkUp.tails 1 1 ⊓ ForkUp.tails 1 0) = ⊥ := rfl
-@[simp] theorem mi_11_11 : map t (ForkUp.tails 1 1 ⊓ ForkUp.tails 1 1) = ⊥ := rfl
-
-@[simp] theorem ms_a_a : map t (ForkUp.all ⊔ ForkUp.all) = ⊤ := rfl
-@[simp] theorem ms_a_00 : map t (ForkUp.all ⊔ ForkUp.tails 0 0) = ⊤ := rfl
-@[simp] theorem ms_a_01 : map t (ForkUp.all ⊔ ForkUp.tails 0 1) = ⊤ := rfl
-@[simp] theorem ms_a_10 : map t (ForkUp.all ⊔ ForkUp.tails 1 0) = ⊤ := rfl
-@[simp] theorem ms_a_11 : map t (ForkUp.all ⊔ ForkUp.tails 1 1) = ⊤ := rfl
-@[simp] theorem ms_00_a : map t (ForkUp.tails 0 0 ⊔ ForkUp.all) = ⊤ := rfl
-@[simp] theorem ms_00_00 : map t (ForkUp.tails 0 0 ⊔ ForkUp.tails 0 0) = (neg t ⊔ neg (neg t)) := rfl
-@[simp] theorem ms_00_01 : map t (ForkUp.tails 0 0 ⊔ ForkUp.tails 0 1) = (neg t ⊔ neg (neg t)) := rfl
-@[simp] theorem ms_00_10 : map t (ForkUp.tails 0 0 ⊔ ForkUp.tails 1 0) = (neg t ⊔ neg (neg t)) := rfl
-@[simp] theorem ms_00_11 : map t (ForkUp.tails 0 0 ⊔ ForkUp.tails 1 1) = (neg t ⊔ neg (neg t)) := rfl
-@[simp] theorem ms_01_a : map t (ForkUp.tails 0 1 ⊔ ForkUp.all) = ⊤ := rfl
-@[simp] theorem ms_01_00 : map t (ForkUp.tails 0 1 ⊔ ForkUp.tails 0 0) = (neg t ⊔ neg (neg t)) := rfl
-@[simp] theorem ms_01_01 : map t (ForkUp.tails 0 1 ⊔ ForkUp.tails 0 1) = neg t := rfl
-@[simp] theorem ms_01_10 : map t (ForkUp.tails 0 1 ⊔ ForkUp.tails 1 0) = (neg t ⊔ neg (neg t)) := rfl
-@[simp] theorem ms_01_11 : map t (ForkUp.tails 0 1 ⊔ ForkUp.tails 1 1) = neg t := rfl
-@[simp] theorem ms_10_a : map t (ForkUp.tails 1 0 ⊔ ForkUp.all) = ⊤ := rfl
-@[simp] theorem ms_10_00 : map t (ForkUp.tails 1 0 ⊔ ForkUp.tails 0 0) = (neg t ⊔ neg (neg t)) := rfl
-@[simp] theorem ms_10_01 : map t (ForkUp.tails 1 0 ⊔ ForkUp.tails 0 1) = (neg t ⊔ neg (neg t)) := rfl
-@[simp] theorem ms_10_10 : map t (ForkUp.tails 1 0 ⊔ ForkUp.tails 1 0) = neg (neg t) := rfl
-@[simp] theorem ms_10_11 : map t (ForkUp.tails 1 0 ⊔ ForkUp.tails 1 1) = neg (neg t) := rfl
-@[simp] theorem ms_11_a : map t (ForkUp.tails 1 1 ⊔ ForkUp.all) = ⊤ := rfl
-@[simp] theorem ms_11_00 : map t (ForkUp.tails 1 1 ⊔ ForkUp.tails 0 0) = (neg t ⊔ neg (neg t)) := rfl
-@[simp] theorem ms_11_01 : map t (ForkUp.tails 1 1 ⊔ ForkUp.tails 0 1) = neg t := rfl
-@[simp] theorem ms_11_10 : map t (ForkUp.tails 1 1 ⊔ ForkUp.tails 1 0) = neg (neg t) := rfl
-@[simp] theorem ms_11_11 : map t (ForkUp.tails 1 1 ⊔ ForkUp.tails 1 1) = ⊥ := rfl
-
-@[simp] theorem mh_a_a : map t (ForkUp.all ⇨ ForkUp.all) = ⊤ := rfl
-@[simp] theorem mh_a_00 : map t (ForkUp.all ⇨ ForkUp.tails 0 0) = (neg t ⊔ neg (neg t)) := rfl
-@[simp] theorem mh_a_01 : map t (ForkUp.all ⇨ ForkUp.tails 0 1) = neg t := rfl
-@[simp] theorem mh_a_10 : map t (ForkUp.all ⇨ ForkUp.tails 1 0) = neg (neg t) := rfl
-@[simp] theorem mh_a_11 : map t (ForkUp.all ⇨ ForkUp.tails 1 1) = ⊥ := rfl
-@[simp] theorem mh_00_a : map t (ForkUp.tails 0 0 ⇨ ForkUp.all) = ⊤ := rfl
-@[simp] theorem mh_00_00 : map t (ForkUp.tails 0 0 ⇨ ForkUp.tails 0 0) = ⊤ := rfl
-@[simp] theorem mh_00_01 : map t (ForkUp.tails 0 0 ⇨ ForkUp.tails 0 1) = neg t := rfl
-@[simp] theorem mh_00_10 : map t (ForkUp.tails 0 0 ⇨ ForkUp.tails 1 0) = neg (neg t) := rfl
-@[simp] theorem mh_00_11 : map t (ForkUp.tails 0 0 ⇨ ForkUp.tails 1 1) = ⊥ := rfl
-@[simp] theorem mh_01_a : map t (ForkUp.tails 0 1 ⇨ ForkUp.all) = ⊤ := rfl
-@[simp] theorem mh_01_00 : map t (ForkUp.tails 0 1 ⇨ ForkUp.tails 0 0) = ⊤ := rfl
-@[simp] theorem mh_01_01 : map t (ForkUp.tails 0 1 ⇨ ForkUp.tails 0 1) = ⊤ := rfl
-@[simp] theorem mh_01_10 : map t (ForkUp.tails 0 1 ⇨ ForkUp.tails 1 0) = neg (neg t) := rfl
-@[simp] theorem mh_01_11 : map t (ForkUp.tails 0 1 ⇨ ForkUp.tails 1 1) = neg (neg t) := rfl
-@[simp] theorem mh_10_a : map t (ForkUp.tails 1 0 ⇨ ForkUp.all) = ⊤ := rfl
-@[simp] theorem mh_10_00 : map t (ForkUp.tails 1 0 ⇨ ForkUp.tails 0 0) = ⊤ := rfl
-@[simp] theorem mh_10_01 : map t (ForkUp.tails 1 0 ⇨ ForkUp.tails 0 1) = neg t := rfl
-@[simp] theorem mh_10_10 : map t (ForkUp.tails 1 0 ⇨ ForkUp.tails 1 0) = ⊤ := rfl
-@[simp] theorem mh_10_11 : map t (ForkUp.tails 1 0 ⇨ ForkUp.tails 1 1) = neg t := rfl
-@[simp] theorem mh_11_a : map t (ForkUp.tails 1 1 ⇨ ForkUp.all) = ⊤ := rfl
-@[simp] theorem mh_11_00 : map t (ForkUp.tails 1 1 ⇨ ForkUp.tails 0 0) = ⊤ := rfl
-@[simp] theorem mh_11_01 : map t (ForkUp.tails 1 1 ⇨ ForkUp.tails 0 1) = ⊤ := rfl
-@[simp] theorem mh_11_10 : map t (ForkUp.tails 1 1 ⇨ ForkUp.tails 1 0) = ⊤ := rfl
-@[simp] theorem mh_11_11 : map t (ForkUp.tails 1 1 ⇨ ForkUp.tails 1 1) = ⊤ := rfl
-
-
 theorem map_inf' (x y : ForkUp 1 1) : map t (x ⊓ y) = map t x ⊓ map t y := by
   rcases forkUp_cases x with rfl|rfl|rfl|rfl|rfl <;>
     rcases forkUp_cases y with rfl|rfl|rfl|rfl|rfl <;>
-    simp [left_inf_right, right_inf_left, left_inf_join, join_inf_left,
-      right_inf_join, join_inf_right, inf_idem, inf_top, top_inf, inf_bot, bot_inf']
+    simp [ForkUp.inf_def, ForkUp.mx, left_inf_right, right_inf_left,
+      left_inf_join, join_inf_left, right_inf_join, join_inf_right, inf_idem,
+      inf_top, top_inf, inf_bot, bot_inf']
 
 theorem map_sup' (x y : ForkUp 1 1) : map t (x ⊔ y) = map t x ⊔ map t y := by
   rcases forkUp_cases x with rfl|rfl|rfl|rfl|rfl <;>
     rcases forkUp_cases y with rfl|rfl|rfl|rfl|rfl <;>
-    simp [left_sup_join, right_sup_join, sup_idem, sup_top, top_sup, bot_sup,
-      sup_comm]
+    simp [ForkUp.sup_def, ForkUp.mn, left_sup_join, right_sup_join, sup_idem,
+      sup_top, top_sup, bot_sup, sup_comm]
 
 theorem map_himp' (x y : ForkUp 1 1) : map t (x ⇨ y) = map t x ⇨ map t y := by
   rcases forkUp_cases x with rfl|rfl|rfl|rfl|rfl <;>
     rcases forkUp_cases y with rfl|rfl|rfl|rfl|rfl <;>
-    simp [himp_top_left, neg_neg_neg, neg_himp_neg_neg, neg_neg_himp_neg,
-      sup_neg_himp_left, sup_neg_himp_right]
+    simp [ForkUp.himp_def, himp_top_left, neg_neg_neg, neg_himp_neg_neg,
+      neg_neg_himp_neg, sup_neg_himp_left, sup_neg_himp_right]
 
 /-- The five values are distinct exactly when weak excluded middle fails. -/
 theorem injective (h : neg t ⊔ neg (neg t) ≠ ⊤) : Function.Injective (map t) := by
@@ -682,145 +601,30 @@ theorem meet_himp_bot (hnx : neg x = ⊥) (hny : neg y = ⊥) :
     ((x ⊓ y) ⇨ (⊥ : α)) = ⊥ := neg_meet x y hnx hny
 theorem join_himp_bot (hnx : neg x = ⊥) : ((x ⊔ y) ⇨ (⊥ : α)) = ⊥ := neg_join x y hnx
 
-/-! ### The composites, each definitional
-
-Every composite of two of the six values is already one of them, so `simp` can
-compute the diamond side of each equation. -/
-
-@[simp] theorem mi_a_a : map x y (KiteUp.all ⊓ KiteUp.all) = ⊤ := rfl
-@[simp] theorem mi_a_00 : map x y (KiteUp.all ⊓ KiteUp.tails 0 0) = (x ⊔ y) := rfl
-@[simp] theorem mi_a_01 : map x y (KiteUp.all ⊓ KiteUp.tails 0 1) = x := rfl
-@[simp] theorem mi_a_10 : map x y (KiteUp.all ⊓ KiteUp.tails 1 0) = y := rfl
-@[simp] theorem mi_a_11 : map x y (KiteUp.all ⊓ KiteUp.tails 1 1) = (x ⊓ y) := rfl
-@[simp] theorem mi_a_e : map x y (KiteUp.all ⊓ KiteUp.empty) = ⊥ := rfl
-@[simp] theorem mi_00_a : map x y (KiteUp.tails 0 0 ⊓ KiteUp.all) = (x ⊔ y) := rfl
-@[simp] theorem mi_00_00 : map x y (KiteUp.tails 0 0 ⊓ KiteUp.tails 0 0) = (x ⊔ y) := rfl
-@[simp] theorem mi_00_01 : map x y (KiteUp.tails 0 0 ⊓ KiteUp.tails 0 1) = x := rfl
-@[simp] theorem mi_00_10 : map x y (KiteUp.tails 0 0 ⊓ KiteUp.tails 1 0) = y := rfl
-@[simp] theorem mi_00_11 : map x y (KiteUp.tails 0 0 ⊓ KiteUp.tails 1 1) = (x ⊓ y) := rfl
-@[simp] theorem mi_00_e : map x y (KiteUp.tails 0 0 ⊓ KiteUp.empty) = ⊥ := rfl
-@[simp] theorem mi_01_a : map x y (KiteUp.tails 0 1 ⊓ KiteUp.all) = x := rfl
-@[simp] theorem mi_01_00 : map x y (KiteUp.tails 0 1 ⊓ KiteUp.tails 0 0) = x := rfl
-@[simp] theorem mi_01_01 : map x y (KiteUp.tails 0 1 ⊓ KiteUp.tails 0 1) = x := rfl
-@[simp] theorem mi_01_10 : map x y (KiteUp.tails 0 1 ⊓ KiteUp.tails 1 0) = (x ⊓ y) := rfl
-@[simp] theorem mi_01_11 : map x y (KiteUp.tails 0 1 ⊓ KiteUp.tails 1 1) = (x ⊓ y) := rfl
-@[simp] theorem mi_01_e : map x y (KiteUp.tails 0 1 ⊓ KiteUp.empty) = ⊥ := rfl
-@[simp] theorem mi_10_a : map x y (KiteUp.tails 1 0 ⊓ KiteUp.all) = y := rfl
-@[simp] theorem mi_10_00 : map x y (KiteUp.tails 1 0 ⊓ KiteUp.tails 0 0) = y := rfl
-@[simp] theorem mi_10_01 : map x y (KiteUp.tails 1 0 ⊓ KiteUp.tails 0 1) = (x ⊓ y) := rfl
-@[simp] theorem mi_10_10 : map x y (KiteUp.tails 1 0 ⊓ KiteUp.tails 1 0) = y := rfl
-@[simp] theorem mi_10_11 : map x y (KiteUp.tails 1 0 ⊓ KiteUp.tails 1 1) = (x ⊓ y) := rfl
-@[simp] theorem mi_10_e : map x y (KiteUp.tails 1 0 ⊓ KiteUp.empty) = ⊥ := rfl
-@[simp] theorem mi_11_a : map x y (KiteUp.tails 1 1 ⊓ KiteUp.all) = (x ⊓ y) := rfl
-@[simp] theorem mi_11_00 : map x y (KiteUp.tails 1 1 ⊓ KiteUp.tails 0 0) = (x ⊓ y) := rfl
-@[simp] theorem mi_11_01 : map x y (KiteUp.tails 1 1 ⊓ KiteUp.tails 0 1) = (x ⊓ y) := rfl
-@[simp] theorem mi_11_10 : map x y (KiteUp.tails 1 1 ⊓ KiteUp.tails 1 0) = (x ⊓ y) := rfl
-@[simp] theorem mi_11_11 : map x y (KiteUp.tails 1 1 ⊓ KiteUp.tails 1 1) = (x ⊓ y) := rfl
-@[simp] theorem mi_11_e : map x y (KiteUp.tails 1 1 ⊓ KiteUp.empty) = ⊥ := rfl
-@[simp] theorem mi_e_a : map x y (KiteUp.empty ⊓ KiteUp.all) = ⊥ := rfl
-@[simp] theorem mi_e_00 : map x y (KiteUp.empty ⊓ KiteUp.tails 0 0) = ⊥ := rfl
-@[simp] theorem mi_e_01 : map x y (KiteUp.empty ⊓ KiteUp.tails 0 1) = ⊥ := rfl
-@[simp] theorem mi_e_10 : map x y (KiteUp.empty ⊓ KiteUp.tails 1 0) = ⊥ := rfl
-@[simp] theorem mi_e_11 : map x y (KiteUp.empty ⊓ KiteUp.tails 1 1) = ⊥ := rfl
-@[simp] theorem mi_e_e : map x y (KiteUp.empty ⊓ KiteUp.empty) = ⊥ := rfl
-
-@[simp] theorem ms_a_a : map x y (KiteUp.all ⊔ KiteUp.all) = ⊤ := rfl
-@[simp] theorem ms_a_00 : map x y (KiteUp.all ⊔ KiteUp.tails 0 0) = ⊤ := rfl
-@[simp] theorem ms_a_01 : map x y (KiteUp.all ⊔ KiteUp.tails 0 1) = ⊤ := rfl
-@[simp] theorem ms_a_10 : map x y (KiteUp.all ⊔ KiteUp.tails 1 0) = ⊤ := rfl
-@[simp] theorem ms_a_11 : map x y (KiteUp.all ⊔ KiteUp.tails 1 1) = ⊤ := rfl
-@[simp] theorem ms_a_e : map x y (KiteUp.all ⊔ KiteUp.empty) = ⊤ := rfl
-@[simp] theorem ms_00_a : map x y (KiteUp.tails 0 0 ⊔ KiteUp.all) = ⊤ := rfl
-@[simp] theorem ms_00_00 : map x y (KiteUp.tails 0 0 ⊔ KiteUp.tails 0 0) = (x ⊔ y) := rfl
-@[simp] theorem ms_00_01 : map x y (KiteUp.tails 0 0 ⊔ KiteUp.tails 0 1) = (x ⊔ y) := rfl
-@[simp] theorem ms_00_10 : map x y (KiteUp.tails 0 0 ⊔ KiteUp.tails 1 0) = (x ⊔ y) := rfl
-@[simp] theorem ms_00_11 : map x y (KiteUp.tails 0 0 ⊔ KiteUp.tails 1 1) = (x ⊔ y) := rfl
-@[simp] theorem ms_00_e : map x y (KiteUp.tails 0 0 ⊔ KiteUp.empty) = (x ⊔ y) := rfl
-@[simp] theorem ms_01_a : map x y (KiteUp.tails 0 1 ⊔ KiteUp.all) = ⊤ := rfl
-@[simp] theorem ms_01_00 : map x y (KiteUp.tails 0 1 ⊔ KiteUp.tails 0 0) = (x ⊔ y) := rfl
-@[simp] theorem ms_01_01 : map x y (KiteUp.tails 0 1 ⊔ KiteUp.tails 0 1) = x := rfl
-@[simp] theorem ms_01_10 : map x y (KiteUp.tails 0 1 ⊔ KiteUp.tails 1 0) = (x ⊔ y) := rfl
-@[simp] theorem ms_01_11 : map x y (KiteUp.tails 0 1 ⊔ KiteUp.tails 1 1) = x := rfl
-@[simp] theorem ms_01_e : map x y (KiteUp.tails 0 1 ⊔ KiteUp.empty) = x := rfl
-@[simp] theorem ms_10_a : map x y (KiteUp.tails 1 0 ⊔ KiteUp.all) = ⊤ := rfl
-@[simp] theorem ms_10_00 : map x y (KiteUp.tails 1 0 ⊔ KiteUp.tails 0 0) = (x ⊔ y) := rfl
-@[simp] theorem ms_10_01 : map x y (KiteUp.tails 1 0 ⊔ KiteUp.tails 0 1) = (x ⊔ y) := rfl
-@[simp] theorem ms_10_10 : map x y (KiteUp.tails 1 0 ⊔ KiteUp.tails 1 0) = y := rfl
-@[simp] theorem ms_10_11 : map x y (KiteUp.tails 1 0 ⊔ KiteUp.tails 1 1) = y := rfl
-@[simp] theorem ms_10_e : map x y (KiteUp.tails 1 0 ⊔ KiteUp.empty) = y := rfl
-@[simp] theorem ms_11_a : map x y (KiteUp.tails 1 1 ⊔ KiteUp.all) = ⊤ := rfl
-@[simp] theorem ms_11_00 : map x y (KiteUp.tails 1 1 ⊔ KiteUp.tails 0 0) = (x ⊔ y) := rfl
-@[simp] theorem ms_11_01 : map x y (KiteUp.tails 1 1 ⊔ KiteUp.tails 0 1) = x := rfl
-@[simp] theorem ms_11_10 : map x y (KiteUp.tails 1 1 ⊔ KiteUp.tails 1 0) = y := rfl
-@[simp] theorem ms_11_11 : map x y (KiteUp.tails 1 1 ⊔ KiteUp.tails 1 1) = (x ⊓ y) := rfl
-@[simp] theorem ms_11_e : map x y (KiteUp.tails 1 1 ⊔ KiteUp.empty) = (x ⊓ y) := rfl
-@[simp] theorem ms_e_a : map x y (KiteUp.empty ⊔ KiteUp.all) = ⊤ := rfl
-@[simp] theorem ms_e_00 : map x y (KiteUp.empty ⊔ KiteUp.tails 0 0) = (x ⊔ y) := rfl
-@[simp] theorem ms_e_01 : map x y (KiteUp.empty ⊔ KiteUp.tails 0 1) = x := rfl
-@[simp] theorem ms_e_10 : map x y (KiteUp.empty ⊔ KiteUp.tails 1 0) = y := rfl
-@[simp] theorem ms_e_11 : map x y (KiteUp.empty ⊔ KiteUp.tails 1 1) = (x ⊓ y) := rfl
-@[simp] theorem ms_e_e : map x y (KiteUp.empty ⊔ KiteUp.empty) = ⊥ := rfl
-
-@[simp] theorem mh_a_a : map x y (KiteUp.all ⇨ KiteUp.all) = ⊤ := rfl
-@[simp] theorem mh_a_00 : map x y (KiteUp.all ⇨ KiteUp.tails 0 0) = (x ⊔ y) := rfl
-@[simp] theorem mh_a_01 : map x y (KiteUp.all ⇨ KiteUp.tails 0 1) = x := rfl
-@[simp] theorem mh_a_10 : map x y (KiteUp.all ⇨ KiteUp.tails 1 0) = y := rfl
-@[simp] theorem mh_a_11 : map x y (KiteUp.all ⇨ KiteUp.tails 1 1) = (x ⊓ y) := rfl
-@[simp] theorem mh_a_e : map x y (KiteUp.all ⇨ KiteUp.empty) = ⊥ := rfl
-@[simp] theorem mh_00_a : map x y (KiteUp.tails 0 0 ⇨ KiteUp.all) = ⊤ := rfl
-@[simp] theorem mh_00_00 : map x y (KiteUp.tails 0 0 ⇨ KiteUp.tails 0 0) = ⊤ := rfl
-@[simp] theorem mh_00_01 : map x y (KiteUp.tails 0 0 ⇨ KiteUp.tails 0 1) = x := rfl
-@[simp] theorem mh_00_10 : map x y (KiteUp.tails 0 0 ⇨ KiteUp.tails 1 0) = y := rfl
-@[simp] theorem mh_00_11 : map x y (KiteUp.tails 0 0 ⇨ KiteUp.tails 1 1) = (x ⊓ y) := rfl
-@[simp] theorem mh_00_e : map x y (KiteUp.tails 0 0 ⇨ KiteUp.empty) = ⊥ := rfl
-@[simp] theorem mh_01_a : map x y (KiteUp.tails 0 1 ⇨ KiteUp.all) = ⊤ := rfl
-@[simp] theorem mh_01_00 : map x y (KiteUp.tails 0 1 ⇨ KiteUp.tails 0 0) = ⊤ := rfl
-@[simp] theorem mh_01_01 : map x y (KiteUp.tails 0 1 ⇨ KiteUp.tails 0 1) = ⊤ := rfl
-@[simp] theorem mh_01_10 : map x y (KiteUp.tails 0 1 ⇨ KiteUp.tails 1 0) = y := rfl
-@[simp] theorem mh_01_11 : map x y (KiteUp.tails 0 1 ⇨ KiteUp.tails 1 1) = y := rfl
-@[simp] theorem mh_01_e : map x y (KiteUp.tails 0 1 ⇨ KiteUp.empty) = ⊥ := rfl
-@[simp] theorem mh_10_a : map x y (KiteUp.tails 1 0 ⇨ KiteUp.all) = ⊤ := rfl
-@[simp] theorem mh_10_00 : map x y (KiteUp.tails 1 0 ⇨ KiteUp.tails 0 0) = ⊤ := rfl
-@[simp] theorem mh_10_01 : map x y (KiteUp.tails 1 0 ⇨ KiteUp.tails 0 1) = x := rfl
-@[simp] theorem mh_10_10 : map x y (KiteUp.tails 1 0 ⇨ KiteUp.tails 1 0) = ⊤ := rfl
-@[simp] theorem mh_10_11 : map x y (KiteUp.tails 1 0 ⇨ KiteUp.tails 1 1) = x := rfl
-@[simp] theorem mh_10_e : map x y (KiteUp.tails 1 0 ⇨ KiteUp.empty) = ⊥ := rfl
-@[simp] theorem mh_11_a : map x y (KiteUp.tails 1 1 ⇨ KiteUp.all) = ⊤ := rfl
-@[simp] theorem mh_11_00 : map x y (KiteUp.tails 1 1 ⇨ KiteUp.tails 0 0) = ⊤ := rfl
-@[simp] theorem mh_11_01 : map x y (KiteUp.tails 1 1 ⇨ KiteUp.tails 0 1) = ⊤ := rfl
-@[simp] theorem mh_11_10 : map x y (KiteUp.tails 1 1 ⇨ KiteUp.tails 1 0) = ⊤ := rfl
-@[simp] theorem mh_11_11 : map x y (KiteUp.tails 1 1 ⇨ KiteUp.tails 1 1) = ⊤ := rfl
-@[simp] theorem mh_11_e : map x y (KiteUp.tails 1 1 ⇨ KiteUp.empty) = ⊥ := rfl
-@[simp] theorem mh_e_a : map x y (KiteUp.empty ⇨ KiteUp.all) = ⊤ := rfl
-@[simp] theorem mh_e_00 : map x y (KiteUp.empty ⇨ KiteUp.tails 0 0) = ⊤ := rfl
-@[simp] theorem mh_e_01 : map x y (KiteUp.empty ⇨ KiteUp.tails 0 1) = ⊤ := rfl
-@[simp] theorem mh_e_10 : map x y (KiteUp.empty ⇨ KiteUp.tails 1 0) = ⊤ := rfl
-@[simp] theorem mh_e_11 : map x y (KiteUp.empty ⇨ KiteUp.tails 1 1) = ⊤ := rfl
-@[simp] theorem mh_e_e : map x y (KiteUp.empty ⇨ KiteUp.empty) = ⊤ := rfl
-
 theorem map_inf' (u v : KiteUp 1 1) : map x y (u ⊓ v) = map x y u ⊓ map x y v := by
   rcases kite_cases u with rfl|rfl|rfl|rfl|rfl|rfl <;>
     rcases kite_cases v with rfl|rfl|rfl|rfl|rfl|rfl <;>
-    simp [right_inf_left, left_inf_join, right_inf_join, left_inf_meet,
-      right_inf_meet, meet_inf_join, inf_idem, inf_top, top_inf, inf_bot,
-      bot_inf']
+    simp [KiteUp.inf_def, ForkUp.mx, right_inf_left, left_inf_join,
+      right_inf_join, left_inf_meet, right_inf_meet, meet_inf_join, inf_idem,
+      inf_top, top_inf, inf_bot, bot_inf']
 
 theorem map_sup' (u v : KiteUp 1 1) : map x y (u ⊔ v) = map x y u ⊔ map x y v := by
   rcases kite_cases u with rfl|rfl|rfl|rfl|rfl|rfl <;>
     rcases kite_cases v with rfl|rfl|rfl|rfl|rfl|rfl <;>
-    simp [right_sup_left, left_sup_join, right_sup_join, left_sup_meet,
-      right_sup_meet, meet_sup_join, sup_idem, sup_top, top_sup, sup_bot,
-      bot_sup]
+    simp [KiteUp.sup_def, ForkUp.mn, right_sup_left, left_sup_join,
+      right_sup_join, left_sup_meet, right_sup_meet, meet_sup_join, sup_idem,
+      sup_top, top_sup, sup_bot, bot_sup]
 
 theorem map_himp' (hxy : (x ⇨ y) = y) (hyx : (y ⇨ x) = x)
     (hnx : neg x = ⊥) (hny : neg y = ⊥) (u v : KiteUp 1 1) :
     map x y (u ⇨ v) = map x y u ⇨ map x y v := by
   rcases kite_cases u with rfl|rfl|rfl|rfl|rfl|rfl <;>
     rcases kite_cases v with rfl|rfl|rfl|rfl|rfl|rfl <;>
-    simp [himp_top_left, hxy, hyx, join_himp_left x y hyx, join_himp_right x y hxy,
-      left_himp_meet x y hxy, right_himp_meet x y hyx,
-      join_himp_meet x y hxy hyx, left_himp_bot x hnx, right_himp_bot y hny,
-      meet_himp_bot x y hnx hny, join_himp_bot x y hnx]
+    simp [KiteUp.himp_def, himp_top_left, hxy, hyx,
+      join_himp_left x y hyx, join_himp_right x y hxy, left_himp_meet x y hxy,
+      right_himp_meet x y hyx, join_himp_meet x y hxy hyx,
+      left_himp_bot x hnx, right_himp_bot y hny, meet_himp_bot x y hnx hny,
+      join_himp_bot x y hnx]
 
 /-- The six values are distinct exactly when the join misses the top.  Neither
 element is then below the other, since either way the assumed arrow would send
@@ -892,3 +696,356 @@ theorem sh_kite {α : Type} [HeytingAlgebra α] {x y : α}
     (hxy : (x ⇨ y) = y) (hyx : (y ⇨ x) = x)
     (hnx : neg x = ⊥) (hny : neg y = ⊥) (hT : x ⊔ y ≠ ⊤) : SH (KiteUp 1 1) α :=
   ⟨α, inferInstance, onto_refl α, kite_embeds hxy hyx hnx hny hT⟩
+
+
+/-! ## The seven element uneven fork inside an algebra
+
+`ForkEmbed` reads a five element fork off an element whose weak excluded middle
+fails.  Asking for more -- that `neg (neg s) ⇨ s` come back to `s ⊔ neg s` --
+splits the long branch in two and gives the fork with branches of lengths one
+and two, whose seven values are
+
+    `⊥`,  `neg s`,  `s`,  `neg s ⊔ s`,  `neg (neg s)`,  `neg s ⊔ neg (neg s)`,  `⊤`.
+
+The short branch contributes `neg s`, and the long one `s` sitting under
+`neg (neg s)`, which is what makes the two branches uneven. -/
+
+theorem fork12_cases : ∀ z : ForkUp 1 2, z = .all ∨ z = .tails 0 0 ∨
+    z = .tails 0 1 ∨ z = .tails 0 2 ∨ z = .tails 1 0 ∨ z = .tails 1 1 ∨
+    z = .tails 1 2 := by decide
+
+namespace Fork12Embed
+
+variable {α : Type} [HeytingAlgebra α] (s : α)
+
+def map (s : α) : ForkUp 1 2 → α
+  | .all => ⊤
+  | .tails i j =>
+      match i.val, j.val with
+      | 0, 0 => neg s ⊔ neg (neg s)
+      | 0, 1 => neg s ⊔ s
+      | 0, _ => neg s
+      | _, 0 => neg (neg s)
+      | _, 1 => s
+      | _, _ => ⊥
+
+@[simp] theorem map_all : map s .all = ⊤ := rfl
+@[simp] theorem map_c : map s (.tails 0 0) = neg s ⊔ neg (neg s) := rfl
+@[simp] theorem map_tn : map s (.tails 0 1) = neg s ⊔ s := rfl
+@[simp] theorem map_neg : map s (.tails 0 2) = neg s := rfl
+@[simp] theorem map_nn : map s (.tails 1 0) = neg (neg s) := rfl
+@[simp] theorem map_s : map s (.tails 1 1) = s := rfl
+@[simp] theorem map_bot2 : map s (.tails 1 2) = ⊥ := rfl
+@[simp] theorem map_top' : map s (⊤ : ForkUp 1 2) = ⊤ := rfl
+@[simp] theorem map_bot' : map s (⊥ : ForkUp 1 2) = ⊥ := rfl
+
+/-! ### The order among the seven values -/
+
+theorem s_le_nn : s ⊑ neg (neg s) := le_neg_neg s
+theorem neg_le_tn : neg s ⊑ neg s ⊔ s := le_sup_left _ _
+theorem s_le_tn : s ⊑ neg s ⊔ s := le_sup_right _ _
+theorem neg_le_c : neg s ⊑ neg s ⊔ neg (neg s) := le_sup_left _ _
+theorem nn_le_c : neg (neg s) ⊑ neg s ⊔ neg (neg s) := le_sup_right _ _
+theorem s_le_c : s ⊑ neg s ⊔ neg (neg s) := le_trans (s_le_nn s) (nn_le_c s)
+theorem tn_le_c : (neg s ⊔ s) ⊑ neg s ⊔ neg (neg s) := sup_le (neg_le_c s) (s_le_c s)
+
+/-! ### Meets and joins -/
+
+theorem neg_inf_s : neg s ⊓ s = ⊥ := by rw [inf_comm]; exact inf_neg_eq_bot s
+theorem s_inf_neg : s ⊓ neg s = ⊥ := inf_neg_eq_bot s
+theorem neg_inf_nn : neg s ⊓ neg (neg s) = ⊥ := inf_neg_eq_bot (neg s)
+theorem nn_inf_neg : neg (neg s) ⊓ neg s = ⊥ := by rw [inf_comm]; exact neg_inf_nn s
+
+/-- The join of `s` with its negation meets the double negation in `s` itself:
+the other half of the join is absurd there. -/
+theorem tn_inf_nn : (neg s ⊔ s) ⊓ neg (neg s) = s := by
+  refine le_antisymm ?_ (le_inf (s_le_tn s) (s_le_nn s))
+  refine sup_cases (inf_le_left _ _) ?_ ?_
+  · exact le_trans (le_trans (inf_le_inf le_rfl (inf_le_right _ _))
+      (le_of_eq (neg_inf_nn s))) (bot_le s)
+  · exact inf_le_left s _
+
+theorem nn_inf_tn : neg (neg s) ⊓ (neg s ⊔ s) = s := by
+  rw [inf_comm]; exact tn_inf_nn s
+
+theorem s_sup_neg : s ⊔ neg s = neg s ⊔ s := sup_comm s (neg s)
+theorem nn_sup_neg : neg (neg s) ⊔ neg s = neg s ⊔ neg (neg s) :=
+  sup_comm (neg (neg s)) (neg s)
+theorem s_sup_nn : s ⊔ neg (neg s) = neg (neg s) := sup_eq_right_iff.mpr (s_le_nn s)
+theorem nn_sup_s : neg (neg s) ⊔ s = neg (neg s) := by
+  rw [sup_comm]; exact s_sup_nn s
+theorem tn_sup_nn : (neg s ⊔ s) ⊔ neg (neg s) = neg s ⊔ neg (neg s) := by
+  rw [sup_assoc, s_sup_nn]
+theorem nn_sup_tn : neg (neg s) ⊔ (neg s ⊔ s) = neg s ⊔ neg (neg s) := by
+  rw [sup_comm]; exact tn_sup_nn s
+
+/-! ### Arrows
+
+Everything the order forces, and then the ones with content. -/
+
+@[simp] theorem himp_top_gen (a : α) : (a ⇨ (⊤ : α)) = ⊤ := himp_eq_top_of_le (le_top a)
+@[simp] theorem self_himp (a : α) : (a ⇨ a) = ⊤ := himp_eq_top_of_le le_rfl
+@[simp] theorem bot_himp_gen (a : α) : ((⊥ : α) ⇨ a) = ⊤ := himp_eq_top_of_le (bot_le a)
+@[simp] theorem s_himp_bot : (s ⇨ (⊥ : α)) = neg s := rfl
+@[simp] theorem neg_top_gen : neg (⊤ : α) = ⊥ := himp_top_left ⊥
+@[simp] theorem neg_tn : neg (neg s ⊔ s) = ⊥ := by
+  show ((neg s ⊔ s) ⇨ (⊥ : α)) = ⊥
+  rw [sup_comm]; exact neg_sup_neg_eq_bot s
+@[simp] theorem neg_c : neg (neg s ⊔ neg (neg s)) = ⊥ := ForkEmbed.neg_join s
+@[simp] theorem s_himp_nn : (s ⇨ neg (neg s)) = ⊤ := himp_eq_top_of_le (s_le_nn s)
+@[simp] theorem s_himp_tn : (s ⇨ (neg s ⊔ s)) = ⊤ := himp_eq_top_of_le (s_le_tn s)
+@[simp] theorem s_himp_c : (s ⇨ (neg s ⊔ neg (neg s))) = ⊤ := himp_eq_top_of_le (s_le_c s)
+@[simp] theorem neg_himp_tn : (neg s ⇨ (neg s ⊔ s)) = ⊤ := himp_eq_top_of_le (neg_le_tn s)
+@[simp] theorem neg_himp_c : (neg s ⇨ (neg s ⊔ neg (neg s))) = ⊤ :=
+  himp_eq_top_of_le (neg_le_c s)
+@[simp] theorem nn_himp_c : (neg (neg s) ⇨ (neg s ⊔ neg (neg s))) = ⊤ :=
+  himp_eq_top_of_le (nn_le_c s)
+@[simp] theorem tn_himp_c : ((neg s ⊔ s) ⇨ (neg s ⊔ neg (neg s))) = ⊤ :=
+  himp_eq_top_of_le (tn_le_c s)
+
+/-- Implication reverses in its hypothesis. -/
+theorem himp_le_himp_left {x y z : α} (h : x ⊑ y) : (y ⇨ z) ⊑ (x ⇨ z) :=
+  le_himp_of_inf_le (le_trans (inf_le_inf le_rfl h) (himp_inf_le y z))
+
+theorem neg_himp_s : (neg s ⇨ s) = neg (neg s) := by
+  refine le_antisymm ?_ (le_himp_of_inf_le (le_trans (le_of_eq (nn_inf_neg s)) (bot_le s)))
+  refine le_himp_of_inf_le ?_
+  exact le_trans (le_inf (himp_inf_le (neg s) s) (inf_le_right _ _))
+    (le_of_eq (s_inf_neg s))
+
+theorem s_himp_neg : (s ⇨ neg s) = neg s := by
+  show (s ⇨ (s ⇨ ⊥)) = neg s
+  rw [← himp_curry, inf_idem]
+  rfl
+
+theorem tn_himp_neg : ((neg s ⊔ s) ⇨ neg s) = neg s := by
+  refine le_antisymm ?_ (le_himp_self _ _)
+  exact le_trans (himp_le_himp_left (s_le_tn s)) (le_of_eq (s_himp_neg s))
+
+theorem tn_himp_s : ((neg s ⊔ s) ⇨ s) = neg (neg s) := by
+  refine le_antisymm (le_trans (himp_le_himp_left (neg_le_tn s))
+    (le_of_eq (neg_himp_s s))) ?_
+  exact le_himp_of_inf_le (le_of_eq (nn_inf_tn s))
+
+theorem tn_himp_nn : ((neg s ⊔ s) ⇨ neg (neg s)) = neg (neg s) := by
+  refine le_antisymm ?_ (le_himp_self _ _)
+  exact le_trans (himp_le_himp_left (neg_le_tn s)) (le_of_eq (neg_himp_neg_neg s))
+
+theorem tn_himp_bot : ((neg s ⊔ s) ⇨ (⊥ : α)) = ⊥ := by
+  show neg (neg s ⊔ s) = ⊥
+  rw [sup_comm]
+  exact neg_sup_neg_eq_bot s
+
+theorem c_himp_bot : ((neg s ⊔ neg (neg s)) ⇨ (⊥ : α)) = ⊥ := ForkEmbed.neg_join s
+
+/-! ### Every composite of two of the seven values, from the order alone -/
+
+@[simp] theorem inf_s_nn : s ⊓ neg (neg s) = s :=
+  inf_eq_left_iff.mpr (s_le_nn s)
+@[simp] theorem inf_nn_s : neg (neg s) ⊓ s = s := by
+  rw [inf_comm]; exact inf_s_nn s
+@[simp] theorem sup_s_nn : s ⊔ neg (neg s) = neg (neg s) :=
+  sup_eq_right_iff.mpr (s_le_nn s)
+@[simp] theorem sup_nn_s : neg (neg s) ⊔ s = neg (neg s) := by
+  rw [sup_comm]; exact sup_s_nn s
+@[simp] theorem inf_n_tn : neg s ⊓ (neg s ⊔ s) = neg s :=
+  inf_eq_left_iff.mpr (neg_le_tn s)
+@[simp] theorem inf_tn_n : (neg s ⊔ s) ⊓ neg s = neg s := by
+  rw [inf_comm]; exact inf_n_tn s
+@[simp] theorem sup_n_tn : neg s ⊔ (neg s ⊔ s) = (neg s ⊔ s) :=
+  sup_eq_right_iff.mpr (neg_le_tn s)
+@[simp] theorem sup_tn_n : (neg s ⊔ s) ⊔ neg s = (neg s ⊔ s) := by
+  rw [sup_comm]; exact sup_n_tn s
+@[simp] theorem inf_s_tn : s ⊓ (neg s ⊔ s) = s :=
+  inf_eq_left_iff.mpr (s_le_tn s)
+@[simp] theorem inf_tn_s : (neg s ⊔ s) ⊓ s = s := by
+  rw [inf_comm]; exact inf_s_tn s
+@[simp] theorem sup_s_tn : s ⊔ (neg s ⊔ s) = (neg s ⊔ s) :=
+  sup_eq_right_iff.mpr (s_le_tn s)
+@[simp] theorem sup_tn_s : (neg s ⊔ s) ⊔ s = (neg s ⊔ s) := by
+  rw [sup_comm]; exact sup_s_tn s
+@[simp] theorem inf_n_c : neg s ⊓ (neg s ⊔ neg (neg s)) = neg s :=
+  inf_eq_left_iff.mpr (neg_le_c s)
+@[simp] theorem inf_c_n : (neg s ⊔ neg (neg s)) ⊓ neg s = neg s := by
+  rw [inf_comm]; exact inf_n_c s
+@[simp] theorem sup_n_c : neg s ⊔ (neg s ⊔ neg (neg s)) = (neg s ⊔ neg (neg s)) :=
+  sup_eq_right_iff.mpr (neg_le_c s)
+@[simp] theorem sup_c_n : (neg s ⊔ neg (neg s)) ⊔ neg s = (neg s ⊔ neg (neg s)) := by
+  rw [sup_comm]; exact sup_n_c s
+@[simp] theorem inf_nn_c : neg (neg s) ⊓ (neg s ⊔ neg (neg s)) = neg (neg s) :=
+  inf_eq_left_iff.mpr (nn_le_c s)
+@[simp] theorem inf_c_nn : (neg s ⊔ neg (neg s)) ⊓ neg (neg s) = neg (neg s) := by
+  rw [inf_comm]; exact inf_nn_c s
+@[simp] theorem sup_nn_c : neg (neg s) ⊔ (neg s ⊔ neg (neg s)) = (neg s ⊔ neg (neg s)) :=
+  sup_eq_right_iff.mpr (nn_le_c s)
+@[simp] theorem sup_c_nn : (neg s ⊔ neg (neg s)) ⊔ neg (neg s) = (neg s ⊔ neg (neg s)) := by
+  rw [sup_comm]; exact sup_nn_c s
+@[simp] theorem inf_s_c : s ⊓ (neg s ⊔ neg (neg s)) = s :=
+  inf_eq_left_iff.mpr (s_le_c s)
+@[simp] theorem inf_c_s : (neg s ⊔ neg (neg s)) ⊓ s = s := by
+  rw [inf_comm]; exact inf_s_c s
+@[simp] theorem sup_s_c : s ⊔ (neg s ⊔ neg (neg s)) = (neg s ⊔ neg (neg s)) :=
+  sup_eq_right_iff.mpr (s_le_c s)
+@[simp] theorem sup_c_s : (neg s ⊔ neg (neg s)) ⊔ s = (neg s ⊔ neg (neg s)) := by
+  rw [sup_comm]; exact sup_s_c s
+@[simp] theorem inf_tn_c : (neg s ⊔ s) ⊓ (neg s ⊔ neg (neg s)) = (neg s ⊔ s) :=
+  inf_eq_left_iff.mpr (tn_le_c s)
+@[simp] theorem inf_c_tn : (neg s ⊔ neg (neg s)) ⊓ (neg s ⊔ s) = (neg s ⊔ s) := by
+  rw [inf_comm]; exact inf_tn_c s
+@[simp] theorem sup_tn_c : (neg s ⊔ s) ⊔ (neg s ⊔ neg (neg s)) = (neg s ⊔ neg (neg s)) :=
+  sup_eq_right_iff.mpr (tn_le_c s)
+@[simp] theorem sup_c_tn : (neg s ⊔ neg (neg s)) ⊔ (neg s ⊔ s) = (neg s ⊔ neg (neg s)) := by
+  rw [sup_comm]; exact sup_tn_c s
+
+@[simp] theorem inf_bot_gen (a : α) : (⊥ : α) ⊓ a = ⊥ := by rw [inf_comm]; exact inf_bot a
+
+/-! ### The arrows that need the hypothesis
+
+`neg (neg s) ⇨ s` coming back to `s ⊔ neg s` is what splits the long branch;
+everything below is a consequence of it. -/
+
+theorem nn_himp_tn (hs : (neg (neg s) ⇨ s) = neg s ⊔ s) : (neg (neg s) ⇨ (neg s ⊔ s)) = neg s ⊔ s := by
+  refine le_antisymm ?_ (le_himp_self _ _)
+  refine le_trans (le_himp_of_inf_le ?_) (le_of_eq hs)
+  exact le_trans (le_inf (himp_inf_le (neg (neg s)) (neg s ⊔ s)) (inf_le_right _ _))
+    (le_of_eq (tn_inf_nn s))
+
+theorem c_himp_s (hs : (neg (neg s) ⇨ s) = neg s ⊔ s) : ((neg s ⊔ neg (neg s)) ⇨ s) = s := by
+  refine le_antisymm ?_ (le_himp_self _ _)
+  refine le_trans (le_inf ?_ ?_) (le_of_eq (nn_inf_tn s))
+  · exact le_trans (himp_le_himp_left (neg_le_c s)) (le_of_eq (neg_himp_s s))
+  · exact le_trans (himp_le_himp_left (nn_le_c s)) (le_of_eq hs)
+
+theorem c_himp_tn (hs : (neg (neg s) ⇨ s) = neg s ⊔ s) : ((neg s ⊔ neg (neg s)) ⇨ (neg s ⊔ s)) = neg s ⊔ s := by
+  refine le_antisymm ?_ (le_himp_self _ _)
+  exact le_trans (himp_le_himp_left (nn_le_c s)) (le_of_eq (nn_himp_tn s hs))
+
+theorem map_inf' (u v : ForkUp 1 2) : map s (u ⊓ v) = map s u ⊓ map s v := by
+  rcases fork12_cases u with rfl|rfl|rfl|rfl|rfl|rfl|rfl <;>
+    rcases fork12_cases v with rfl|rfl|rfl|rfl|rfl|rfl|rfl <;>
+    simp [ForkUp.inf_def, ForkUp.mx, neg_inf_s, s_inf_neg, tn_inf_nn,
+      nn_inf_tn, inf_idem, inf_top, top_inf, inf_bot]
+
+theorem map_sup' (u v : ForkUp 1 2) : map s (u ⊔ v) = map s u ⊔ map s v := by
+  rcases fork12_cases u with rfl|rfl|rfl|rfl|rfl|rfl|rfl <;>
+    rcases fork12_cases v with rfl|rfl|rfl|rfl|rfl|rfl|rfl <;>
+    simp [ForkUp.sup_def, ForkUp.mn, tn_sup_nn, nn_sup_tn, sup_idem, sup_top,
+      top_sup, sup_bot, bot_sup] <;>
+    exact sup_comm _ _
+
+theorem map_himp' (hs : (neg (neg s) ⇨ s) = neg s ⊔ s) (u v : ForkUp 1 2) :
+    map s (u ⇨ v) = map s u ⇨ map s v := by
+  rcases fork12_cases u with rfl|rfl|rfl|rfl|rfl|rfl|rfl <;>
+    rcases fork12_cases v with rfl|rfl|rfl|rfl|rfl|rfl|rfl <;>
+    simp [ForkUp.himp_def, himp_top_left, hs, neg_himp_s,
+      s_himp_neg, tn_himp_neg, tn_himp_s, tn_himp_nn, nn_himp_tn s hs,
+      c_himp_s s hs, c_himp_tn s hs, sup_neg_himp_left, sup_neg_himp_right,
+      neg_neg_neg]
+
+/-- The seven values are distinct exactly when weak excluded middle fails. -/
+theorem injective (hs : (neg (neg s) ⇨ s) = neg s ⊔ s)
+    (hT : neg s ⊔ neg (neg s) ≠ ⊤) : Function.Injective (map s) := by
+  have hbt : (⊥ : α) ≠ ⊤ := fun he =>
+    hT (le_antisymm (le_top _) (le_trans (le_of_eq he.symm) (bot_le _)))
+  have hnb : neg s ≠ ⊥ := by
+    intro he; apply hT
+    have h : neg (neg s) = ⊤ := by rw [he]; exact neg_bot
+    rw [h, sup_top]
+  have hsb : s ≠ ⊥ := by
+    intro he; apply hT
+    have h : neg s = ⊤ := by rw [he]; exact neg_bot
+    rw [h, top_sup]
+  have hnnb : neg (neg s) ≠ ⊥ := fun he =>
+    hsb ((eq_bot_iff _).mpr (le_trans (s_le_nn s) (le_of_eq he)))
+  have hsnn : s ≠ neg (neg s) := by
+    intro he; apply hT
+    have h1 : (neg (neg s) ⇨ s) = ⊤ := by rw [← he]; exact himp_eq_top_of_le le_rfl
+    rw [hs] at h1
+    rw [← he]; exact h1
+  have htnt : (neg s ⊔ s) ≠ ⊤ := by
+    intro he; apply hsnn
+    have h1 : (neg (neg s) ⇨ s) = ⊤ := by rw [hs, he]
+    exact le_antisymm (s_le_nn s) (le_of_himp_eq_top h1)
+  have hnnn : neg s ≠ neg (neg s) := by
+    intro he; apply hnb
+    have h := neg_inf_nn s
+    rw [← he, inf_idem] at h
+    exact h
+  have hns : neg s ≠ s := by
+    intro he; apply hsb
+    have h := neg_inf_s s
+    rw [he, inf_idem] at h
+    exact h
+  have hntn : neg s ≠ neg s ⊔ s := by
+    intro he; apply hsb
+    have h := inf_eq_left_iff.mpr (le_trans (s_le_tn s) (le_of_eq he.symm))
+    rw [s_inf_neg] at h
+    exact h.symm
+  have hnc : neg s ≠ neg s ⊔ neg (neg s) := by
+    intro he; apply hnnb
+    have h := inf_eq_left_iff.mpr (le_trans (nn_le_c s) (le_of_eq he.symm))
+    rw [nn_inf_neg] at h
+    exact h.symm
+  have hstn : s ≠ neg s ⊔ s := by
+    intro he; apply hnb
+    have h := inf_eq_left_iff.mpr (le_trans (neg_le_tn s) (le_of_eq he.symm))
+    rw [neg_inf_s] at h
+    exact h.symm
+  have hsc : s ≠ neg s ⊔ neg (neg s) := by
+    intro he; apply hnb
+    have h := inf_eq_left_iff.mpr (le_trans (neg_le_c s) (le_of_eq he.symm))
+    rw [neg_inf_s] at h
+    exact h.symm
+  have htnnn : (neg s ⊔ s) ≠ neg (neg s) := by
+    intro he; apply hnb
+    have h := inf_eq_left_iff.mpr (le_trans (neg_le_tn s) (le_of_eq he))
+    rw [neg_inf_nn] at h
+    exact h.symm
+  have hnnc : neg (neg s) ≠ neg s ⊔ neg (neg s) := by
+    intro he; apply hnb
+    have h := inf_eq_left_iff.mpr (le_trans (neg_le_c s) (le_of_eq he.symm))
+    rw [neg_inf_nn] at h
+    exact h.symm
+  have htnc : (neg s ⊔ s) ≠ neg s ⊔ neg (neg s) := by
+    intro he; apply hsnn
+    have h : neg (neg s) ⊓ (neg s ⊔ s) = neg (neg s) :=
+      inf_eq_left_iff.mpr (le_trans (nn_le_c s) (le_of_eq he.symm))
+    rw [nn_inf_tn] at h
+    exact h
+  have hnt : neg s ≠ ⊤ := fun he =>
+    hT (le_antisymm (le_top _) (le_trans (le_of_eq he.symm) (neg_le_c s)))
+  have hst : s ≠ ⊤ := fun he =>
+    htnt (le_antisymm (le_top _) (le_trans (le_of_eq he.symm) (s_le_tn s)))
+  have hnnt : neg (neg s) ≠ ⊤ := fun he =>
+    hT (le_antisymm (le_top _) (le_trans (le_of_eq he.symm) (nn_le_c s)))
+  have htnb : (neg s ⊔ s) ≠ ⊥ := fun he =>
+    hnb ((eq_bot_iff _).mpr (le_trans (neg_le_tn s) (le_of_eq he)))
+  have hcb : (neg s ⊔ neg (neg s)) ≠ ⊥ := fun he =>
+    hnb ((eq_bot_iff _).mpr (le_trans (neg_le_c s) (le_of_eq he)))
+  intro u v huv
+  rcases fork12_cases u with rfl|rfl|rfl|rfl|rfl|rfl|rfl <;>
+    rcases fork12_cases v with rfl|rfl|rfl|rfl|rfl|rfl|rfl <;>
+    first
+      | rfl
+      | exact absurd huv (by assumption)
+      | exact absurd huv.symm (by assumption)
+
+end Fork12Embed
+
+/-- **The uneven fork embeds** whenever an element's double negation arrow
+comes back to its excluded middle, and weak excluded middle fails there. -/
+theorem fork12_embeds {α : Type} [HeytingAlgebra α] {s : α}
+    (hs : (neg (neg s) ⇨ s) = neg s ⊔ s) (hT : neg s ⊔ neg (neg s) ≠ ⊤) :
+    Embeds (ForkUp 1 2) α :=
+  ⟨{ toFun := Fork12Embed.map s
+     map_bot := rfl
+     map_top := rfl
+     map_inf := Fork12Embed.map_inf' s
+     map_sup := Fork12Embed.map_sup' s
+     map_himp := Fork12Embed.map_himp' s hs },
+   Fork12Embed.injective s hs hT⟩
+
+theorem sh_fork12 {α : Type} [HeytingAlgebra α] {s : α}
+    (hs : (neg (neg s) ⇨ s) = neg s ⊔ s) (hT : neg s ⊔ neg (neg s) ≠ ⊤) :
+    SH (ForkUp 1 2) α :=
+  ⟨α, inferInstance, onto_refl α, fork12_embeds hs hT⟩

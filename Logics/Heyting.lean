@@ -209,6 +209,18 @@ theorem neg_antitone {a b : α} (h : a ⊑ b) : neg b ⊑ neg a :=
 
 end HeytingAlgebra
 
+/-- The arrow of a product is taken componentwise too, the adjunction holding
+in each component separately. -/
+instance HProd.instHeytingAlgebra {α β : Type u}
+    [HeytingAlgebra α] [HeytingAlgebra β] : HeytingAlgebra (α × β) where
+  himp p q := (p.1 ⇨ q.1, p.2 ⇨ q.2)
+  himp_adj a b c := by
+    constructor
+    · exact fun h => ⟨HeytingAlgebra.le_himp_of_inf_le h.1,
+        HeytingAlgebra.le_himp_of_inf_le h.2⟩
+    · exact fun h => ⟨HeytingAlgebra.inf_le_of_le_himp h.1,
+        HeytingAlgebra.inf_le_of_le_himp h.2⟩
+
 /-! ## Upward closed sets of a frame
 
 Every preordered set of points gives rise to a Heyting algebra: its upward
@@ -314,6 +326,94 @@ theorem later_em_fails : later ⊔ HeytingAlgebra.neg later ≠ (⊤ : Upset (Fi
   cases h0 with
   | inl hl => exact Nat.noConfusion hl
   | inr hn => exact hn 1 (Nat.zero_le 1) rfl
+
+end Upset
+
+/-! ## Minimal points
+
+An upward closed set is entered at its minimal points, and whether it has one
+entrance or several is a property of the frame rather than of any formula.  It
+is what decides several of the weaker principles, so it is recorded here. -/
+
+/-- Every inhabited set of points has a minimal one.  This is the only thing a
+frame's finiteness is needed for. -/
+def HasMinimal (P : Type u) [Frame P] : Prop :=
+  ∀ S : P → Prop, (∃ p, S p) → ∃ m, S m ∧ ∀ q, S q → q ≼ m → m ≼ q
+
+/-- A rank dropping along strict descent.  A frame carrying one has minimal
+points, which is how a finite frame supplies them. -/
+class Graded (P : Type u) [Frame P] where
+  rank : P → Nat
+  rank_lt {p q : P} : p ≼ q → ¬ q ≼ p → rank p < rank q
+
+theorem hasMinimal_of_graded {P : Type u} [Frame P] [Graded P] : HasMinimal P := by
+  intro S hS
+  obtain ⟨p₀, hp₀⟩ := hS
+  suffices H : ∀ n p, S p → Graded.rank p ≤ n →
+      ∃ m, S m ∧ ∀ q, S q → q ≼ m → m ≼ q by
+    exact H (Graded.rank p₀) p₀ hp₀ (Nat.le_refl _)
+  intro n
+  induction n with
+  | zero =>
+    intro p hp hr
+    refine ⟨p, hp, fun q hq hqp => Classical.byContradiction fun hpq => ?_⟩
+    have := Graded.rank_lt hqp hpq
+    omega
+  | succ k ih =>
+    intro p hp hr
+    by_cases hmin : ∀ q, S q → q ≼ p → p ≼ q
+    · exact ⟨p, hp, hmin⟩
+    · have hex : ∃ q, S q ∧ q ≼ p ∧ ¬ p ≼ q :=
+        Classical.byContradiction fun hcon =>
+          hmin (fun q hq hqp => Classical.byContradiction fun hpq =>
+            hcon ⟨q, hq, hqp, hpq⟩)
+      obtain ⟨q, hq, hqp, hpq⟩ := hex
+      have hlt := Graded.rank_lt hqp hpq
+      exact ih q hq (by omega)
+
+namespace Upset
+
+variable {P : Type u} [Frame P]
+
+/-- `m` lies below every point of `V`. -/
+def Least (V : Upset P) (m : P) : Prop := V.mem m ∧ ∀ q, V.mem q → m ≼ q
+
+/-- Nothing in `V` lies strictly below `m`. -/
+def Minimal (V : Upset P) (m : P) : Prop :=
+  V.mem m ∧ ∀ q, V.mem q → q ≼ m → m ≼ q
+
+/-- `V` is entered at a single point: inhabited only if it has a least one. -/
+def Principal (V : Upset P) : Prop := ∀ p, V.mem p → ∃ m, V.Least m
+
+/-- `V` is entered at two unrelated points. -/
+def Splits (V : Upset P) : Prop :=
+  ∃ m m', V.Minimal m ∧ V.Minimal m' ∧ ¬ m ≼ m' ∧ ¬ m' ≼ m
+
+/-- Where minimal points exist the two are exact opposites. -/
+theorem not_principal_iff_splits (hm : HasMinimal P) (V : Upset P) :
+    ¬ V.Principal ↔ V.Splits := by
+  constructor
+  · intro hnp
+    have hex : ∃ p, V.mem p ∧ ¬ ∃ m, V.Least m :=
+      Classical.byContradiction fun hcon =>
+        hnp (fun p hp => Classical.byContradiction fun hl => hcon ⟨p, hp, hl⟩)
+    obtain ⟨p, hp, hnl⟩ := hex
+    obtain ⟨m, hmem, hmmin⟩ := hm V.mem ⟨p, hp⟩
+    have hw : ∃ w, V.mem w ∧ ¬ m ≼ w :=
+      Classical.byContradiction fun hcon =>
+        hnl ⟨m, hmem, fun q hq =>
+          Classical.byContradiction fun hmq => hcon ⟨q, hq, hmq⟩⟩
+    obtain ⟨w, hwmem, hmw⟩ := hw
+    obtain ⟨m', hm'D, hm'min⟩ :=
+      hm (fun q => V.mem q ∧ q ≼ w) ⟨w, hwmem, Frame.le_refl w⟩
+    refine ⟨m, m', ⟨hmem, hmmin⟩, ⟨hm'D.1, fun q hq hqm' =>
+      hm'min q ⟨hq, Frame.le_trans hqm' hm'D.2⟩ hqm'⟩, ?_, ?_⟩
+    · exact fun hmm' => hmw (Frame.le_trans hmm' hm'D.2)
+    · exact fun hm'm => hmw (Frame.le_trans (hmmin m' hm'D.1 hm'm) hm'D.2)
+  · rintro ⟨m, m', hmin, hmin', hmm', _⟩ hP
+    obtain ⟨l, hlmem, hlleast⟩ := hP m hmin.1
+    exact hmm' (Frame.le_trans (hmin.2 l hlmem (hlleast m hmin.1))
+      (hlleast m' hmin'.1))
 
 end Upset
 
@@ -771,6 +871,11 @@ theorem sup_eq_right {a b : Fin (n + 1)} (h : a.val ≤ b.val) : a ⊔ b = b := 
 theorem sup_eq_left {a b : Fin (n + 1)} (h : ¬ a.val ≤ b.val) : a ⊔ b = a := by
   show (if a.val ≤ b.val then b else a) = a
   simp [h]
+/-- Comparison in a chain is decidable, which anything building on `⇨` needs to
+know.  Resolution cannot see it through the class field. -/
+instance decLe {n : Nat} (a b : Fin (n + 1)) : Decidable (a ⊑ b) :=
+  Nat.decLe a.val b.val
+
 end Chain
 
 /-! ## Forks and kites of arbitrary shape
@@ -978,7 +1083,156 @@ instance : HeytingAlgebra (ForkUp m n) where
   himp := himp
   himp_adj := himp_adj'
 
+/-- The class operations *are* the raw ones.  Without this, `simp` cannot
+compute a composite of two concrete values: it sees `⊓`, which is a projection
+of the `Lattice` instance, and has no rule that reaches the definition
+underneath.  With it, the equations above do the rest. -/
+theorem inf_def (a b : ForkUp m n) : a ⊓ b = ForkUp.inf a b := rfl
+theorem sup_def (a b : ForkUp m n) : a ⊔ b = ForkUp.sup a b := rfl
+theorem himp_def (a b : ForkUp m n) : (a ⇨ b) = ForkUp.himp a b := rfl
+
 end ForkUp
+
+/-! ## Forks with three branches
+
+The same construction with one branch more.  Two branches cannot tell a
+disjunction proved from a negation apart from one of its disjuncts being so
+proved; three can, so the three branch fork is worth having as a concrete
+algebra of its own. -/
+
+/-- An upward closed set of the fork with branches of lengths `m`, `n` and `k`:
+everything, or -- the root once omitted -- a tail of each of the three
+branches. -/
+inductive ForkUp3 (m n k : Nat) where
+  | all
+  | tails : Fin (m + 1) → Fin (n + 1) → Fin (k + 1) → ForkUp3 m n k
+  deriving DecidableEq, Repr
+
+namespace ForkUp3
+variable {m n k : Nat}
+
+open ForkUp (mx mn)
+
+instance (p : ForkUp3 m n k → Prop) [DecidablePred p] : Decidable (∀ x, p x) :=
+  if h : p .all ∧ ∀ i j l, p (.tails i j l) then
+    isTrue (by
+      intro x
+      cases x with
+      | all => exact h.1
+      | tails i j l => exact h.2 i j l)
+  else isFalse (fun hall => h ⟨hall _, fun _ _ _ => hall _⟩)
+
+def le : ForkUp3 m n k → ForkUp3 m n k → Prop
+  | _, .all => True
+  | .all, .tails _ _ _ => False
+  | .tails i j l, .tails i' j' l' =>
+      i'.val ≤ i.val ∧ j'.val ≤ j.val ∧ l'.val ≤ l.val
+
+def inf : ForkUp3 m n k → ForkUp3 m n k → ForkUp3 m n k
+  | .all, y => y
+  | x, .all => x
+  | .tails i j l, .tails i' j' l' => .tails (mx i i') (mx j j') (mx l l')
+
+def sup : ForkUp3 m n k → ForkUp3 m n k → ForkUp3 m n k
+  | .all, _ => .all
+  | _, .all => .all
+  | .tails i j l, .tails i' j' l' => .tails (mn i i') (mn j j') (mn l l')
+
+/-- As for two branches: a branch's tail survives only where the hypothesis
+already lies inside the conclusion, and the root survives when all three do. -/
+def himp : ForkUp3 m n k → ForkUp3 m n k → ForkUp3 m n k
+  | _, .all => .all
+  | .all, y => y
+  | .tails i j l, .tails i' j' l' =>
+      if i'.val ≤ i.val ∧ j'.val ≤ j.val ∧ l'.val ≤ l.val then .all
+      else .tails (if i'.val ≤ i.val then 0 else i')
+                  (if j'.val ≤ j.val then 0 else j')
+                  (if l'.val ≤ l.val then 0 else l')
+
+@[simp] theorem le_all (a : ForkUp3 m n k) : le a .all := by cases a <;> trivial
+@[simp] theorem le_all_tails (i : Fin (m + 1)) (j : Fin (n + 1)) (l : Fin (k + 1)) :
+    le (.all : ForkUp3 m n k) (.tails i j l) ↔ False := Iff.rfl
+@[simp] theorem le_tails (i i' : Fin (m + 1)) (j j' : Fin (n + 1)) (l l' : Fin (k + 1)) :
+    le (.tails i j l : ForkUp3 m n k) (.tails i' j' l')
+      ↔ (i'.val ≤ i.val ∧ j'.val ≤ j.val ∧ l'.val ≤ l.val) := Iff.rfl
+
+@[simp] theorem inf_all_left (y : ForkUp3 m n k) : inf .all y = y := rfl
+@[simp] theorem inf_all_right (x : ForkUp3 m n k) : inf x .all = x := by cases x <;> rfl
+@[simp] theorem inf_tails (i i' : Fin (m + 1)) (j j' : Fin (n + 1)) (l l' : Fin (k + 1)) :
+    inf (.tails i j l : ForkUp3 m n k) (.tails i' j' l')
+      = .tails (mx i i') (mx j j') (mx l l') := rfl
+
+@[simp] theorem sup_all_left (y : ForkUp3 m n k) : sup .all y = .all := rfl
+@[simp] theorem sup_all_right (x : ForkUp3 m n k) : sup x .all = .all := by cases x <;> rfl
+@[simp] theorem sup_tails (i i' : Fin (m + 1)) (j j' : Fin (n + 1)) (l l' : Fin (k + 1)) :
+    sup (.tails i j l : ForkUp3 m n k) (.tails i' j' l')
+      = .tails (mn i i') (mn j j') (mn l l') := rfl
+
+@[simp] theorem himp_all_right (x : ForkUp3 m n k) : himp x .all = .all := by cases x <;> rfl
+@[simp] theorem himp_all_left (y : ForkUp3 m n k) : himp .all y = y := by cases y <;> rfl
+@[simp] theorem himp_tails (i i' : Fin (m + 1)) (j j' : Fin (n + 1)) (l l' : Fin (k + 1)) :
+    himp (.tails i j l : ForkUp3 m n k) (.tails i' j' l')
+      = if i'.val ≤ i.val ∧ j'.val ≤ j.val ∧ l'.val ≤ l.val then .all
+        else .tails (if i'.val ≤ i.val then 0 else i')
+                    (if j'.val ≤ j.val then 0 else j')
+                    (if l'.val ≤ l.val then 0 else l') := rfl
+
+theorem le_refl' (a : ForkUp3 m n k) : le a a := by cases a <;> simp
+theorem le_trans' {a b c : ForkUp3 m n k} : le a b → le b c → le a c := by
+  cases a <;> cases b <;> cases c <;> simp_all <;> omega
+theorem le_antisymm' {a b : ForkUp3 m n k} : le a b → le b a → a = b := by
+  cases a <;> cases b <;> simp_all <;> intros <;>
+    exact ⟨Fin.ext (by omega), Fin.ext (by omega), Fin.ext (by omega)⟩
+theorem inf_le_left' (a b : ForkUp3 m n k) : le (inf a b) a := by
+  cases a <;> cases b <;> simp [mx] <;> omega
+theorem inf_le_right' (a b : ForkUp3 m n k) : le (inf a b) b := by
+  cases a <;> cases b <;> simp [mx] <;> omega
+theorem le_inf' {a b c : ForkUp3 m n k} : le a b → le a c → le a (inf b c) := by
+  cases a <;> cases b <;> cases c <;> simp_all [mx] <;> omega
+theorem le_sup_left' (a b : ForkUp3 m n k) : le a (sup a b) := by
+  cases a <;> cases b <;> simp [mn] <;> omega
+theorem le_sup_right' (a b : ForkUp3 m n k) : le b (sup a b) := by
+  cases a <;> cases b <;> simp [mn] <;> omega
+theorem sup_le' {a b c : ForkUp3 m n k} : le a c → le b c → le (sup a b) c := by
+  cases a <;> cases b <;> cases c <;> simp_all [mn] <;> omega
+theorem himp_adj' (a b c : ForkUp3 m n k) : le (inf a b) c ↔ le a (himp b c) := by
+  cases a <;> cases b <;> cases c <;> simp [mx] <;>
+    (repeat' split) <;> simp_all <;> omega
+
+instance : PartialOrder (ForkUp3 m n k) where
+  le := le
+  le_refl := le_refl'
+  le_trans := le_trans'
+  le_antisymm := le_antisymm'
+
+instance : Lattice (ForkUp3 m n k) where
+  inf := inf
+  sup := sup
+  inf_le_left := inf_le_left'
+  inf_le_right := inf_le_right'
+  le_inf := le_inf'
+  le_sup_left := le_sup_left'
+  le_sup_right := le_sup_right'
+  sup_le := sup_le'
+
+instance : BoundedLattice (ForkUp3 m n k) where
+  top := .all
+  bot := .tails (Fin.last m) (Fin.last n) (Fin.last k)
+  le_top := le_all
+  bot_le a := by
+    cases a with
+    | all => trivial
+    | tails i j l =>
+      have h1 := i.isLt; have h2 := j.isLt; have h3 := l.isLt
+      exact ⟨by simp only [Fin.val_last]; omega,
+             by simp only [Fin.val_last]; omega,
+             by simp only [Fin.val_last]; omega⟩
+
+instance : HeytingAlgebra (ForkUp3 m n k) where
+  himp := himp
+  himp_adj := himp_adj'
+
+end ForkUp3
 
 /-! ## Kites by their upsets
 
@@ -1123,5 +1377,13 @@ instance : BoundedLattice (KiteUp m n) where
 instance : HeytingAlgebra (KiteUp m n) where
   himp := himp
   himp_adj := himp_adj'
+
+/-- The class operations *are* the raw ones.  Without this, `simp` cannot
+compute a composite of two concrete values: it sees `⊓`, which is a projection
+of the `Lattice` instance, and has no rule that reaches the definition
+underneath.  With it, the equations above do the rest. -/
+theorem inf_def (a b : KiteUp m n) : a ⊓ b = KiteUp.inf a b := rfl
+theorem sup_def (a b : KiteUp m n) : a ⊔ b = KiteUp.sup a b := rfl
+theorem himp_def (a b : KiteUp m n) : (a ⇨ b) = KiteUp.himp a b := rfl
 
 end KiteUp
