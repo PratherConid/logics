@@ -16,80 +16,18 @@ nothing refutes them, which is why excluded middle already misses the top in
 chain: its two
 middle values `x` and `y` are incomparable.
 
-The pattern that emerges is that the combined principles fall into three
-strengths.  `Pierce₁₂OrLukasiewicz₁₂F` reaches the top in every chain and in the
-diamond.  `NoDiamondF` and `ImpOr₁₂OrLukasiewicz₂₁F` reach it in every chain but
-not in the diamond, which is what their level is: the two are measured
-separately here, being different formulas that prove each other.
-`DeMorgan₁₂OrLukasiewicz₁₂F` already misses it in the four value chain.
-Excluded middle misses it in every chain past `Fin 2`.
+The pattern that emerges is that the principles fall into three strengths.
+`Pierce₁₂OrLukasiewicz₁₂F` reaches the top in every chain and in the diamond.
+`NoDiamondF` reaches it in every chain but not in the diamond, which is what
+its level is.  `DeMorgan₁₂OrLukasiewicz₁₂F` already misses it in the four value
+chain, and excluded middle already in `Fin 3`.
 
-The last four theorems restate some of this for `Form`, evaluating a whole
-schema under a valuation rather than an expression under two arguments.
+Most measurements come in two shapes: an equation between elements, and the
+same fact for `Form`, evaluating a whole schema under a valuation rather than
+an expression under two arguments.  Every one of them has a consumer, in the
+separation proofs of `StrictImply` or in the `Refuter` files; a measurement
+worth keeping is one some argument rests on.
 -/
-
-open HeytingAlgebra in
-/-- `Pierce₁₂OrLukasiewicz₁₂F` reaches the top value at every instance in *every*
-chain, whatever its length.  The two cases are exactly the two disjuncts: when
-`a ⊑ b` the Peirce disjunct reaches the top, and otherwise `b ⊑ a`, which sends
-Lukasiewicz's conclusion `b ⇨ a` to the top. -/
-theorem pierce₁₂OrLuk₁₂_top_chain {n : Nat} (a b : Fin (n + 1)) :
-    (((a ⇨ b) ⇨ a) ⇨ a) ⊔ ((neg a ⇨ neg b) ⇨ (b ⇨ a)) = ⊤ := by
-  by_cases hab : a.val ≤ b.val
-  · have h1 : (a ⇨ b) = ⊤ := (Chain.himp_eq_top_iff a b).mpr hab
-    have h2 : (((a ⇨ b) ⇨ a) ⇨ a) = ⊤ := by
-      rw [h1]
-      exact (Chain.himp_eq_top_iff _ _).mpr (Chain.himp_top_left_le a)
-    rw [h2, BoundedLattice.top_sup]
-  · have h1 : (b ⇨ a) = ⊤ := (Chain.himp_eq_top_iff b a).mpr (by omega)
-    have h2 : ((neg a ⇨ neg b) ⇨ (b ⇨ a)) = ⊤ := by
-      rw [h1]; exact Chain.himp_top_right _
-    rw [h2, BoundedLattice.sup_top]
-
-open HeytingAlgebra in
-/-- `DeMorgan₁₂OrLukasiewicz₁₂F`, every instance. -/
-theorem demorgan₁₂OrLuk₁₂_top (a b : Fin 3) :
-    (neg (neg a ⊓ neg b) ⇨ (a ⊔ b)) ⊔ ((neg a ⇨ neg b) ⇨ (b ⇨ a)) = ⊤ := by
-  revert a b; decide
-
-open HeytingAlgebra in
-/-- `ExcludedMiddleF`, by contrast, is not `⊤` throughout: it drops to `m`. -/
-theorem em_not_top : ∃ a : Fin 3, a ⊔ neg a ≠ ⊤ :=
-  ⟨1, Chain.em_fails (by decide) (by decide)⟩
-
-open HeytingAlgebra in
-/-- Excluded middle fails in every chain with more than two values. -/
-theorem em_not_top_chain {n : Nat} (hn : 2 ≤ n) : ∃ a : Fin (n + 1), a ⊔ neg a ≠ ⊤ :=
-  ⟨⟨1, by omega⟩, Chain.em_fails Nat.zero_lt_one (by omega : 1 < n)⟩
-
-open HeytingAlgebra in
-/-- `ImpOr₁₂OrLukasiewicz₂₁F` reaches the top value in every chain, exactly as
-`Pierce₁₂OrLukasiewicz₁₂F` does, and unlike `DeMorgan₁₂OrLukasiewicz₁₂F`, which already
-fails in the four value chain.  So it cannot derive `DeMorgan₁₂OrLukasiewicz₁₂F`. -/
-theorem impOr₁₂OrLuk₂₁_top_chain {n : Nat} (a b : Fin (n + 1)) :
-    ((a ⇨ b) ⇨ (neg a ⊔ b)) ⊔ ((neg b ⇨ neg a) ⇨ (a ⇨ b)) = ⊤ := by
-  by_cases hab : a.val ≤ b.val
-  · have h1 : (a ⇨ b) = ⊤ := (Chain.himp_eq_top_iff a b).mpr hab
-    have h2 : ((neg b ⇨ neg a) ⇨ (a ⇨ b)) = ⊤ := by rw [h1]; exact Chain.himp_top_right _
-    rw [h2, BoundedLattice.sup_top]
-  · have hne : (a ⇨ b) = b := Chain.himp_eq_of_not_le hab
-    have h1 : ((a ⇨ b) ⇨ (neg a ⊔ b)) = ⊤ := by
-      rw [hne]; exact (Chain.himp_eq_top_iff _ _).mpr (Lattice.le_sup_right (neg a) b)
-    rw [h1, BoundedLattice.top_sup]
-
-open HeytingAlgebra in
-/-- `Pierce₁₂OrLukasiewicz₂₁F` is not `Pierce₁₂OrLukasiewicz₁₂F`: swapping Lukasiewicz's
-arguments costs it the four value chain, at `a = 2`, `b = 1`. -/
-theorem pierce₁₂OrLuk₂₁F_not_top_four :
-    ((((2 : Fin 4) ⇨ 1) ⇨ 2) ⇨ 2) ⊔ ((neg 1 ⇨ neg 2) ⇨ ((2 : Fin 4) ⇨ 1)) ≠ ⊤ := by
-  decide
-
-open HeytingAlgebra in
-/-- `DeMorgan₁₂OrLukasiewicz₁₂F`, by contrast, drops to `q` at `a = p`, `b = q`. -/
-theorem demorgan₁₂OrLuk₁₂_not_top_four :
-    (neg (neg (1 : Fin 4) ⊓ neg 2) ⇨ ((1 : Fin 4) ⊔ 2))
-      ⊔ ((neg 1 ⇨ neg 2) ⇨ ((2 : Fin 4) ⇨ 1)) ≠ ⊤ := by
-  decide
 
 open HeytingAlgebra in
 /-- `Pierce₁₂OrLukasiewicz₁₂F` holds throughout the diamond, which is not a chain. -/
@@ -98,13 +36,6 @@ theorem pierce₁₂OrLuk₁₂_top_diamond : ∀ a b : KiteUp 1 1,
 
 theorem pierce₁₂OrLuk₁₂Form_valid (v : Nat → KiteUp 1 1) : pierce₁₂OrLuk₁₂Form.eval v = ⊤ :=
   pierce₁₂OrLuk₁₂_top_diamond (v 0) (v 1)
-
-/-- `ImpOr₁₂OrLukasiewicz₂₁F` does not: it drops below the top at `a = x`, `b = e`. -/
-theorem impOr₁₂OrLuk₂₁Form_nvalid_diamond :
-    impOr₁₂OrLuk₂₁Form.eval (fun n => if n = 0 then (KiteUp.tails 0 1 : KiteUp 1 1) else KiteUp.tails 1 1) ≠ ⊤ := by decide
-
-theorem impOr₁₂OrLuk₂₁Form_valid_chain (v : Nat → Fin 4) : impOr₁₂OrLuk₂₁Form.eval v = ⊤ :=
-  impOr₁₂OrLuk₂₁_top_chain (v 0) (v 1)
 
 open HeytingAlgebra in
 /-- `NoDiamondF` reaches the top value in every chain, and for the plainest of
@@ -157,19 +88,6 @@ theorem linearityForm_nvalid_kite :
       else KiteUp.tails 1 0) ≠ ⊤ := by decide
 
 open HeytingAlgebra in
-/-- Weak excluded middle holds in every chain, since the negation of any value
-but the bottom is the bottom. -/
-theorem weakEm_chain {n : Nat} : ∀ a : Fin (n + 1), neg a ⊔ neg (neg a) = ⊤ := by
-  intro a
-  by_cases h0 : a.val = 0
-  · have ha : a = ⊥ := Fin.ext h0
-    rw [ha, neg_bot, BoundedLattice.top_sup]
-  · rw [Chain.neg_eq_bot (by omega), neg_bot, BoundedLattice.sup_top]
-
-theorem weakEmForm_valid_chain {n : Nat} (v : Nat → Fin (n + 1)) :
-    weakEmForm.eval v = ⊤ := weakEm_chain (v 0)
-
-open HeytingAlgebra in
 /-- It holds in the diamond too: the tip makes every nonempty value dense. -/
 theorem weakEm_kite : ∀ a : KiteUp 1 1, neg a ⊔ neg (neg a) = ⊤ := by decide
 
@@ -191,11 +109,6 @@ theorem bd2Form_valid_fork (v : Nat → ForkUp 1 1) : bd2Form.eval v = ⊤ :=
 theorem bd2Form_nvalid_four :
     bd2Form.eval (fun n => if n = 0 then (2 : Fin 4) else 1) ≠ ⊤ := by decide
 
-/-- Bounded depth two fails in the diamond, which has depth three. -/
-theorem bd2Form_nvalid_kite :
-    bd2Form.eval (fun n => if n = 0 then (KiteUp.tails 0 1 : KiteUp 1 1)
-      else KiteUp.tails 1 0) ≠ ⊤ := by decide
-
 open HeytingAlgebra in
 /-- `NoDiamondF` holds throughout the fork, bounded depth two being stronger. -/
 theorem noDiamond_fork : ∀ a b : ForkUp 1 1,
@@ -204,16 +117,10 @@ theorem noDiamond_fork : ∀ a b : ForkUp 1 1,
 theorem noDiamondForm_valid_fork (v : Nat → ForkUp 1 1) :
     noDiamondForm.eval v = ⊤ := noDiamond_fork (v 0) (v 1)
 
-/-! ### What the taller kites see
+/-! ### What the even kite sees
 
-Weak excluded middle holds in every kite, the tip making the frame directed, so
-the kites are what tell it apart from the lower levels of the chain. -/
-
-open HeytingAlgebra in
-theorem weakEm_kite12 : ∀ a : KiteUp 1 2, neg a ⊔ neg (neg a) = ⊤ := by decide
-
-theorem weakEmForm_valid_kite12 (v : Nat → KiteUp 1 2) : weakEmForm.eval v = ⊤ :=
-  weakEm_kite12 (v 0)
+Weak excluded middle holds in every kite, the tip making the frame directed,
+which is how the kite tells it apart from the levels of the chain. -/
 
 open HeytingAlgebra in
 theorem weakEm_kite22 : ∀ a : KiteUp 2 2, neg a ⊔ neg (neg a) = ⊤ := by decide
@@ -226,20 +133,6 @@ the chain. -/
 theorem pierce₁₂OrPierce₂₁Form_nvalid_kite22 :
     pierce₁₂OrPierce₂₁Form.eval (fun n => if n = 0 then (KiteUp.tails 1 2 : KiteUp 2 2)
       else KiteUp.tails 2 1) ≠ ⊤ := by decide
-
-open HeytingAlgebra in
-/-- Both bottom levels hold throughout the fork. -/
-theorem pierce₁₂OrLuk₁₂_fork : ∀ a b : ForkUp 1 1,
-    (((a ⇨ b) ⇨ a) ⇨ a) ⊔ ((neg a ⇨ neg b) ⇨ (b ⇨ a)) = ⊤ := by decide
-
-theorem pierce₁₂OrLuk₁₂Form_valid_fork (v : Nat → ForkUp 1 1) :
-    pierce₁₂OrLuk₁₂Form.eval v = ⊤ := pierce₁₂OrLuk₁₂_fork (v 0) (v 1)
-
-theorem pierce₁₂OrPierce₂₁_fork : ∀ a b : ForkUp 1 1,
-    (((a ⇨ b) ⇨ a) ⇨ a) ⊔ (((b ⇨ a) ⇨ b) ⇨ b) = ⊤ := by decide
-
-theorem pierce₁₂OrPierce₂₁Form_valid_fork (v : Nat → ForkUp 1 1) :
-    pierce₁₂OrPierce₂₁Form.eval v = ⊤ := pierce₁₂OrPierce₂₁_fork (v 0) (v 1)
 
 /-- Smetanich's axiom fails in the four value chain, at `a = 2`, `b = 1`. -/
 theorem smetanichForm_nvalid_four :
@@ -258,22 +151,6 @@ theorem smetanichForm_nvalid_kite :
 theorem demorgan₁₂OrLuk₁₂Form_nvalid_four :
     demorgan₁₂OrLuk₁₂Form.eval (fun n => if n = 0 then (1 : Fin 4) else 2) ≠ ⊤ := by decide
 
-open HeytingAlgebra in
-/-- `Peirce₁₂OrImpOr₁₂F` reaches the top value in every chain, by the two cases that
-serve the other chain results: `a ⊑ b` sends Peirce to the top, and `b ⊑ a`
-sends `ImpOrF` there, since then `a ⇨ b` is `b` and `b ⊑ ¬a ⊔ b`. -/
-theorem peirce₁₂OrImpOr₁₂_top_chain {n : Nat} (a b : Fin (n + 1)) :
-    (((a ⇨ b) ⇨ a) ⇨ a) ⊔ ((a ⇨ b) ⇨ (neg a ⊔ b)) = ⊤ := by
-  by_cases hab : a.val ≤ b.val
-  · have h1 : (a ⇨ b) = ⊤ := (Chain.himp_eq_top_iff a b).mpr hab
-    have h2 : (((a ⇨ b) ⇨ a) ⇨ a) = ⊤ := by
-      rw [h1]; exact (Chain.himp_eq_top_iff _ _).mpr (Chain.himp_top_left_le a)
-    rw [h2, BoundedLattice.top_sup]
-  · have hne : (a ⇨ b) = b := Chain.himp_eq_of_not_le hab
-    have h1 : ((a ⇨ b) ⇨ (neg a ⊔ b)) = ⊤ := by
-      rw [hne]; exact (Chain.himp_eq_top_iff _ _).mpr (Lattice.le_sup_right (neg a) b)
-    rw [h1, BoundedLattice.sup_top]
-
 /-- Excluded middle, by contrast, misses the top value already in `Fin 3`. -/
 theorem excludedMiddleForm_nvalid_three :
     (excludedMiddleForm (.var 0)).eval (fun _ => (1 : Fin 3)) ≠ ⊤ := by decide
@@ -285,12 +162,6 @@ theorem peirce₁₂OrImpOr₂₁_top_three : ∀ a b : Fin 3,
 
 theorem peirce₁₂OrImpOr₂₁Form_valid_three (v : Nat → Fin 3) :
     peirce₁₂OrImpOr₂₁Form.eval v = ⊤ := peirce₁₂OrImpOr₂₁_top_three (v 0) (v 1)
-
-open HeytingAlgebra in
-/-- But it already misses it in the four value chain, at `a = 2`, `b = 1`, where
-every unswapped combined principle of this file still reaches the top. -/
-theorem peirce₁₂OrImpOr₂₁_not_top_four :
-    ((((2 : Fin 4) ⇨ 1) ⇨ 2) ⇨ 2) ⊔ (((1 : Fin 4) ⇨ 2) ⇨ (neg 1 ⊔ 2)) ≠ ⊤ := by decide
 
 theorem peirce₁₂OrImpOr₂₁Form_nvalid_four :
     peirce₁₂OrImpOr₂₁Form.eval (fun n => if n = 0 then (2 : Fin 4) else 1) ≠ ⊤ := by decide

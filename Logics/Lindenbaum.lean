@@ -362,3 +362,15 @@ theorem bot_ne_top : (⊥ : Lindenbaum Form.tru) ≠ ⊤ := fun h =>
   not_derives_fls (derivesFromSchema_tru_iff.mp ((mk_eq_top_iff Form.tru Form.fls).mp h))
 
 end Lindenbaum
+
+
+/-- **Derivability from a schema is transitive.**  Semantically it is plain: an
+algebra validating `X` validates everything `X` derives, so it validates `Y`,
+so it validates `Z`.  The return trip from that to an actual derivation is
+completeness, which is why the fact lives here rather than beside the
+definition. -/
+theorem DerivesFromSchema.trans {X Y Z : Form}
+    (h₁ : DerivesFromSchema X Y) (h₂ : DerivesFromSchema Y Z) :
+    DerivesFromSchema X Z :=
+  Lindenbaum.schema_completeness fun _ _ hX v =>
+    DerivesFromSchema.valid (fun w => DerivesFromSchema.valid hX h₁ w) h₂ v

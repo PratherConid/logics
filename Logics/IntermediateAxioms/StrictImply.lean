@@ -31,6 +31,12 @@ below.  Each node is one *representative*; an edge downwards means the upper
 derives the lower and the lower does not derive the upper; and nodes joined by
 no downward path are incomparable, neither deriving the other.
 
+Only the covering relations are drawn, since `DerivesFromSchema.trans` supplies
+the rest: a derivation along any downward path is the composite of its edges.
+The separations come back the same way, read contrapositively -- a derivation
+the diagram forbids would compose into one the file has already refuted -- which
+is why so few of them need proving below.
+
 ```
                      ExcludedMiddleF
                             |
@@ -235,86 +241,47 @@ theorem nvalid_fork_of_derives_peirce₁₂OrImpOr₂₁ {X : Form}
 /-! ## Two axioms beside the chain
 
 Linearity and weak excluded middle are not disjunctions of two principles, so
-neither is one of the levels; each hangs off the chain instead.
+neither is one of the levels; each hangs off the chain instead.  `LinearityF`
+lies strictly below Smetanich's axiom and strictly above `NoDiamondF`, and is
+incomparable with `BD2F` sitting between them; `WeakEmF` lies strictly below
+linearity and is incomparable with every level from `BD2F` down.
 
-`LinearityF`, `(a → b) ∨ (b → a)`, lies strictly below Smetanich's axiom and
-strictly above `NoDiamondF`, and is incomparable with `BD2F` sitting between
-them: the four value chain is linear and of depth three, while the fork has
-depth two and is not linear.  Smetanich's axiom is linearity together with
-bounded depth two, which is why it lies above both while they lie beside each
-other.
+Three separations settle all of that, every other one following from them by
+`DerivesFromSchema.trans`.  The derivations that transitivity needs are the
+ones the refuter files record for linearity and weak excluded middle, and,
+along the chain, the instance level implications of
+`Logics/IntermediateAxioms/Implication.lean`.
 
-`WeakEmF`, `¬ a ∨ ¬ ¬ a`, lies strictly below linearity and is incomparable
-with *every* level from `BD2F` down.  The diamond and the taller kites all
-close their branches off with a tip, so all of them validate it, and between
-them they refute every level below Smetanich's; the fork validates all of those
-levels and refutes weak excluded middle.
+* Linearity does not reach bounded depth two, so it reaches nothing above
+  bounded depth two either.
+* Bounded depth two does not reach weak excluded middle, so neither does
+  anything bounded depth two derives; and since linearity derives weak excluded
+  middle, none of those reach linearity either.
+* Weak excluded middle does not reach the bottom level, so it reaches no level
+  of the chain, and not linearity above them.
 
-The derivations in the other direction are not proved here but where each axiom
-is settled on its own, since each of them reads off the list of that axiom's
-minimal refuters rather than off a single separating algebra. -/
+The derivations in the other direction are proved not here but where each axiom
+is settled on its own, since each reads off the list of that axiom's minimal
+refuters rather than off a single separating algebra. -/
 
-/-- Linearity does not reach Smetanich's axiom: every chain is linear, and the
-four value chain refutes Smetanich's axiom. -/
-theorem linearity_nderiv_smetanich :
-    ¬ DerivesFromSchema linearityForm smetanichForm := fun h =>
-  smetanichForm_nvalid_four
-    (DerivesFromSchema.valid (linearityForm_valid_chain (n := 3)) h _)
-
-/-- Nor does weak excluded middle, the diamond being directed but of depth
-three. -/
-theorem weakEm_nderiv_smetanich :
-    ¬ DerivesFromSchema weakEmForm smetanichForm := fun h =>
-  smetanichForm_nvalid_kite (DerivesFromSchema.valid weakEmForm_valid_kite h _)
-
-/-- Nothing at the `NoDiamondF` level reaches linearity: the fork validates
-`NoDiamondF` and refutes linearity. -/
-theorem noDiamond_nderiv_linearity :
-    ¬ DerivesFromSchema noDiamondForm linearityForm := fun h =>
-  linearityForm_nvalid_fork (DerivesFromSchema.valid noDiamondForm_valid_fork h _)
-
-/-! ### Linearity against bounded depth two -/
-
+/-- **Linearity does not reach bounded depth two**: every chain is linear,
+while the four value chain has depth three.  Smetanich's axiom derives bounded
+depth two, so linearity does not reach that either. -/
 theorem linearity_nderiv_bd2 : ¬ DerivesFromSchema linearityForm bd2Form := fun h =>
   bd2Form_nvalid_four (DerivesFromSchema.valid (linearityForm_valid_chain (n := 3)) h _)
 
-theorem bd2_nderiv_linearity : ¬ DerivesFromSchema bd2Form linearityForm := fun h =>
-  linearityForm_nvalid_fork (DerivesFromSchema.valid bd2Form_valid_fork h _)
-
-/-! ### Weak excluded middle against everything below Smetanich's axiom -/
-
-theorem weakEm_nderiv_linearity :
-    ¬ DerivesFromSchema weakEmForm linearityForm := fun h =>
-  linearityForm_nvalid_kite (DerivesFromSchema.valid weakEmForm_valid_kite h _)
-
-theorem weakEm_nderiv_bd2 : ¬ DerivesFromSchema weakEmForm bd2Form := fun h =>
-  bd2Form_nvalid_kite (DerivesFromSchema.valid weakEmForm_valid_kite h _)
-
+/-- **Bounded depth two does not reach weak excluded middle**: the fork has
+depth two and is not directed.  Everything from `NoDiamondF` down is derived by
+bounded depth two, so none of those reach it either; and linearity derives it,
+so neither can anything that fails to reach linearity be reached from it. -/
 theorem bd2_nderiv_weakEm : ¬ DerivesFromSchema bd2Form weakEmForm := fun h =>
   weakEmForm_nvalid_fork (DerivesFromSchema.valid bd2Form_valid_fork h _)
 
-theorem weakEm_nderiv_noDiamond :
-    ¬ DerivesFromSchema weakEmForm noDiamondForm := fun h =>
-  noDiamondForm_nvalid_diamond (DerivesFromSchema.valid weakEmForm_valid_kite h _)
-
-theorem noDiamond_nderiv_weakEm :
-    ¬ DerivesFromSchema noDiamondForm weakEmForm := fun h =>
-  weakEmForm_nvalid_fork (DerivesFromSchema.valid noDiamondForm_valid_fork h _)
-
-theorem weakEm_nderiv_pierce₁₂OrLuk₁₂ :
-    ¬ DerivesFromSchema weakEmForm pierce₁₂OrLuk₁₂Form := fun h =>
-  pierce₁₂OrLuk₁₂Form_nvalid_kite
-    (DerivesFromSchema.valid weakEmForm_valid_kite12 h _)
-
-theorem pierce₁₂OrLuk₁₂_nderiv_weakEm :
-    ¬ DerivesFromSchema pierce₁₂OrLuk₁₂Form weakEmForm := fun h =>
-  weakEmForm_nvalid_fork (DerivesFromSchema.valid pierce₁₂OrLuk₁₂Form_valid_fork h _)
-
+/-- **Weak excluded middle does not reach even the bottom level**: the even
+kite is directed and refutes that level.  Every level of the chain derives the
+bottom one, so weak excluded middle reaches none of them, nor linearity above
+them. -/
 theorem weakEm_nderiv_pierce₁₂OrPierce₂₁ :
     ¬ DerivesFromSchema weakEmForm pierce₁₂OrPierce₂₁Form := fun h =>
   pierce₁₂OrPierce₂₁Form_nvalid_kite22
     (DerivesFromSchema.valid weakEmForm_valid_kite22 h _)
-
-theorem pierce₁₂OrPierce₂₁_nderiv_weakEm :
-    ¬ DerivesFromSchema pierce₁₂OrPierce₂₁Form weakEmForm := fun h =>
-  weakEmForm_nvalid_fork (DerivesFromSchema.valid pierce₁₂OrPierce₂₁Form_valid_fork h _)
