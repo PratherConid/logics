@@ -1,4 +1,4 @@
-import Logics.ClassicalAxioms.Refuter.ClassicalRefuter
+import Logics.IntermediateAxioms.Refuter.ClassicalRefuter
 import Logics.Lindenbaum
 import Logics.ConcreteEmbed
 
@@ -104,23 +104,14 @@ theorem smetanich_fork_ge_coatom : ∀ a b : ForkUp 1 1,
     ((ForkUp.tails 0 0 : ForkUp 1 1) ⊓
       ((neg b ⇨ a) ⇨ (((a ⇨ b) ⇨ a) ⇨ a))) = ForkUp.tails 0 0 := by decide
 
-theorem fork_coatom : ∀ x : ForkUp 1 1, x ≠ ⊤ →
-    x ⊓ (ForkUp.tails 0 0 : ForkUp 1 1) = x := by decide
-
 open HeytingAlgebra in
 theorem smetanich_fork_fail : ∀ a b : ForkUp 1 1,
     ((neg b ⇨ a) ⇨ (((a ⇨ b) ⇨ a) ⇨ a)) ≠ ⊤ →
       a = ForkUp.tails 0 0 ∧ (b = ForkUp.tails 0 1 ∨ b = ForkUp.tails 1 0) := by decide
 
-theorem fork_cases : ∀ y : ForkUp 1 1, y = ⊤ ∨ y = ForkUp.tails 0 0 ∨
-    y = ForkUp.tails 0 1 ∨ y = ForkUp.tails 1 0 ∨ y = ⊥ := by decide
-
 open HeytingAlgebra in
 theorem fork_neg_tails : neg (ForkUp.tails 0 1 : ForkUp 1 1) = ForkUp.tails 1 0 ∧
     neg (ForkUp.tails 1 0 : ForkUp 1 1) = ForkUp.tails 0 1 := by decide
-
-theorem fork_coatom' (x : ForkUp 1 1) (h : x ≠ ⊤) : x ⊑ (ForkUp.tails 0 0 : ForkUp 1 1) :=
-  inf_eq_left_iff.mp (fork_coatom x h)
 
 theorem smetanich_fork_eval_ge (v : Nat → ForkUp 1 1) :
     (ForkUp.tails 0 0 : ForkUp 1 1) ⊑ smetanichForm.eval v :=
@@ -158,29 +149,9 @@ theorem refuterLB_fork : RefuterLB (ForkUp 1 1) smetanichForm := by
 Linearity separates them one way and bounded depth the other, so neither of the
 two separating algebras can be dropped in favour of the other. -/
 
-def linearityForm : Form := .or (.imp (.var 0) (.var 1)) (.imp (.var 1) (.var 0))
-
-theorem linearity_four : ∀ a b : Fin 4, (a ⇨ b) ⊔ (b ⇨ a) = ⊤ := by decide
-
-theorem linearityForm_valid_four (v : Nat → Fin 4) : linearityForm.eval v = ⊤ :=
-  linearity_four (v 0) (v 1)
-
-theorem linearityForm_nvalid_fork :
-    linearityForm.eval (fun n => if n = 0 then (ForkUp.tails 0 1 : ForkUp 1 1)
-      else ForkUp.tails 1 0) ≠ ⊤ := by decide
-
-open HeytingAlgebra in
-theorem depthTwo_fork : ∀ a b : ForkUp 1 1, a ⊔ (a ⇨ (b ⊔ neg b)) = ⊤ := by decide
-
-theorem bd2Form_valid_fork (v : Nat → ForkUp 1 1) : bd2Form.eval v = ⊤ :=
-  depthTwo_fork (v 0) (v 1)
-
-theorem bd2Form_nvalid_four :
-    bd2Form.eval (fun n => if n = 0 then (2 : Fin 4) else 1) ≠ ⊤ := by decide
-
 /-- The fork is not below the chain: linearity holds in `Fin 4` and fails in it. -/
 theorem not_sh_fork_four : ¬ SH (ForkUp 1 1) (Fin 4) := fun h =>
-  linearityForm_nvalid_fork (valid_of_sh h linearityForm_valid_four _)
+  linearityForm_nvalid_fork (valid_of_sh h (linearityForm_valid_chain (n := 3)) _)
 
 /-- The chain is not below the fork: bounded depth holds in the fork and fails
 in `Fin 4`. -/
@@ -329,16 +300,6 @@ theorem sh_four_or_fork_of_refutes (α : Type) (iα : HeytingAlgebra α)
       (upper_himp_lower (v 0) (v 1) hW) (lower_ne_bot (v 0) (v 1) hT)
       (lower_ne_upper (v 0) (v 1) hT hW) hT
   · exact Or.inr (@sh_forkUp α iα (v 1) hW)
-
-/-- Smetanich's axiom misses the top value in the four element chain, at
-`a = 2`, `b = 1`. -/
-theorem smetanichForm_nvalid_four :
-    smetanichForm.eval (fun n => if n = 0 then (2 : Fin 4) else 1) ≠ ⊤ := by decide
-
-/-- And in the fork, at the coatom against a branch tail. -/
-theorem smetanichForm_nvalid_fork :
-    smetanichForm.eval (fun n => if n = 0 then (ForkUp.tails 0 0 : ForkUp 1 1)
-      else ForkUp.tails 0 1) ≠ ⊤ := by decide
 
 /-- **The criterion.**  A schema derives `Peirce₁₂OrImpOr₂₁F` exactly when it
 misses the top value in both separating algebras.

@@ -1,7 +1,7 @@
 import Logics.Heyting
 
 /-!
-# The classical principles
+# The principles of the intermediate logics
 
 Each principle is stated as a predicate on propositions rather than as a rule,
 so that it can be assumed *at particular arguments*: `ExcludedMiddleF a` says
@@ -9,10 +9,13 @@ excluded middle holds at `a`, and says nothing about any other proposition.
 That is what makes it possible to ask which instances of one principle suffice
 to prove an instance of another.
 
-The first group collects the familiar principles.  The second combines one of
-them disjunctively with Lukasiewicz's; within that group the primed members
-take Lukasiewicz at swapped arguments, which for some of them is a genuine
-change and for others only a transposition.
+The first group collects the familiar principles, every one of which is
+classical on its own.  The rest are not: combining two of them disjunctively,
+or weakening one, gives axioms of logics that sit strictly between the
+intuitionistic calculus and the classical one.  Within the combined group the
+primed members take Lukasiewicz at
+swapped arguments, which for some of them is a genuine change and for others
+only a transposition.
 
 The file closes with the same material built as formulas of `Form`.  A
 predicate on propositions can only ever be assumed at arguments one writes
@@ -44,6 +47,27 @@ def SmetanichF := fun (a b : Prop) => (¬ b → a) → (((a → b) → a) → a)
 
 /-- Bounded depth two: either `a`, or `a` settles excluded middle at `b`. -/
 def BD2F := fun (a b : Prop) => a ∨ (a → (b ∨ ¬ b))
+
+/-- Either argument settles excluded middle at the other.  This is `BD2F` with
+its bare left disjunct replaced by the mirror image of its right one.
+
+The name records the shape of the smallest algebra that refutes it, a diamond:
+two incomparable values between a bottom and a top.  Chains, however long,
+cannot produce one. -/
+def NoDiamondF := fun (a b : Prop) => (a → (b ∨ ¬ b)) ∨ (b → (a ∨ ¬ a))
+
+/-- Linearity, guarded: the two arguments are comparable as soon as they are
+jointly consistent.  Dropping the guard would give the linearity axiom itself,
+which is stronger. -/
+def NotNotAndF := fun (a b : Prop) => ¬ ¬ (a ∧ b) → ((a → b) ∨ (b → a))
+
+/-- **Linearity**, the Godel--Dummett axiom: any two propositions are
+comparable.  Its algebras are the chains. -/
+def LinearityF := fun (a b : Prop) => (a → b) ∨ (b → a)
+
+/-- **Weak excluded middle**, Jankov's axiom: excluded middle for a negation,
+which unlike excluded middle itself leaves room below the classical logic. -/
+def WeakEmF := fun (a : Prop) => ¬ a ∨ ¬ ¬ a
 
 def Pierce₁₂OrPierce₂₁F := fun (a b : Prop) => (((a → b) → a) → a) ∨ (((b → a) → b) → b)
 
@@ -151,6 +175,19 @@ def smetanichForm : Form :=
 
 def bd2Form : Form :=
   .or (.var 0) (.imp (.var 0) (.or (.var 1) (Form.neg (.var 1))))
+
+def noDiamondForm : Form :=
+  .or (.imp (.var 0) (excludedMiddleForm (.var 1)))
+      (.imp (.var 1) (excludedMiddleForm (.var 0)))
+
+def notNotAndForm : Form :=
+  .imp (Form.neg (Form.neg (.and (.var 0) (.var 1))))
+    (.or (.imp (.var 0) (.var 1)) (.imp (.var 1) (.var 0)))
+
+def linearityForm : Form := .or (.imp (.var 0) (.var 1)) (.imp (.var 1) (.var 0))
+
+def weakEmForm : Form :=
+  .or (Form.neg (.var 0)) (Form.neg (Form.neg (.var 0)))
 
 def pierce₁₂OrLuk₁₂Form : Form := .or (peirceForm (.var 0) (.var 1)) (lukForm (.var 0) (.var 1))
 

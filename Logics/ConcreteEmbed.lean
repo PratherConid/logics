@@ -12,9 +12,11 @@ fails.
 * the three element chain, into every algebra where excluded middle fails;
 * the five element fork, into every algebra where its weak form fails;
 * the four element chain, wherever two elements sit strictly between the
-  bounds with `neg x = ⊥` and `y ⇨ x = x`.
+  bounds with `neg x = ⊥` and `y ⇨ x = x`;
+* the six element diamond, wherever two elements each have absurd negation and
+  each is the value of the arrow into the other.
 
-The first two are proved from a single offending element, the third from the
+The first two are proved from a single offending element, the last two from the
 two elements themselves.  Each is the algebraic counterpart of a syntactic
 construction that reads a refuting valuation back as a derivation.
 -/
@@ -29,6 +31,18 @@ theorem four_cases : ∀ y : Fin 4, y = 0 ∨ y = 1 ∨ y = 2 ∨ y = 3 := by de
 
 theorem four_coatom' (x : Fin 4) (h : x ≠ ⊤) : x ⊑ (2 : Fin 4) :=
   inf_eq_left_iff.mp (four_coatom x h)
+
+/-! And the same for the fork, whose largest value below the top is the join of
+its two branch tails. -/
+
+theorem fork_coatom : ∀ x : ForkUp 1 1, x ≠ ⊤ →
+    x ⊓ (ForkUp.tails 0 0 : ForkUp 1 1) = x := by decide
+
+theorem fork_coatom' (x : ForkUp 1 1) (h : x ≠ ⊤) :
+    x ⊑ (ForkUp.tails 0 0 : ForkUp 1 1) := inf_eq_left_iff.mp (fork_coatom x h)
+
+theorem fork_cases : ∀ y : ForkUp 1 1, y = ⊤ ∨ y = ForkUp.tails 0 0 ∨
+    y = ForkUp.tails 0 1 ∨ y = ForkUp.tails 1 0 ∨ y = ⊥ := by decide
 
 /-! ## The three element chain sits inside every non-classical algebra
 
@@ -518,3 +532,363 @@ theorem four_embeds {α : Type} [HeytingAlgebra α] {x y : α}
      map_sup := FourEmbed.map_sup' x y hxy
      map_himp := FourEmbed.map_himp' x y hxy hnx hyx },
    FourEmbed.injective x y hxy hxb hxy' hyt⟩
+
+
+/-! ## The six element diamond inside an algebra
+
+Two elements `x` and `y`, neither below the other, span a copy of `KiteUp 1 1`
+together with their meet and join, as soon as each is the value of the arrow
+into the other and each has absurd negation.  Those two conditions are exactly
+the arrows of the diamond that its order does not already force: `x ⇨ y` has to
+come back to `y`, and nothing in the diamond except `⊥` has a negation.
+
+The lattice half is free, since `{⊥, x ⊓ y, x, y, x ⊔ y, ⊤}` is closed under
+meet and join whatever `x` and `y` are.  What the hypotheses buy is the arrow,
+and with it the distinctness of the six values.
+-/
+
+theorem kite_cases : ∀ z : KiteUp 1 1,
+    z = .all ∨ z = .tails 0 0 ∨ z = .tails 0 1 ∨ z = .tails 1 0 ∨
+      z = .tails 1 1 ∨ z = .empty := by decide
+
+namespace KiteEmbed
+
+variable {α : Type} [HeytingAlgebra α] (x y : α)
+
+/-- `⊥`, `x ⊓ y`, the two elements themselves, `x ⊔ y`, and `⊤`. -/
+def map (x y : α) : KiteUp 1 1 → α
+  | .all => ⊤
+  | .empty => ⊥
+  | .tails i j =>
+      match i.val, j.val with
+      | 0, 0 => x ⊔ y
+      | 0, _ => x
+      | _, 0 => y
+      | _, _ => x ⊓ y
+
+@[simp] theorem map_all : map x y .all = ⊤ := rfl
+@[simp] theorem map_join : map x y (.tails 0 0) = x ⊔ y := rfl
+@[simp] theorem map_left : map x y (.tails 0 1) = x := rfl
+@[simp] theorem map_right : map x y (.tails 1 0) = y := rfl
+@[simp] theorem map_meet : map x y (.tails 1 1) = x ⊓ y := rfl
+@[simp] theorem map_empty : map x y .empty = ⊥ := rfl
+@[simp] theorem map_top' : map x y (⊤ : KiteUp 1 1) = ⊤ := rfl
+@[simp] theorem map_bot' : map x y (⊥ : KiteUp 1 1) = ⊥ := rfl
+
+/-! ### The order among the six values -/
+
+theorem meet_le_left : x ⊓ y ⊑ x := inf_le_left x y
+theorem meet_le_right : x ⊓ y ⊑ y := inf_le_right x y
+theorem left_le_join : x ⊑ x ⊔ y := le_sup_left x y
+theorem right_le_join : y ⊑ x ⊔ y := le_sup_right x y
+theorem meet_le_join : x ⊓ y ⊑ x ⊔ y :=
+  le_trans (meet_le_left x y) (left_le_join x y)
+
+theorem bot_inf' (a : α) : (⊥ : α) ⊓ a = ⊥ := by rw [inf_comm]; exact inf_bot a
+
+/-! ### Meets, in the form the case analysis needs -/
+
+theorem right_inf_left : y ⊓ x = x ⊓ y := inf_comm y x
+theorem left_inf_join : x ⊓ (x ⊔ y) = x := inf_eq_left_iff.mpr (left_le_join x y)
+theorem right_inf_join : y ⊓ (x ⊔ y) = y := inf_eq_left_iff.mpr (right_le_join x y)
+theorem meet_inf_left : (x ⊓ y) ⊓ x = x ⊓ y := inf_eq_left_iff.mpr (meet_le_left x y)
+theorem left_inf_meet : x ⊓ (x ⊓ y) = x ⊓ y := by rw [inf_comm]; exact meet_inf_left x y
+theorem meet_inf_right : (x ⊓ y) ⊓ y = x ⊓ y := inf_eq_left_iff.mpr (meet_le_right x y)
+theorem right_inf_meet : y ⊓ (x ⊓ y) = x ⊓ y := by rw [inf_comm]; exact meet_inf_right x y
+theorem meet_inf_join : (x ⊓ y) ⊓ (x ⊔ y) = x ⊓ y := inf_eq_left_iff.mpr (meet_le_join x y)
+
+/-! ### Joins -/
+
+theorem right_sup_left : y ⊔ x = x ⊔ y := sup_comm y x
+theorem left_sup_join : x ⊔ (x ⊔ y) = x ⊔ y := sup_eq_right_iff.mpr (left_le_join x y)
+theorem right_sup_join : y ⊔ (x ⊔ y) = x ⊔ y := sup_eq_right_iff.mpr (right_le_join x y)
+theorem meet_sup_left : (x ⊓ y) ⊔ x = x := sup_eq_right_iff.mpr (meet_le_left x y)
+theorem left_sup_meet : x ⊔ (x ⊓ y) = x := by rw [sup_comm]; exact meet_sup_left x y
+theorem meet_sup_right : (x ⊓ y) ⊔ y = y := sup_eq_right_iff.mpr (meet_le_right x y)
+theorem right_sup_meet : y ⊔ (x ⊓ y) = y := by rw [sup_comm]; exact meet_sup_right x y
+theorem meet_sup_join : (x ⊓ y) ⊔ (x ⊔ y) = x ⊔ y := sup_eq_right_iff.mpr (meet_le_join x y)
+
+/-! ### Arrows
+
+The five the order forces, and then the ones that carry content. -/
+
+@[simp] theorem himp_top_gen (a : α) : (a ⇨ (⊤ : α)) = ⊤ := himp_eq_top_of_le (le_top a)
+@[simp] theorem self_himp (a : α) : (a ⇨ a) = ⊤ := himp_eq_top_of_le le_rfl
+@[simp] theorem bot_himp_gen (a : α) : ((⊥ : α) ⇨ a) = ⊤ := himp_eq_top_of_le (bot_le a)
+@[simp] theorem meet_himp_left : ((x ⊓ y) ⇨ x) = ⊤ := himp_eq_top_of_le (meet_le_left x y)
+@[simp] theorem meet_himp_right : ((x ⊓ y) ⇨ y) = ⊤ := himp_eq_top_of_le (meet_le_right x y)
+@[simp] theorem meet_himp_join : ((x ⊓ y) ⇨ (x ⊔ y)) = ⊤ :=
+  himp_eq_top_of_le (meet_le_join x y)
+@[simp] theorem left_himp_join : (x ⇨ (x ⊔ y)) = ⊤ := himp_eq_top_of_le (left_le_join x y)
+@[simp] theorem right_himp_join : (y ⇨ (x ⊔ y)) = ⊤ := himp_eq_top_of_le (right_le_join x y)
+
+/-- The join of two dense elements is dense. -/
+theorem neg_join (hnx : neg x = ⊥) : neg (x ⊔ y) = ⊥ :=
+  (eq_bot_iff _).mpr (le_trans (neg_antitone (left_le_join x y)) (le_of_eq hnx))
+
+/-- So is their meet: anything absurd with both of them is absurd with each. -/
+theorem neg_meet (hnx : neg x = ⊥) (hny : neg y = ⊥) : neg (x ⊓ y) = ⊥ := by
+  have h1 : neg (x ⊓ y) ⊓ (x ⊓ y) ⊑ ⊥ := himp_inf_le (x ⊓ y) ⊥
+  have h2 : (neg (x ⊓ y) ⊓ x) ⊓ y ⊑ ⊥ := by rw [inf_assoc]; exact h1
+  have h3 : neg (x ⊓ y) ⊓ x ⊑ neg y := le_himp_of_inf_le h2
+  rw [hny] at h3
+  have h4 : neg (x ⊓ y) ⊑ neg x := le_himp_of_inf_le h3
+  rw [hnx] at h4
+  exact (eq_bot_iff _).mpr h4
+
+/-- **The arrow out of the join.**  It is at most the arrow out of the other
+element, and the assumed arrow sends that back to the target. -/
+theorem join_himp_left (hyx : (y ⇨ x) = x) : ((x ⊔ y) ⇨ x) = x := by
+  refine le_antisymm ?_ (le_himp_of_inf_le (inf_le_left x (x ⊔ y)))
+  refine le_trans (le_himp_of_inf_le ?_) (le_of_eq hyx)
+  exact le_trans (inf_le_inf le_rfl (right_le_join x y)) (himp_inf_le (x ⊔ y) x)
+
+theorem join_himp_right (hxy : (x ⇨ y) = y) : ((x ⊔ y) ⇨ y) = y := by
+  refine le_antisymm ?_ (le_himp_of_inf_le (inf_le_left y (x ⊔ y)))
+  refine le_trans (le_himp_of_inf_le ?_) (le_of_eq hxy)
+  exact le_trans (inf_le_inf le_rfl (left_le_join x y)) (himp_inf_le (x ⊔ y) y)
+
+/-- **The arrow into the meet** lands on the other element: it is at most the
+arrow into that element, and at least it, since a meet with the source is
+already the target. -/
+theorem left_himp_meet (hxy : (x ⇨ y) = y) : (x ⇨ (x ⊓ y)) = y := by
+  refine le_antisymm ?_ (le_himp_of_inf_le (le_of_eq (right_inf_left x y)))
+  refine le_trans (le_himp_of_inf_le ?_) (le_of_eq hxy)
+  exact le_trans (himp_inf_le x (x ⊓ y)) (meet_le_right x y)
+
+theorem right_himp_meet (hyx : (y ⇨ x) = x) : (y ⇨ (x ⊓ y)) = x := by
+  refine le_antisymm ?_ (le_himp_of_inf_le le_rfl)
+  refine le_trans (le_himp_of_inf_le ?_) (le_of_eq hyx)
+  exact le_trans (himp_inf_le y (x ⊓ y)) (meet_le_left x y)
+
+/-- The arrow from the join to the meet is the meet itself, lying below both of
+the previous two. -/
+theorem join_himp_meet (hxy : (x ⇨ y) = y) (hyx : (y ⇨ x) = x) :
+    ((x ⊔ y) ⇨ (x ⊓ y)) = x ⊓ y := by
+  refine le_antisymm (le_inf ?_ ?_) (le_himp_self _ _)
+  · refine le_trans (le_himp_of_inf_le ?_) (le_of_eq hyx)
+    exact le_trans (inf_le_inf le_rfl (right_le_join x y))
+      (le_trans (himp_inf_le (x ⊔ y) (x ⊓ y)) (meet_le_left x y))
+  · refine le_trans (le_himp_of_inf_le ?_) (le_of_eq hxy)
+    exact le_trans (inf_le_inf le_rfl (left_le_join x y))
+      (le_trans (himp_inf_le (x ⊔ y) (x ⊓ y)) (meet_le_right x y))
+
+/-! The same four negations spelled with `⇨ ⊥`, which is the shape the case
+analysis meets. -/
+
+theorem left_himp_bot (hnx : neg x = ⊥) : (x ⇨ (⊥ : α)) = ⊥ := hnx
+theorem right_himp_bot (hny : neg y = ⊥) : (y ⇨ (⊥ : α)) = ⊥ := hny
+theorem meet_himp_bot (hnx : neg x = ⊥) (hny : neg y = ⊥) :
+    ((x ⊓ y) ⇨ (⊥ : α)) = ⊥ := neg_meet x y hnx hny
+theorem join_himp_bot (hnx : neg x = ⊥) : ((x ⊔ y) ⇨ (⊥ : α)) = ⊥ := neg_join x y hnx
+
+/-! ### The composites, each definitional
+
+Every composite of two of the six values is already one of them, so `simp` can
+compute the diamond side of each equation. -/
+
+@[simp] theorem mi_a_a : map x y (KiteUp.all ⊓ KiteUp.all) = ⊤ := rfl
+@[simp] theorem mi_a_00 : map x y (KiteUp.all ⊓ KiteUp.tails 0 0) = (x ⊔ y) := rfl
+@[simp] theorem mi_a_01 : map x y (KiteUp.all ⊓ KiteUp.tails 0 1) = x := rfl
+@[simp] theorem mi_a_10 : map x y (KiteUp.all ⊓ KiteUp.tails 1 0) = y := rfl
+@[simp] theorem mi_a_11 : map x y (KiteUp.all ⊓ KiteUp.tails 1 1) = (x ⊓ y) := rfl
+@[simp] theorem mi_a_e : map x y (KiteUp.all ⊓ KiteUp.empty) = ⊥ := rfl
+@[simp] theorem mi_00_a : map x y (KiteUp.tails 0 0 ⊓ KiteUp.all) = (x ⊔ y) := rfl
+@[simp] theorem mi_00_00 : map x y (KiteUp.tails 0 0 ⊓ KiteUp.tails 0 0) = (x ⊔ y) := rfl
+@[simp] theorem mi_00_01 : map x y (KiteUp.tails 0 0 ⊓ KiteUp.tails 0 1) = x := rfl
+@[simp] theorem mi_00_10 : map x y (KiteUp.tails 0 0 ⊓ KiteUp.tails 1 0) = y := rfl
+@[simp] theorem mi_00_11 : map x y (KiteUp.tails 0 0 ⊓ KiteUp.tails 1 1) = (x ⊓ y) := rfl
+@[simp] theorem mi_00_e : map x y (KiteUp.tails 0 0 ⊓ KiteUp.empty) = ⊥ := rfl
+@[simp] theorem mi_01_a : map x y (KiteUp.tails 0 1 ⊓ KiteUp.all) = x := rfl
+@[simp] theorem mi_01_00 : map x y (KiteUp.tails 0 1 ⊓ KiteUp.tails 0 0) = x := rfl
+@[simp] theorem mi_01_01 : map x y (KiteUp.tails 0 1 ⊓ KiteUp.tails 0 1) = x := rfl
+@[simp] theorem mi_01_10 : map x y (KiteUp.tails 0 1 ⊓ KiteUp.tails 1 0) = (x ⊓ y) := rfl
+@[simp] theorem mi_01_11 : map x y (KiteUp.tails 0 1 ⊓ KiteUp.tails 1 1) = (x ⊓ y) := rfl
+@[simp] theorem mi_01_e : map x y (KiteUp.tails 0 1 ⊓ KiteUp.empty) = ⊥ := rfl
+@[simp] theorem mi_10_a : map x y (KiteUp.tails 1 0 ⊓ KiteUp.all) = y := rfl
+@[simp] theorem mi_10_00 : map x y (KiteUp.tails 1 0 ⊓ KiteUp.tails 0 0) = y := rfl
+@[simp] theorem mi_10_01 : map x y (KiteUp.tails 1 0 ⊓ KiteUp.tails 0 1) = (x ⊓ y) := rfl
+@[simp] theorem mi_10_10 : map x y (KiteUp.tails 1 0 ⊓ KiteUp.tails 1 0) = y := rfl
+@[simp] theorem mi_10_11 : map x y (KiteUp.tails 1 0 ⊓ KiteUp.tails 1 1) = (x ⊓ y) := rfl
+@[simp] theorem mi_10_e : map x y (KiteUp.tails 1 0 ⊓ KiteUp.empty) = ⊥ := rfl
+@[simp] theorem mi_11_a : map x y (KiteUp.tails 1 1 ⊓ KiteUp.all) = (x ⊓ y) := rfl
+@[simp] theorem mi_11_00 : map x y (KiteUp.tails 1 1 ⊓ KiteUp.tails 0 0) = (x ⊓ y) := rfl
+@[simp] theorem mi_11_01 : map x y (KiteUp.tails 1 1 ⊓ KiteUp.tails 0 1) = (x ⊓ y) := rfl
+@[simp] theorem mi_11_10 : map x y (KiteUp.tails 1 1 ⊓ KiteUp.tails 1 0) = (x ⊓ y) := rfl
+@[simp] theorem mi_11_11 : map x y (KiteUp.tails 1 1 ⊓ KiteUp.tails 1 1) = (x ⊓ y) := rfl
+@[simp] theorem mi_11_e : map x y (KiteUp.tails 1 1 ⊓ KiteUp.empty) = ⊥ := rfl
+@[simp] theorem mi_e_a : map x y (KiteUp.empty ⊓ KiteUp.all) = ⊥ := rfl
+@[simp] theorem mi_e_00 : map x y (KiteUp.empty ⊓ KiteUp.tails 0 0) = ⊥ := rfl
+@[simp] theorem mi_e_01 : map x y (KiteUp.empty ⊓ KiteUp.tails 0 1) = ⊥ := rfl
+@[simp] theorem mi_e_10 : map x y (KiteUp.empty ⊓ KiteUp.tails 1 0) = ⊥ := rfl
+@[simp] theorem mi_e_11 : map x y (KiteUp.empty ⊓ KiteUp.tails 1 1) = ⊥ := rfl
+@[simp] theorem mi_e_e : map x y (KiteUp.empty ⊓ KiteUp.empty) = ⊥ := rfl
+
+@[simp] theorem ms_a_a : map x y (KiteUp.all ⊔ KiteUp.all) = ⊤ := rfl
+@[simp] theorem ms_a_00 : map x y (KiteUp.all ⊔ KiteUp.tails 0 0) = ⊤ := rfl
+@[simp] theorem ms_a_01 : map x y (KiteUp.all ⊔ KiteUp.tails 0 1) = ⊤ := rfl
+@[simp] theorem ms_a_10 : map x y (KiteUp.all ⊔ KiteUp.tails 1 0) = ⊤ := rfl
+@[simp] theorem ms_a_11 : map x y (KiteUp.all ⊔ KiteUp.tails 1 1) = ⊤ := rfl
+@[simp] theorem ms_a_e : map x y (KiteUp.all ⊔ KiteUp.empty) = ⊤ := rfl
+@[simp] theorem ms_00_a : map x y (KiteUp.tails 0 0 ⊔ KiteUp.all) = ⊤ := rfl
+@[simp] theorem ms_00_00 : map x y (KiteUp.tails 0 0 ⊔ KiteUp.tails 0 0) = (x ⊔ y) := rfl
+@[simp] theorem ms_00_01 : map x y (KiteUp.tails 0 0 ⊔ KiteUp.tails 0 1) = (x ⊔ y) := rfl
+@[simp] theorem ms_00_10 : map x y (KiteUp.tails 0 0 ⊔ KiteUp.tails 1 0) = (x ⊔ y) := rfl
+@[simp] theorem ms_00_11 : map x y (KiteUp.tails 0 0 ⊔ KiteUp.tails 1 1) = (x ⊔ y) := rfl
+@[simp] theorem ms_00_e : map x y (KiteUp.tails 0 0 ⊔ KiteUp.empty) = (x ⊔ y) := rfl
+@[simp] theorem ms_01_a : map x y (KiteUp.tails 0 1 ⊔ KiteUp.all) = ⊤ := rfl
+@[simp] theorem ms_01_00 : map x y (KiteUp.tails 0 1 ⊔ KiteUp.tails 0 0) = (x ⊔ y) := rfl
+@[simp] theorem ms_01_01 : map x y (KiteUp.tails 0 1 ⊔ KiteUp.tails 0 1) = x := rfl
+@[simp] theorem ms_01_10 : map x y (KiteUp.tails 0 1 ⊔ KiteUp.tails 1 0) = (x ⊔ y) := rfl
+@[simp] theorem ms_01_11 : map x y (KiteUp.tails 0 1 ⊔ KiteUp.tails 1 1) = x := rfl
+@[simp] theorem ms_01_e : map x y (KiteUp.tails 0 1 ⊔ KiteUp.empty) = x := rfl
+@[simp] theorem ms_10_a : map x y (KiteUp.tails 1 0 ⊔ KiteUp.all) = ⊤ := rfl
+@[simp] theorem ms_10_00 : map x y (KiteUp.tails 1 0 ⊔ KiteUp.tails 0 0) = (x ⊔ y) := rfl
+@[simp] theorem ms_10_01 : map x y (KiteUp.tails 1 0 ⊔ KiteUp.tails 0 1) = (x ⊔ y) := rfl
+@[simp] theorem ms_10_10 : map x y (KiteUp.tails 1 0 ⊔ KiteUp.tails 1 0) = y := rfl
+@[simp] theorem ms_10_11 : map x y (KiteUp.tails 1 0 ⊔ KiteUp.tails 1 1) = y := rfl
+@[simp] theorem ms_10_e : map x y (KiteUp.tails 1 0 ⊔ KiteUp.empty) = y := rfl
+@[simp] theorem ms_11_a : map x y (KiteUp.tails 1 1 ⊔ KiteUp.all) = ⊤ := rfl
+@[simp] theorem ms_11_00 : map x y (KiteUp.tails 1 1 ⊔ KiteUp.tails 0 0) = (x ⊔ y) := rfl
+@[simp] theorem ms_11_01 : map x y (KiteUp.tails 1 1 ⊔ KiteUp.tails 0 1) = x := rfl
+@[simp] theorem ms_11_10 : map x y (KiteUp.tails 1 1 ⊔ KiteUp.tails 1 0) = y := rfl
+@[simp] theorem ms_11_11 : map x y (KiteUp.tails 1 1 ⊔ KiteUp.tails 1 1) = (x ⊓ y) := rfl
+@[simp] theorem ms_11_e : map x y (KiteUp.tails 1 1 ⊔ KiteUp.empty) = (x ⊓ y) := rfl
+@[simp] theorem ms_e_a : map x y (KiteUp.empty ⊔ KiteUp.all) = ⊤ := rfl
+@[simp] theorem ms_e_00 : map x y (KiteUp.empty ⊔ KiteUp.tails 0 0) = (x ⊔ y) := rfl
+@[simp] theorem ms_e_01 : map x y (KiteUp.empty ⊔ KiteUp.tails 0 1) = x := rfl
+@[simp] theorem ms_e_10 : map x y (KiteUp.empty ⊔ KiteUp.tails 1 0) = y := rfl
+@[simp] theorem ms_e_11 : map x y (KiteUp.empty ⊔ KiteUp.tails 1 1) = (x ⊓ y) := rfl
+@[simp] theorem ms_e_e : map x y (KiteUp.empty ⊔ KiteUp.empty) = ⊥ := rfl
+
+@[simp] theorem mh_a_a : map x y (KiteUp.all ⇨ KiteUp.all) = ⊤ := rfl
+@[simp] theorem mh_a_00 : map x y (KiteUp.all ⇨ KiteUp.tails 0 0) = (x ⊔ y) := rfl
+@[simp] theorem mh_a_01 : map x y (KiteUp.all ⇨ KiteUp.tails 0 1) = x := rfl
+@[simp] theorem mh_a_10 : map x y (KiteUp.all ⇨ KiteUp.tails 1 0) = y := rfl
+@[simp] theorem mh_a_11 : map x y (KiteUp.all ⇨ KiteUp.tails 1 1) = (x ⊓ y) := rfl
+@[simp] theorem mh_a_e : map x y (KiteUp.all ⇨ KiteUp.empty) = ⊥ := rfl
+@[simp] theorem mh_00_a : map x y (KiteUp.tails 0 0 ⇨ KiteUp.all) = ⊤ := rfl
+@[simp] theorem mh_00_00 : map x y (KiteUp.tails 0 0 ⇨ KiteUp.tails 0 0) = ⊤ := rfl
+@[simp] theorem mh_00_01 : map x y (KiteUp.tails 0 0 ⇨ KiteUp.tails 0 1) = x := rfl
+@[simp] theorem mh_00_10 : map x y (KiteUp.tails 0 0 ⇨ KiteUp.tails 1 0) = y := rfl
+@[simp] theorem mh_00_11 : map x y (KiteUp.tails 0 0 ⇨ KiteUp.tails 1 1) = (x ⊓ y) := rfl
+@[simp] theorem mh_00_e : map x y (KiteUp.tails 0 0 ⇨ KiteUp.empty) = ⊥ := rfl
+@[simp] theorem mh_01_a : map x y (KiteUp.tails 0 1 ⇨ KiteUp.all) = ⊤ := rfl
+@[simp] theorem mh_01_00 : map x y (KiteUp.tails 0 1 ⇨ KiteUp.tails 0 0) = ⊤ := rfl
+@[simp] theorem mh_01_01 : map x y (KiteUp.tails 0 1 ⇨ KiteUp.tails 0 1) = ⊤ := rfl
+@[simp] theorem mh_01_10 : map x y (KiteUp.tails 0 1 ⇨ KiteUp.tails 1 0) = y := rfl
+@[simp] theorem mh_01_11 : map x y (KiteUp.tails 0 1 ⇨ KiteUp.tails 1 1) = y := rfl
+@[simp] theorem mh_01_e : map x y (KiteUp.tails 0 1 ⇨ KiteUp.empty) = ⊥ := rfl
+@[simp] theorem mh_10_a : map x y (KiteUp.tails 1 0 ⇨ KiteUp.all) = ⊤ := rfl
+@[simp] theorem mh_10_00 : map x y (KiteUp.tails 1 0 ⇨ KiteUp.tails 0 0) = ⊤ := rfl
+@[simp] theorem mh_10_01 : map x y (KiteUp.tails 1 0 ⇨ KiteUp.tails 0 1) = x := rfl
+@[simp] theorem mh_10_10 : map x y (KiteUp.tails 1 0 ⇨ KiteUp.tails 1 0) = ⊤ := rfl
+@[simp] theorem mh_10_11 : map x y (KiteUp.tails 1 0 ⇨ KiteUp.tails 1 1) = x := rfl
+@[simp] theorem mh_10_e : map x y (KiteUp.tails 1 0 ⇨ KiteUp.empty) = ⊥ := rfl
+@[simp] theorem mh_11_a : map x y (KiteUp.tails 1 1 ⇨ KiteUp.all) = ⊤ := rfl
+@[simp] theorem mh_11_00 : map x y (KiteUp.tails 1 1 ⇨ KiteUp.tails 0 0) = ⊤ := rfl
+@[simp] theorem mh_11_01 : map x y (KiteUp.tails 1 1 ⇨ KiteUp.tails 0 1) = ⊤ := rfl
+@[simp] theorem mh_11_10 : map x y (KiteUp.tails 1 1 ⇨ KiteUp.tails 1 0) = ⊤ := rfl
+@[simp] theorem mh_11_11 : map x y (KiteUp.tails 1 1 ⇨ KiteUp.tails 1 1) = ⊤ := rfl
+@[simp] theorem mh_11_e : map x y (KiteUp.tails 1 1 ⇨ KiteUp.empty) = ⊥ := rfl
+@[simp] theorem mh_e_a : map x y (KiteUp.empty ⇨ KiteUp.all) = ⊤ := rfl
+@[simp] theorem mh_e_00 : map x y (KiteUp.empty ⇨ KiteUp.tails 0 0) = ⊤ := rfl
+@[simp] theorem mh_e_01 : map x y (KiteUp.empty ⇨ KiteUp.tails 0 1) = ⊤ := rfl
+@[simp] theorem mh_e_10 : map x y (KiteUp.empty ⇨ KiteUp.tails 1 0) = ⊤ := rfl
+@[simp] theorem mh_e_11 : map x y (KiteUp.empty ⇨ KiteUp.tails 1 1) = ⊤ := rfl
+@[simp] theorem mh_e_e : map x y (KiteUp.empty ⇨ KiteUp.empty) = ⊤ := rfl
+
+theorem map_inf' (u v : KiteUp 1 1) : map x y (u ⊓ v) = map x y u ⊓ map x y v := by
+  rcases kite_cases u with rfl|rfl|rfl|rfl|rfl|rfl <;>
+    rcases kite_cases v with rfl|rfl|rfl|rfl|rfl|rfl <;>
+    simp [right_inf_left, left_inf_join, right_inf_join, left_inf_meet,
+      right_inf_meet, meet_inf_join, inf_idem, inf_top, top_inf, inf_bot,
+      bot_inf']
+
+theorem map_sup' (u v : KiteUp 1 1) : map x y (u ⊔ v) = map x y u ⊔ map x y v := by
+  rcases kite_cases u with rfl|rfl|rfl|rfl|rfl|rfl <;>
+    rcases kite_cases v with rfl|rfl|rfl|rfl|rfl|rfl <;>
+    simp [right_sup_left, left_sup_join, right_sup_join, left_sup_meet,
+      right_sup_meet, meet_sup_join, sup_idem, sup_top, top_sup, sup_bot,
+      bot_sup]
+
+theorem map_himp' (hxy : (x ⇨ y) = y) (hyx : (y ⇨ x) = x)
+    (hnx : neg x = ⊥) (hny : neg y = ⊥) (u v : KiteUp 1 1) :
+    map x y (u ⇨ v) = map x y u ⇨ map x y v := by
+  rcases kite_cases u with rfl|rfl|rfl|rfl|rfl|rfl <;>
+    rcases kite_cases v with rfl|rfl|rfl|rfl|rfl|rfl <;>
+    simp [himp_top_left, hxy, hyx, join_himp_left x y hyx, join_himp_right x y hxy,
+      left_himp_meet x y hxy, right_himp_meet x y hyx,
+      join_himp_meet x y hxy hyx, left_himp_bot x hnx, right_himp_bot y hny,
+      meet_himp_bot x y hnx hny, join_himp_bot x y hnx]
+
+/-- The six values are distinct exactly when the join misses the top.  Neither
+element is then below the other, since either way the assumed arrow would send
+that element to `⊤`, and every other coincidence reduces to one of those two. -/
+theorem injective (hxy : (x ⇨ y) = y) (hyx : (y ⇨ x) = x)
+    (hnx : neg x = ⊥) (hny : neg y = ⊥) (hT : x ⊔ y ≠ ⊤) :
+    Function.Injective (map x y) := by
+  have hbt : (⊥ : α) ≠ ⊤ := fun he =>
+    hT (le_antisymm (le_top _) (le_trans (le_of_eq he.symm) (bot_le _)))
+  have hnl : ¬ (x ⊑ y) := by
+    intro hle
+    apply hT
+    have hy : y = ⊤ := by rw [← hxy]; exact himp_eq_top_of_le hle
+    rw [hy, sup_top]
+  have hnr : ¬ (y ⊑ x) := by
+    intro hle
+    apply hT
+    have hx : x = ⊤ := by rw [← hyx]; exact himp_eq_top_of_le hle
+    rw [hx, top_sup]
+  have htj : (⊤ : α) ≠ x ⊔ y := fun he => hT he.symm
+  have htx : (⊤ : α) ≠ x := fun he => hnr (le_trans (le_top y) (le_of_eq he))
+  have hty : (⊤ : α) ≠ y := fun he => hnl (le_trans (le_top x) (le_of_eq he))
+  have htm : (⊤ : α) ≠ x ⊓ y := fun he =>
+    hnr (le_trans (le_top y) (le_trans (le_of_eq he) (meet_le_left x y)))
+  have htb : (⊤ : α) ≠ ⊥ := fun he => hbt he.symm
+  have hjx : x ⊔ y ≠ x := fun he => hnr (le_trans (right_le_join x y) (le_of_eq he))
+  have hjy : x ⊔ y ≠ y := fun he => hnl (le_trans (left_le_join x y) (le_of_eq he))
+  have hjm : x ⊔ y ≠ x ⊓ y := fun he =>
+    hnl (le_trans (left_le_join x y) (le_trans (le_of_eq he) (meet_le_right x y)))
+  have hjb : x ⊔ y ≠ ⊥ := fun he =>
+    hnl (le_trans (left_le_join x y) (le_trans (le_of_eq he) (bot_le y)))
+  have hne : x ≠ y := fun he => hnl (le_of_eq he)
+  have hxm : x ≠ x ⊓ y := fun he => hnl (le_trans (le_of_eq he) (meet_le_right x y))
+  have hxb : x ≠ ⊥ := fun he => hnl (le_trans (le_of_eq he) (bot_le y))
+  have hym : y ≠ x ⊓ y := fun he => hnr (le_trans (le_of_eq he) (meet_le_left x y))
+  have hyb : y ≠ ⊥ := fun he => hnr (le_trans (le_of_eq he) (bot_le x))
+  have hmb : x ⊓ y ≠ ⊥ := by
+    intro he
+    apply hbt
+    have h := neg_meet x y hnx hny
+    rw [he, neg_bot] at h
+    exact h.symm
+  intro u v huv
+  rcases kite_cases u with rfl|rfl|rfl|rfl|rfl|rfl <;>
+    rcases kite_cases v with rfl|rfl|rfl|rfl|rfl|rfl <;>
+    first
+      | rfl
+      | exact absurd huv (by assumption)
+      | exact absurd huv.symm (by assumption)
+
+end KiteEmbed
+
+/-- **The six element diamond embeds into every algebra carrying two elements
+`x` and `y` with absurd negations, each the value of the arrow into the other,
+whose join misses the top.** -/
+theorem kite_embeds {α : Type} [HeytingAlgebra α] {x y : α}
+    (hxy : (x ⇨ y) = y) (hyx : (y ⇨ x) = x)
+    (hnx : neg x = ⊥) (hny : neg y = ⊥) (hT : x ⊔ y ≠ ⊤) : Embeds (KiteUp 1 1) α :=
+  ⟨{ toFun := KiteEmbed.map x y
+     map_bot := rfl
+     map_top := rfl
+     map_inf := KiteEmbed.map_inf' x y
+     map_sup := KiteEmbed.map_sup' x y
+     map_himp := KiteEmbed.map_himp' x y hxy hyx hnx hny },
+   KiteEmbed.injective x y hxy hyx hnx hny hT⟩
+
+/-- Hence the diamond lies below any such algebra in the order. -/
+theorem sh_kite {α : Type} [HeytingAlgebra α] {x y : α}
+    (hxy : (x ⇨ y) = y) (hyx : (y ⇨ x) = x)
+    (hnx : neg x = ⊥) (hny : neg y = ⊥) (hT : x ⊔ y ≠ ⊤) : SH (KiteUp 1 1) α :=
+  ⟨α, inferInstance, onto_refl α, kite_embeds hxy hyx hnx hny hT⟩

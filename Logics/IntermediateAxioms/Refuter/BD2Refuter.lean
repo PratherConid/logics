@@ -1,4 +1,4 @@
-import Logics.ClassicalAxioms.StrictImply
+import Logics.IntermediateAxioms.StrictImply
 import Logics.Lindenbaum
 import Logics.ConcreteEmbed
 
@@ -128,9 +128,6 @@ theorem sh_four_of_refutes_bd2 (α : Type) (iα : HeytingAlgebra α)
     (lower_le_upper (v 0) (v 1)) (neg_lower (v 0) (v 1))
     (upper_himp_lower (v 0) (v 1)) (lower_ne_bot (v 0) (v 1) hT)
     (lower_ne_upper (v 0) (v 1) hT) hT
-
-theorem bd2Form_nvalid_four :
-    bd2Form.eval (fun n => if n = 0 then (2 : Fin 4) else 1) ≠ ⊤ := by decide
 
 /-- **The criterion.**  A schema derives `BD2F` exactly when it misses the top
 value in `Fin 4` — one algebra, no conjunction. -/

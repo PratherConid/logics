@@ -1,4 +1,4 @@
-import Logics.ClassicalAxioms.Implication
+import Logics.IntermediateAxioms.Implication
 
 /-!
 # The principles in concrete Heyting algebras
@@ -16,10 +16,12 @@ nothing refutes them, which is why excluded middle already misses the top in
 chain: its two
 middle values `x` and `y` are incomparable.
 
-The pattern that emerges is that the four combined principles fall into three
+The pattern that emerges is that the combined principles fall into three
 strengths.  `Pierce₁₂OrLukasiewicz₁₂F` reaches the top in every chain and in the
-diamond.  `ImpOr₁₂OrLukasiewicz₂₁F` reaches it in every chain but not in the
-diamond.  `DeMorgan₁₂OrLukasiewicz₁₂F` already misses it in the four value chain.
+diamond.  `NoDiamondF` and `ImpOr₁₂OrLukasiewicz₂₁F` reach it in every chain but
+not in the diamond, which is what their level is: the two are measured
+separately here, being different formulas that prove each other.
+`DeMorgan₁₂OrLukasiewicz₁₂F` already misses it in the four value chain.
 Excluded middle misses it in every chain past `Fin 2`.
 
 The last four theorems restate some of this for `Form`, evaluating a whole
@@ -103,6 +105,154 @@ theorem impOr₁₂OrLuk₂₁Form_nvalid_diamond :
 
 theorem impOr₁₂OrLuk₂₁Form_valid_chain (v : Nat → Fin 4) : impOr₁₂OrLuk₂₁Form.eval v = ⊤ :=
   impOr₁₂OrLuk₂₁_top_chain (v 0) (v 1)
+
+open HeytingAlgebra in
+/-- `NoDiamondF` reaches the top value in every chain, and for the plainest of
+reasons: one argument lies below the other, so it lies below the other's join
+with its negation, which sends that disjunct to the top. -/
+theorem noDiamond_top_chain {n : Nat} (a b : Fin (n + 1)) :
+    (a ⇨ (b ⊔ neg b)) ⊔ (b ⇨ (a ⊔ neg a)) = ⊤ := by
+  by_cases hab : a.val ≤ b.val
+  · have h : (a ⇨ (b ⊔ neg b)) = ⊤ :=
+      himp_eq_top_of_le (PartialOrder.le_trans hab (Lattice.le_sup_left b (neg b)))
+    rw [h, BoundedLattice.top_sup]
+  · have h : (b ⇨ (a ⊔ neg a)) = ⊤ :=
+      himp_eq_top_of_le (PartialOrder.le_trans (show b.val ≤ a.val by omega)
+        (Lattice.le_sup_left a (neg a)))
+    rw [h, BoundedLattice.sup_top]
+
+theorem noDiamondForm_valid_chain (v : Nat → Fin 4) : noDiamondForm.eval v = ⊤ :=
+  noDiamond_top_chain (v 0) (v 1)
+
+/-- It misses the top in the diamond, at the two incomparable middle values.
+There each disjunct's negation is the bottom, so each is the arrow between the
+two values, and the two arrows join to the largest value below the top. -/
+theorem noDiamondForm_nvalid_diamond :
+    noDiamondForm.eval (fun n => if n = 0 then (KiteUp.tails 0 1 : KiteUp 1 1)
+      else KiteUp.tails 1 0) ≠ ⊤ := by decide
+
+/-! ### Linearity and weak excluded middle
+
+Neither is a combination of two principles, and neither is classical; both are
+measured here because they separate the same algebras the combined principles
+do. -/
+
+theorem linearity_chain {n : Nat} : ∀ a b : Fin (n + 1), (a ⇨ b) ⊔ (b ⇨ a) = ⊤ := by
+  intro a b
+  by_cases hab : a.val ≤ b.val
+  · rw [(Chain.himp_eq_top_iff a b).mpr hab, BoundedLattice.top_sup]
+  · rw [(Chain.himp_eq_top_iff b a).mpr (by omega), BoundedLattice.sup_top]
+
+theorem linearityForm_valid_chain {n : Nat} (v : Nat → Fin (n + 1)) :
+    linearityForm.eval v = ⊤ := linearity_chain (v 0) (v 1)
+
+/-- Linearity fails in the fork, at its two incomparable middles. -/
+theorem linearityForm_nvalid_fork :
+    linearityForm.eval (fun n => if n = 0 then (ForkUp.tails 0 1 : ForkUp 1 1)
+      else ForkUp.tails 1 0) ≠ ⊤ := by decide
+
+/-- And in the diamond, at its two incomparable middles. -/
+theorem linearityForm_nvalid_kite :
+    linearityForm.eval (fun n => if n = 0 then (KiteUp.tails 0 1 : KiteUp 1 1)
+      else KiteUp.tails 1 0) ≠ ⊤ := by decide
+
+open HeytingAlgebra in
+/-- Weak excluded middle holds in every chain, since the negation of any value
+but the bottom is the bottom. -/
+theorem weakEm_chain {n : Nat} : ∀ a : Fin (n + 1), neg a ⊔ neg (neg a) = ⊤ := by
+  intro a
+  by_cases h0 : a.val = 0
+  · have ha : a = ⊥ := Fin.ext h0
+    rw [ha, neg_bot, BoundedLattice.top_sup]
+  · rw [Chain.neg_eq_bot (by omega), neg_bot, BoundedLattice.sup_top]
+
+theorem weakEmForm_valid_chain {n : Nat} (v : Nat → Fin (n + 1)) :
+    weakEmForm.eval v = ⊤ := weakEm_chain (v 0)
+
+open HeytingAlgebra in
+/-- It holds in the diamond too: the tip makes every nonempty value dense. -/
+theorem weakEm_kite : ∀ a : KiteUp 1 1, neg a ⊔ neg (neg a) = ⊤ := by decide
+
+theorem weakEmForm_valid_kite (v : Nat → KiteUp 1 1) : weakEmForm.eval v = ⊤ :=
+  weakEm_kite (v 0)
+
+/-- But it fails in the fork, which is what the fork is for. -/
+theorem weakEmForm_nvalid_fork :
+    weakEmForm.eval (fun _ => (ForkUp.tails 0 1 : ForkUp 1 1)) ≠ ⊤ := by decide
+
+/-! ### Bounded depth and the diamond -/
+
+open HeytingAlgebra in
+theorem depthTwo_fork : ∀ a b : ForkUp 1 1, a ⊔ (a ⇨ (b ⊔ neg b)) = ⊤ := by decide
+
+theorem bd2Form_valid_fork (v : Nat → ForkUp 1 1) : bd2Form.eval v = ⊤ :=
+  depthTwo_fork (v 0) (v 1)
+
+theorem bd2Form_nvalid_four :
+    bd2Form.eval (fun n => if n = 0 then (2 : Fin 4) else 1) ≠ ⊤ := by decide
+
+/-- Bounded depth two fails in the diamond, which has depth three. -/
+theorem bd2Form_nvalid_kite :
+    bd2Form.eval (fun n => if n = 0 then (KiteUp.tails 0 1 : KiteUp 1 1)
+      else KiteUp.tails 1 0) ≠ ⊤ := by decide
+
+open HeytingAlgebra in
+/-- `NoDiamondF` holds throughout the fork, bounded depth two being stronger. -/
+theorem noDiamond_fork : ∀ a b : ForkUp 1 1,
+    (a ⇨ (b ⊔ neg b)) ⊔ (b ⇨ (a ⊔ neg a)) = ⊤ := by decide
+
+theorem noDiamondForm_valid_fork (v : Nat → ForkUp 1 1) :
+    noDiamondForm.eval v = ⊤ := noDiamond_fork (v 0) (v 1)
+
+/-! ### What the taller kites see
+
+Weak excluded middle holds in every kite, the tip making the frame directed, so
+the kites are what tell it apart from the lower levels of the chain. -/
+
+open HeytingAlgebra in
+theorem weakEm_kite12 : ∀ a : KiteUp 1 2, neg a ⊔ neg (neg a) = ⊤ := by decide
+
+theorem weakEmForm_valid_kite12 (v : Nat → KiteUp 1 2) : weakEmForm.eval v = ⊤ :=
+  weakEm_kite12 (v 0)
+
+open HeytingAlgebra in
+theorem weakEm_kite22 : ∀ a : KiteUp 2 2, neg a ⊔ neg (neg a) = ⊤ := by decide
+
+theorem weakEmForm_valid_kite22 (v : Nat → KiteUp 2 2) : weakEmForm.eval v = ⊤ :=
+  weakEm_kite22 (v 0)
+
+/-- The even kite with two step branches refutes even the weakest principle of
+the chain. -/
+theorem pierce₁₂OrPierce₂₁Form_nvalid_kite22 :
+    pierce₁₂OrPierce₂₁Form.eval (fun n => if n = 0 then (KiteUp.tails 1 2 : KiteUp 2 2)
+      else KiteUp.tails 2 1) ≠ ⊤ := by decide
+
+open HeytingAlgebra in
+/-- Both bottom levels hold throughout the fork. -/
+theorem pierce₁₂OrLuk₁₂_fork : ∀ a b : ForkUp 1 1,
+    (((a ⇨ b) ⇨ a) ⇨ a) ⊔ ((neg a ⇨ neg b) ⇨ (b ⇨ a)) = ⊤ := by decide
+
+theorem pierce₁₂OrLuk₁₂Form_valid_fork (v : Nat → ForkUp 1 1) :
+    pierce₁₂OrLuk₁₂Form.eval v = ⊤ := pierce₁₂OrLuk₁₂_fork (v 0) (v 1)
+
+theorem pierce₁₂OrPierce₂₁_fork : ∀ a b : ForkUp 1 1,
+    (((a ⇨ b) ⇨ a) ⇨ a) ⊔ (((b ⇨ a) ⇨ b) ⇨ b) = ⊤ := by decide
+
+theorem pierce₁₂OrPierce₂₁Form_valid_fork (v : Nat → ForkUp 1 1) :
+    pierce₁₂OrPierce₂₁Form.eval v = ⊤ := pierce₁₂OrPierce₂₁_fork (v 0) (v 1)
+
+/-- Smetanich's axiom fails in the four value chain, at `a = 2`, `b = 1`. -/
+theorem smetanichForm_nvalid_four :
+    smetanichForm.eval (fun n => if n = 0 then (2 : Fin 4) else 1) ≠ ⊤ := by decide
+
+/-- And in the fork and the diamond, both of which it therefore separates. -/
+theorem smetanichForm_nvalid_fork :
+    smetanichForm.eval (fun n => if n = 0 then (ForkUp.tails 0 0 : ForkUp 1 1)
+      else ForkUp.tails 0 1) ≠ ⊤ := by decide
+
+theorem smetanichForm_nvalid_kite :
+    smetanichForm.eval (fun n => if n = 0 then (KiteUp.tails 0 0 : KiteUp 1 1)
+      else KiteUp.tails 0 1) ≠ ⊤ := by decide
 
 /-- `DeMorgan₁₂OrLukasiewicz₁₂F` already fails in the four value chain. -/
 theorem demorgan₁₂OrLuk₁₂Form_nvalid_four :

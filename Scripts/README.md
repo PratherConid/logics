@@ -12,7 +12,7 @@ formula is intuitionistically derivable exactly when it reaches the top value in
 all of them.
 
 It provides `Poset` and `Algebra`, the principles of
-`Logics/ClassicalAxioms/AxiomDef.lean` as functions on two elements, the named
+`Logics/IntermediateAxioms/AxiomDef.lean` as functions on two elements, the named
 frames (chains, forks, the diamond), poset enumeration, and a library of
 substitution terms.
 

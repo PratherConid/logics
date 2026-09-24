@@ -1,4 +1,4 @@
-import Logics.ClassicalAxioms.AxiomDef
+import Logics.IntermediateAxioms.AxiomDef
 
 /-!
 # Implications between the principles
@@ -785,3 +785,121 @@ theorem em₁OrLuk₂₁F_bd2F (a b : Prop) : Em₁OrLuk₂₁F a (b ∨ ¬ b) �
       | inr na => exact Or.inr (fun ha => absurd ha na)
   | inr k =>
       exact Or.inr (k (fun hn => absurd (Or.inr (fun hb => hn (Or.inl hb))) hn))
+
+/-! ## `NoDiamondF` and `NotNotAndF` axiomatise the level below `BD2F`
+
+`NoDiamondF` is `BD2F` with its bare left disjunct replaced by the mirror image
+of its right one, and that one change is the whole step down: `BD2F` gives it at
+the same arguments, with nothing shifted.  `NotNotAndF` says the same level
+differently, that the two arguments are comparable as soon as they are jointly
+consistent.
+
+Every return trip below is the same shift, to `a ∨ ¬ a` and `b ∨ ¬ b`.  Both
+principles have a hypothesis that the shift discharges for free, since the
+negation of an excluded middle is absurd, and what survives is a comparison
+between the two excluded middles.  That is already `NoDiamondF`, because `a`
+gives `a ∨ ¬ a` on its own. -/
+
+theorem bd2F_noDiamondF (a b : Prop) : BD2F a b → NoDiamondF a b := by
+  intro h
+  cases h with
+  | inl ha => exact Or.inr (fun _ => Or.inl ha)
+  | inr k => exact Or.inl k
+
+theorem noDiamondF_luk₁₂OrLuk₂₁F (a b : Prop) :
+    NoDiamondF a b → Lukasiewicz₁₂OrLukasiewicz₂₁F a b := by
+  intro h
+  cases h with
+  | inl k =>
+      refine Or.inr (fun hn ha => ?_)
+      cases k ha with
+      | inl hb => exact hb
+      | inr hnb => exact absurd ha (hn hnb)
+  | inr k =>
+      refine Or.inl (fun hn hb => ?_)
+      cases k hb with
+      | inl ha => exact ha
+      | inr hna => exact absurd hb (hn hna)
+
+theorem luk₁₂OrLuk₂₁F_noDiamondF (a b : Prop) :
+    Lukasiewicz₁₂OrLukasiewicz₂₁F (a ∨ ¬ a) (b ∨ ¬ b) → NoDiamondF a b := by
+  intro h
+  have hna : ¬ ¬ (a ∨ ¬ a) := fun hn => hn (Or.inr (fun ha => hn (Or.inl ha)))
+  have hnb : ¬ ¬ (b ∨ ¬ b) := fun hn => hn (Or.inr (fun hb => hn (Or.inl hb)))
+  cases h with
+  | inl k => exact Or.inr (fun hb => k (fun hx => absurd hx hna) (Or.inl hb))
+  | inr k => exact Or.inl (fun ha => k (fun hx => absurd hx hnb) (Or.inl ha))
+
+theorem noDiamondF_notNotAndF (a b : Prop) : NoDiamondF a b → NotNotAndF a b := by
+  intro h hnn
+  cases h with
+  | inl k =>
+      refine Or.inl (fun ha => ?_)
+      cases k ha with
+      | inl hb => exact hb
+      | inr hnb => exact absurd (fun hab : a ∧ b => hnb hab.2) hnn
+  | inr k =>
+      refine Or.inr (fun hb => ?_)
+      cases k hb with
+      | inl ha => exact ha
+      | inr hna => exact absurd (fun hab : a ∧ b => hna hab.1) hnn
+
+theorem notNotAndF_noDiamondF (a b : Prop) :
+    NotNotAndF (a ∨ ¬ a) (b ∨ ¬ b) → NoDiamondF a b := by
+  intro h
+  have hna : ¬ ¬ (a ∨ ¬ a) := fun hn => hn (Or.inr (fun ha => hn (Or.inl ha)))
+  have hnb : ¬ ¬ (b ∨ ¬ b) := fun hn => hn (Or.inr (fun hb => hn (Or.inl hb)))
+  cases h (fun hn => hna (fun hx => hnb (fun hy => hn ⟨hx, hy⟩))) with
+  | inl k => exact Or.inl (fun ha => k (Or.inl ha))
+  | inr k => exact Or.inr (fun hb => k (Or.inl hb))
+
+/-! ## Linearity and weak excluded middle
+
+Neither is a combination of two principles, so neither belongs to the chain of
+levels; each sits beside it.  Linearity is the stronger, and reaches weak
+excluded middle by being asked about a proposition against its own negation.
+
+The last theorem is the one that places linearity exactly.  Weak excluded
+middle and `NoDiamondF` together give it back, at the plain arguments and with
+no shift: once neither argument can be refuted, the disjunct of `NoDiamondF`
+that holds delivers the comparison outright. -/
+
+theorem linearityF_weakEmF (a : Prop) : LinearityF a (¬ a) → WeakEmF a := by
+  intro h
+  cases h with
+  | inl k => exact Or.inl (fun ha => k ha ha)
+  | inr k => exact Or.inr (fun na => na (k na))
+
+theorem linearityF_notNotAndF (a b : Prop) : LinearityF a b → NotNotAndF a b :=
+  fun h _ => h
+
+theorem linearityF_noDiamondF (a b : Prop) :
+    LinearityF (a ∨ ¬ a) (b ∨ ¬ b) → NoDiamondF a b := by
+  intro h
+  cases h with
+  | inl k => exact Or.inl (fun ha => k (Or.inl ha))
+  | inr k => exact Or.inr (fun hb => k (Or.inl hb))
+
+/-- **Linearity is exactly weak excluded middle together with `NoDiamondF`.**
+Each argument is either refutable, which settles the comparison one way, or
+doubly negated, and then the `NoDiamondF` disjunct that holds turns an excluded
+middle into the comparison itself. -/
+theorem weakEmF_noDiamondF_linearityF (a b : Prop)
+    (ha : WeakEmF a) (hb : WeakEmF b) (hnd : NoDiamondF a b) : LinearityF a b := by
+  cases ha with
+  | inl na => exact Or.inl (fun x => absurd x na)
+  | inr nna =>
+      cases hb with
+      | inl nb => exact Or.inr (fun x => absurd x nb)
+      | inr nnb =>
+          cases hnd with
+          | inl k =>
+              refine Or.inl (fun hx => ?_)
+              cases k hx with
+              | inl hy => exact hy
+              | inr nb => exact absurd nb nnb
+          | inr k =>
+              refine Or.inr (fun hy => ?_)
+              cases k hy with
+              | inl hx => exact hx
+              | inr na => exact absurd na nna
