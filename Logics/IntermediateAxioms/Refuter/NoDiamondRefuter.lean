@@ -62,26 +62,16 @@ theorem noDiamond_kite_fail : ∀ a b : KiteUp 1 1,
         z = ⊥ ∨ z = ⊤ ∨ z = a ∨ z = b ∨ z = a ⊓ b ∨ z = a ⊔ b := by decide
 
 /-- **Nothing below the diamond refutes `NoDiamondF`.** -/
-theorem refuterLB_kite_noDiamond : RefuterLB (KiteUp 1 1) noDiamondForm := by
-  intro γ iγ hsh hnv
-  obtain ⟨Q, iQ, ⟨f, hfs⟩, ⟨g, hgi⟩⟩ := hsh
-  by_cases hinj : Function.Injective f.toFun
-  · obtain ⟨h, hhi⟩ := embeds_of_iso f hinj hfs g hgi
-    obtain ⟨v, hvne⟩ := @exists_ne_top γ iγ _ hnv
-    have hfail := noDiamond_kite_fail _ _ (ne_top_of_embeds h hhi hvne)
-    have hsurj : Function.Surjective h.toFun := by
-      intro z
-      rcases hfail z with hz | hz | hz | hz | hz | hz
-      · exact ⟨⊥, by rw [h.map_bot, hz]⟩
-      · exact ⟨⊤, by rw [h.map_top, hz]⟩
-      · exact ⟨v 0, hz.symm⟩
-      · exact ⟨v 1, hz.symm⟩
-      · exact ⟨v 0 ⊓ v 1, by rw [h.map_inf]; exact hz.symm⟩
-      · exact ⟨v 0 ⊔ v 1, by rw [h.map_sup]; exact hz.symm⟩
-    exact @sh_of_bijective γ (KiteUp 1 1) iγ _ h ⟨hhi, hsurj⟩
-  · obtain ⟨a, b, hab, hne⟩ := exists_collapse f hinj
-    exact absurd (@valid_of_embeds γ Q iγ iQ ⟨g, hgi⟩ _
-      (valid_of_collapse f hfs hab hne kite_coatom' noDiamondForm_eval_ge)) hnv
+theorem refuterLB_kite_noDiamond : RefuterLB (KiteUp 1 1) noDiamondForm :=
+  refuterLB_of_coatom kite_coatom' noDiamondForm_eval_ge fun _ _ h _ v hv z => by
+    have hfail := noDiamond_kite_fail _ _ hv
+    rcases hfail z with hz | hz | hz | hz | hz | hz
+    · exact ⟨⊥, by rw [h.map_bot, hz]⟩
+    · exact ⟨⊤, by rw [h.map_top, hz]⟩
+    · exact ⟨v 0, hz.symm⟩
+    · exact ⟨v 1, hz.symm⟩
+    · exact ⟨v 0 ⊓ v 1, by rw [h.map_inf]; exact hz.symm⟩
+    · exact ⟨v 0 ⊔ v 1, by rw [h.map_sup]; exact hz.symm⟩
 
 /-! # Part two: which schemas derive the axiom -/
 
@@ -105,13 +95,9 @@ theorem le_right : a ⊑ right a b :=
 
 /-- Both disjuncts are dense, lying above an excluded middle whose negation is
 absurd. -/
-theorem neg_left : neg (left a b) = ⊥ :=
-  (eq_bot_iff _).mpr (le_trans (neg_antitone (le_himp_self (b ⊔ neg b) a))
-    (le_of_eq (neg_sup_neg_eq_bot b)))
+theorem neg_left : neg (left a b) = ⊥ := neg_himp_sup_neg_eq_bot a b
 
-theorem neg_right : neg (right a b) = ⊥ :=
-  (eq_bot_iff _).mpr (le_trans (neg_antitone (le_himp_self (a ⊔ neg a) b))
-    (le_of_eq (neg_sup_neg_eq_bot a)))
+theorem neg_right : neg (right a b) = ⊥ := neg_himp_sup_neg_eq_bot b a
 
 /-- **Each disjunct is the value of the arrow into the other.**  One direction
 is free.  For the other, the second argument lies below `left`, so a meet with
@@ -153,10 +139,5 @@ theorem derivesFromSchema_noDiamond_iff (X : Form) :
   constructor
   · intro h hv
     exact noDiamondForm_nvalid_diamond (DerivesFromSchema.valid hv h _)
-  · intro hX
-    refine Lindenbaum.derivesFromSchema_iff.mpr ?_
-    intro α iα hv v
-    refine Classical.byContradiction fun hne => ?_
-    have hnv : ¬ ∀ u : Nat → α, noDiamondForm.eval u = ⊤ := fun hall => hne (hall v)
-    exact hX (@valid_of_sh (KiteUp 1 1) α _ iα
-      (sh_kite_of_refutes_noDiamond α iα hnv) _ hv)
+  · exact fun hX => DerivesFromSchema.of_sh fun α iα hnv =>
+      ⟨KiteUp 1 1, inferInstance, sh_kite_of_refutes_noDiamond α iα hnv, hX⟩

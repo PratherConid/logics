@@ -309,12 +309,8 @@ theorem derivesFromSchema_char_iff (X : Form) :
   constructor
   · intro h hv
     exact J.char_ne_top (DerivesFromSchema.valid hv h J.elt)
-  · intro hX
-    refine Lindenbaum.derivesFromSchema_iff.mpr ?_
-    intro α iα hv v
-    refine Classical.byContradiction fun hne => ?_
-    have hnv : ¬ ∀ u : Nat → α, J.char.eval u = ⊤ := fun hall => hne (hall v)
-    exact hX (@valid_of_sh A α _ iα (J.sh_of_refutes hnv) _ hv)
+  · exact fun hX => DerivesFromSchema.of_sh fun _ _ hnv =>
+      ⟨A, inferInstance, J.sh_of_refutes hnv, hX⟩
 
 end FiniteSI
 

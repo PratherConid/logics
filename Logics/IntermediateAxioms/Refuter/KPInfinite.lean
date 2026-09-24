@@ -1,5 +1,4 @@
 import Logics.IntermediateAxioms.Refuter.KPMinimal
-import Logics.Birkhoff
 
 /-!
 # The minimal refuters of Kreisel and Putnam's axiom are infinitely many
@@ -23,12 +22,12 @@ from the root each of them is entered at one point.
 
 ## Why nothing smaller lies below
 
-Minimality is proved on the algebra directly.
+Minimality is proved on the algebra directly, through `refuterLB_of_coatom`.
 
 * **A homomorphic image that merges anything validates the axiom.**  The
   axiom's value always contains every point but the root, which is the
-  algebra's coatom; an image identifying two elements sends the coatom to the
-  top, and with it every value of the axiom (`valid_of_collapse`).
+  algebra's coatom (`coatom_le_kp`); an image identifying two elements sends the
+  coatom to the top, and with it every value of the axiom.
 * **So what lies below is a subalgebra, and a subalgebra refuting the axiom is
   the whole algebra** (`surjective_of_refutes`).  The failure has to be at the
   root, where the failing negation is `{u, v, B}` and the two disjuncts split
@@ -77,7 +76,8 @@ instance : Frame (LPt n) where
   le_trans {x y z} h₁ h₂ := by
     cases x <;> cases y <;> cases z <;> simp_all [le] <;> omega
 
-theorem antisymm (x y : LPt n) (h₁ : x ≼ y) (h₂ : y ≼ x) : x = y := by
+theorem antisymm : Frame.Antisymm (LPt n) := by
+  intro x y h₁ h₂
   cases x <;> cases y <;> simp_all [Frame.le, le] <;> (try apply Fin.ext) <;> omega
 
 /-! ### Facts about the order -/
@@ -210,20 +210,6 @@ theorem neg_cases (a : Upset (LPt n)) :
 
 /-! ### The axiom holds away from the root -/
 
-/-- Pointwise form of `kp_top_of_principal`: if every region above `x` has one
-entrance, the axiom holds at `x`. -/
-theorem kp_mem_of_principal {P : Type} [Frame P] {x : P} {a : Upset P}
-    (h : ∀ r, x ≼ r → (kpRegion r a).Principal) (b c : Upset P) :
-    (kpAt a b c).mem x := by
-  intro r hxr hr
-  by_cases hemp : ∃ s, (kpRegion r a).mem s
-  · obtain ⟨s, hs⟩ := hemp
-    obtain ⟨m, hmem, hmin⟩ := h r hxr s hs
-    rcases hr m hmem.1 hmem.2 with hb | hc
-    · exact Or.inl fun s' hrs' hna' => b.upward (hmin s' ⟨hrs', hna'⟩) hb
-    · exact Or.inr fun s' hrs' hna' => c.upward (hmin s' ⟨hrs', hna'⟩) hc
-  · exact Or.inl fun s' hrs' hna' => absurd ⟨s', hrs', hna'⟩ hemp
-
 /-- Away from the root every region has one entrance: a point other than the
 root sees at most one of `u` and `v`. -/
 theorem principal_of_ne_root {r : LPt n} (hr : r ≠ .root) (a : Upset (LPt n)) :
@@ -295,83 +281,24 @@ variable {n : Nat}
 
 /-! ### Step A: a homomorphic image that merges anything validates the axiom -/
 
-/-- Everything but the root: the largest upward closed set short of the top. -/
-def coatom : Upset (LPt n) :=
-  ⟨fun x => x ≠ .root, fun {x y} hxy hx hy => hx (eq_root_of_le_root (by rw [hy] at hxy; exact hxy))⟩
-
-theorem le_coatom (U : Upset (LPt n)) (hU : U ≠ ⊤) : U ⊑ coatom := by
-  intro x hx hxr
-  apply hU
-  refine Upset.ext fun y => ⟨fun _ => trivial, fun _ => U.upward ?_ hx⟩
-  rw [hxr]
-  exact root_le y
-
-theorem coatom_le_kp (v : Nat → Upset (LPt n)) : coatom ⊑ kreiselPutnamForm.eval v :=
+/-- The axiom's value always contains the coatom, every point but the root. -/
+theorem coatom_le_kp (v : Nat → Upset (LPt n)) :
+    Upset.coatom .root (fun _ h => eq_root_of_le_root h) ⊑ kreiselPutnamForm.eval v :=
   fun _ hx => kp_mem_ne_root hx (v 0) (v 1) (v 2)
 
 /-! ### Step B: a subalgebra refuting the axiom is everything -/
 
-section Generate
-
-variable {γ : Type} [HeytingAlgebra γ] (e : Hom γ (Upset (LPt n)))
-
-/-- In the image of `e`. -/
-def InImg (U : Upset (LPt n)) : Prop := ∃ a, e.toFun a = U
-
-variable {e}
-
-theorem img_inf {U V : Upset (LPt n)} : InImg e U → InImg e V → InImg e (U ⊓ V)
-  | ⟨a, ha⟩, ⟨b, hb⟩ => ⟨a ⊓ b, by rw [e.map_inf, ha, hb]⟩
-
-theorem img_sup {U V : Upset (LPt n)} : InImg e U → InImg e V → InImg e (U ⊔ V)
-  | ⟨a, ha⟩, ⟨b, hb⟩ => ⟨a ⊔ b, by rw [e.map_sup, ha, hb]⟩
-
-theorem img_himp {U V : Upset (LPt n)} : InImg e U → InImg e V → InImg e (U ⇨ V)
-  | ⟨a, ha⟩, ⟨b, hb⟩ => ⟨a ⇨ b, by rw [e.map_himp, ha, hb]⟩
-
-theorem img_bot : InImg e (⊥ : Upset (LPt n)) := ⟨⊥, e.map_bot⟩
-
-theorem img_top : InImg e (⊤ : Upset (LPt n)) := ⟨⊤, e.map_top⟩
-
-theorem img_neg {U : Upset (LPt n)} (h : InImg e U) : InImg e (neg U) := img_himp h img_bot
-
-theorem img_supList : ∀ {L : List (Upset (LPt n))}, (∀ U ∈ L, InImg e U) →
-    InImg e (Birkhoff.supList L)
-  | [], _ => img_bot
-  | U :: _, h => img_sup (h U (List.mem_cons.mpr (Or.inl rfl)))
-      (img_supList fun V hV => h V (List.mem_cons_of_mem U hV))
-
-end Generate
-
-theorem mem_supList : ∀ {L : List (Upset (LPt n))} {z : LPt n},
-    (Birkhoff.supList L).mem z ↔ ∃ U ∈ L, U.mem z
-  | [], _ => ⟨fun h => h.elim, fun ⟨_, hU, _⟩ => by cases hU⟩
-  | U :: t, z => by
-    show U.mem z ∨ (Birkhoff.supList t).mem z ↔ _
-    rw [mem_supList]
-    constructor
-    · rintro (h | ⟨V, hV, hz⟩)
-      · exact ⟨U, List.mem_cons.mpr (Or.inl rfl), h⟩
-      · exact ⟨V, List.mem_cons_of_mem U hV, hz⟩
-    · rintro ⟨V, hV, hz⟩
-      rcases List.mem_cons.mp hV with rfl | hV
-      · exact Or.inl hz
-      · exact Or.inr ⟨V, hV, hz⟩
-
-/-- The points strictly above `x`, as the join of the sets they generate. -/
+/-- The points strictly above `x`. -/
 noncomputable def strictUp (x : LPt n) : Upset (LPt n) :=
-  Birkhoff.supList (((all n).filter fun y => truth (x ≼ y ∧ y ≠ x)).map Upset.up)
+  Upset.gen (all n) fun y => x ≼ y ∧ y ≠ x
 
 theorem mem_strictUp (x z : LPt n) : (strictUp x).mem z ↔ x ≼ z ∧ z ≠ x := by
-  rw [strictUp, mem_supList]
+  rw [strictUp, Upset.mem_gen mem_all]
   constructor
-  · rintro ⟨U, hU, hz⟩
-    obtain ⟨y, hy, rfl⟩ := List.mem_map.mp hU
-    obtain ⟨hxy, hyx⟩ := truth_eq_true.mp (List.mem_filter.mp hy).2
-    exact ⟨Frame.le_trans hxy hz, fun hzx => hyx (antisymm _ _ (hzx ▸ hz) hxy)⟩
+  · rintro ⟨y, ⟨hxy, hyx⟩, hyz⟩
+    exact ⟨Frame.le_trans hxy hyz, fun hzx => hyx (antisymm _ _ (hzx ▸ hyz) hxy)⟩
   · rintro ⟨hxz, hzx⟩
-    exact ⟨Upset.up z, List.mem_map.mpr ⟨z, List.mem_filter.mpr
-      ⟨mem_all z, truth_eq_true.mpr ⟨hxz, hzx⟩⟩, rfl⟩, Frame.le_refl z⟩
+    exact ⟨z, ⟨hxz, hzx⟩, Frame.le_refl z⟩
 
 /-- The points not below `x`. -/
 theorem mem_notBelow (x y : LPt n) : (Upset.up x ⇨ strictUp x).mem y ↔ ¬ y ≼ x := by
@@ -385,44 +312,45 @@ section Generate
 
 variable {γ : Type} [HeytingAlgebra γ] {e : Hom γ (Upset (LPt n))}
 
-theorem img_strictUp {x : LPt n} (h : ∀ y, x ≼ y → y ≠ x → InImg e (Upset.up y)) :
-    InImg e (strictUp x) :=
+open Hom (img_inf img_himp img_top img_neg img_supList)
+
+theorem img_strictUp {x : LPt n} (h : ∀ y, x ≼ y → y ≠ x → e.InImg (Upset.up y)) :
+    e.InImg (strictUp x) :=
   img_supList fun U hU => by
-    obtain ⟨y, hy, rfl⟩ := List.mem_map.mp hU
-    obtain ⟨hxy, hyx⟩ := truth_eq_true.mp (List.mem_filter.mp hy).2
+    obtain ⟨y, ⟨hxy, hyx⟩, rfl⟩ := Upset.mem_of_generators hU
     exact h y hxy hyx
 
-theorem img_notBelow {x : LPt n} (hx : InImg e (Upset.up x))
-    (h : ∀ y, x ≼ y → y ≠ x → InImg e (Upset.up y)) :
-    InImg e (Upset.up x ⇨ strictUp x) :=
+theorem img_notBelow {x : LPt n} (hx : e.InImg (Upset.up x))
+    (h : ∀ y, x ≼ y → y ≠ x → e.InImg (Upset.up y)) :
+    e.InImg (Upset.up x ⇨ strictUp x) :=
   img_himp hx (img_strictUp h)
 
 /-- **Every point is generated from `u` and `v`.**  `B` lies above both; `A` is
 what is not below `B`; `c0` is what is below neither `u` nor `v`; the bottom rung
 is what is below neither `c0` nor `v`; and each higher rung is what is below
 neither the rung beneath it nor `v`. -/
-theorem img_up_all (hu : InImg e (Upset.up (.u : LPt n)))
-    (hv : InImg e (Upset.up (.v : LPt n))) (x : LPt n) : InImg e (Upset.up x) := by
-  have hB : InImg e (Upset.up (.B : LPt n)) := by
+theorem img_up_all (hu : e.InImg (Upset.up (.u : LPt n)))
+    (hv : e.InImg (Upset.up (.v : LPt n))) (x : LPt n) : e.InImg (Upset.up x) := by
+  have hB : e.InImg (Upset.up (.B : LPt n)) := by
     rw [show Upset.up (.B : LPt n) = Upset.up .u ⊓ Upset.up .v from
       Upset.ext fun y => B_le_iff y]
     exact img_inf hu hv
-  have hA : InImg e (Upset.up (.A : LPt n)) := by
+  have hA : e.InImg (Upset.up (.A : LPt n)) := by
     rw [show Upset.up (.A : LPt n) = Upset.up .B ⇨ strictUp .B from
       Upset.ext fun y => (A_le_iff y).trans (mem_notBelow _ y).symm]
     exact img_notBelow hB fun y hBy hne => absurd (above_B hBy) hne
-  have aboveU : ∀ y, LPt.u ≼ y → y ≠ .u → InImg e (Upset.up y) :=
+  have aboveU : ∀ y, LPt.u ≼ y → y ≠ .u → e.InImg (Upset.up y) :=
     fun y h hne => by rw [above_u h hne]; exact hB
-  have aboveV : ∀ y, LPt.v ≼ y → y ≠ .v → InImg e (Upset.up y) :=
+  have aboveV : ∀ y, LPt.v ≼ y → y ≠ .v → e.InImg (Upset.up y) :=
     fun y h hne => by rw [above_v h hne]; exact hB
-  have hc0 : InImg e (Upset.up (.c0 : LPt n)) := by
+  have hc0 : e.InImg (Upset.up (.c0 : LPt n)) := by
     rw [show Upset.up (.c0 : LPt n) =
         (Upset.up .u ⇨ strictUp .u) ⊓ (Upset.up .v ⇨ strictUp .v) from
       Upset.ext fun y => (c0_le_iff y).trans
         (and_congr (mem_notBelow _ y).symm (mem_notBelow _ y).symm)]
     exact img_inf (img_notBelow hu aboveU) (img_notBelow hv aboveV)
   have hnotV := img_notBelow hv aboveV
-  have hw : ∀ m, ∀ j : Fin (n + 1), j.val < m → InImg e (Upset.up (.w j)) := by
+  have hw : ∀ m, ∀ j : Fin (n + 1), j.val < m → e.InImg (Upset.up (.w j)) := by
     intro m
     induction m with
     | zero => intro j hj; exact absurd hj (Nat.not_lt_zero _)
@@ -432,7 +360,7 @@ theorem img_up_all (hu : InImg e (Upset.up (.u : LPt n)))
       · exact ih j hjm
       have hjv : j.val = m := by omega
       have aboveW : ∀ i : Fin (n + 1), i.val < m →
-          ∀ y, LPt.w i ≼ y → y ≠ .w i → InImg e (Upset.up y) := by
+          ∀ y, LPt.w i ≼ y → y ≠ .w i → e.InImg (Upset.up y) := by
         intro i hi y hiy hne
         rcases above_w hiy hne with h | h | h | h | ⟨i', rfl, hi'⟩
         · rw [h]; exact hu
@@ -476,9 +404,9 @@ theorem img_up_all (hu : InImg e (Upset.up (.u : LPt n)))
 /-- **A failure at the root puts `u` and `v` in the image.**  The failing
 negation must be `{u, v, B}`, the two disjuncts split it, and meeting each
 disjunct with it gives the set above one entrance. -/
-theorem img_uv_of_fail {a b c : Upset (LPt n)} (ha : InImg e a) (hb : InImg e b)
-    (hc : InImg e c) (h : ¬ (kpAt a b c).mem .root) :
-    InImg e (Upset.up (.u : LPt n)) ∧ InImg e (Upset.up (.v : LPt n)) := by
+theorem img_uv_of_fail {a b c : Upset (LPt n)} (ha : e.InImg a) (hb : e.InImg b)
+    (hc : e.InImg c) (h : ¬ (kpAt a b c).mem .root) :
+    e.InImg (Upset.up (.u : LPt n)) ∧ e.InImg (Upset.up (.v : LPt n)) := by
   have H : (neg a ⇨ (b ⊔ c)).mem (.root : LPt n) ∧ ¬ (neg a ⇨ b).mem (.root : LPt n) ∧
       ¬ (neg a ⇨ c).mem (.root : LPt n) := by
     have hex : ∃ r : LPt n, (neg a ⇨ (b ⊔ c)).mem r ∧
@@ -506,7 +434,7 @@ theorem img_uv_of_fail {a b c : Upset (LPt n)} (ha : InImg e a) (hb : InImg e b)
     have hc2 : ¬ (c.mem .u ∧ c.mem .v) := fun h' => H3 (hcover c h'.1 h'.2)
     have H1u : b.mem .u ∨ c.mem .u := H1 .u (root_le _) ((hN _).mpr (Or.inl rfl))
     have H1v : b.mem .v ∨ c.mem .v := H1 .v (root_le _) ((hN _).mpr (Or.inr (Or.inl rfl)))
-    have hNi : InImg e (neg a) := img_neg ha
+    have hNi : e.InImg (neg a) := img_neg ha
     have upU : ∀ X : Upset (LPt n), X.mem .u → ¬ X.mem .v → X ⊓ neg a = Upset.up .u :=
       fun X hu hv => Upset.ext fun y => ⟨fun ⟨hX, hn⟩ => by
           rcases (hN y).mp hn with hy | hy | hy
@@ -548,37 +476,22 @@ theorem img_uv_of_fail {a b c : Upset (LPt n)} (ha : InImg e a) (hb : InImg e b)
     · exact absurd (fun s _ _ => b.upward (root_le s) hbr) H2
     · exact absurd (fun s _ _ => c.upward (root_le s) hcr) H3
 
-/-- **An embedding of an algebra refuting the axiom is onto.** -/
-theorem surjective_of_refutes (he : Function.Injective e.toFun)
-    (hnv : ¬ ∀ v : Nat → γ, kreiselPutnamForm.eval v = ⊤) :
+/-- **A subalgebra holding a refutation of the axiom is everything.**  The
+refutation is at the root, which puts the sets above `u` and `v` in the image,
+and from those every upward closed set is built. -/
+theorem surjective_of_refutes {v : Nat → γ}
+    (hv : kreiselPutnamForm.eval (fun k => e.toFun (v k)) ≠ ⊤) :
     Function.Surjective e.toFun := by
-  have hex : ∃ a b c : γ, kpAt a b c ≠ ⊤ := Classical.byContradiction fun hc =>
-    hnv (kreiselPutnamForm_valid_iff.mpr fun a b c =>
-      Classical.byContradiction fun h => hc ⟨a, b, c, h⟩)
-  obtain ⟨a, b, c, habc⟩ := hex
-  have hroot : ¬ (kpAt (e.toFun a) (e.toFun b) (e.toFun c)).mem (.root : LPt n) := by
-    intro h
-    apply habc
-    apply he
-    rw [e.map_top, Hom.map_kpAt]
-    exact Upset.ext fun x => ⟨fun _ => trivial, fun _ =>
-      (kpAt (e.toFun a) (e.toFun b) (e.toFun c)).upward (root_le x) h⟩
-  obtain ⟨hu, hv⟩ := img_uv_of_fail ⟨a, rfl⟩ ⟨b, rfl⟩ ⟨c, rfl⟩ hroot
+  have hroot : ¬ (kpAt (e.toFun (v 0)) (e.toFun (v 1)) (e.toFun (v 2))).mem
+      (.root : LPt n) := fun h =>
+    hv (Upset.ext fun x => ⟨fun _ => trivial, fun _ =>
+      (kpAt (e.toFun (v 0)) (e.toFun (v 1)) (e.toFun (v 2))).upward (root_le x) h⟩)
+  obtain ⟨hu, hv'⟩ := img_uv_of_fail ⟨v 0, rfl⟩ ⟨v 1, rfl⟩ ⟨v 2, rfl⟩ hroot
   intro U
-  have hU : U = Birkhoff.supList (((all n).filter fun x => truth (U.mem x)).map Upset.up) :=
-    Upset.ext fun z => by
-      rw [mem_supList]
-      constructor
-      · intro hz
-        exact ⟨Upset.up z, List.mem_map.mpr ⟨z, List.mem_filter.mpr
-          ⟨mem_all z, truth_eq_true.mpr hz⟩, rfl⟩, Frame.le_refl z⟩
-      · rintro ⟨V, hV, hzV⟩
-        obtain ⟨x, hx, rfl⟩ := List.mem_map.mp hV
-        exact U.upward hzV (truth_eq_true.mp (List.mem_filter.mp hx).2)
-  rw [hU]
+  rw [← Upset.gen_mem mem_all U]
   exact img_supList fun V hV => by
-    obtain ⟨x, _, rfl⟩ := List.mem_map.mp hV
-    exact img_up_all hu hv x
+    obtain ⟨x, _, rfl⟩ := Upset.mem_of_generators hV
+    exact img_up_all hu hv' x
 
 end Generate
 
@@ -587,16 +500,9 @@ end Generate
 /-- **Nothing smaller below refutes the axiom.**  A homomorphic image that merges
 anything validates the axiom, since the axiom's value always contains every
 point but the root; and an embedding of an algebra refuting it is onto. -/
-theorem refuterLB : RefuterLB (Upset (LPt n)) kreiselPutnamForm := by
-  intro γ iγ hsh hnv
-  obtain ⟨δ, iδ, ⟨f, hfs⟩, ⟨g, hgi⟩⟩ := hsh
-  by_cases hinj : Function.Injective f.toFun
-  · obtain ⟨k, hk⟩ := @embeds_of_iso γ (Upset (LPt n)) δ iγ _ iδ f hinj hfs g hgi
-    exact @sh_of_bijective γ (Upset (LPt n)) iγ _ k
-      ⟨hk, @surjective_of_refutes n γ iγ k hk hnv⟩
-  · obtain ⟨a, b, hab, hne⟩ := exists_collapse f hinj
-    exact absurd (@valid_of_embeds γ δ iγ iδ ⟨g, hgi⟩ _
-      (valid_of_collapse f hfs hab hne le_coatom coatom_le_kp)) hnv
+theorem refuterLB : RefuterLB (Upset (LPt n)) kreiselPutnamForm :=
+  refuterLB_of_coatom (Upset.le_coatom root_le fun _ h => eq_root_of_le_root h) coatom_le_kp
+    fun _ _ _ _ _ hv => surjective_of_refutes hv
 
 /-- **Every ladder frame is a minimal refuter.** -/
 theorem inKPMin (n : Nat) : InKPMin (LPt n) := ⟨inKPList, antisymm, refuterLB⟩

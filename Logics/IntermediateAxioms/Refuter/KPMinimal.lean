@@ -135,11 +135,8 @@ end Merger
 /-- **The minimal refuters `𝓜`**, taken among posets. -/
 structure InKPMin (M : Type) [Frame M] : Prop where
   list : InKPList M
-  antisymm : ∀ p q : M, p ≼ q → q ≼ p → p = q
+  antisymm : Frame.Antisymm M
   minimal : RefuterLB (Upset M) kreiselPutnamForm
-
-/-- Nothing lies above `m` but `m` itself. -/
-def IsMaxPt {M : Type} [Frame M] (m : M) : Prop := ∀ p, m ≼ p → p = m
 
 namespace InKPMin
 
@@ -150,10 +147,9 @@ theorem exists_nodup (hM : InKPMin M) : ∃ l : List M, l.Nodup ∧ ∀ p, p ∈
   obtain ⟨l', hnd, hmem⟩ := ListCount.exists_nodup l
   exact ⟨l', hnd, fun p => (hmem p).mpr (hl p)⟩
 
-theorem exists_max_above (hM : InKPMin M) (x : M) : ∃ m, x ≼ m ∧ IsMaxPt m := by
-  obtain ⟨l, hl⟩ := hM.list.finite
-  obtain ⟨m, hxm, hmax⟩ := hasMaximal_of_list l hl (fun p => x ≼ p) ⟨x, Frame.le_refl x⟩
-  exact ⟨m, hxm, fun p hmp => hM.antisymm _ _ (hmax p (Frame.le_trans hxm hmp) hmp) hmp⟩
+theorem exists_max_above (hM : InKPMin M) (x : M) : ∃ m, x ≼ m ∧ IsMaxPt m :=
+  let ⟨_, hl⟩ := hM.list.finite
+  _root_.exists_max_above hM.antisymm hl x
 
 /-- **Nothing smaller below refutes the axiom.**  Minimality would put the
 member below the smaller frame, and counting forbids that. -/
@@ -337,10 +333,6 @@ variable {M : Type} [Frame M]
 
 theorem neg_of_max {S : RootSplit M} {z : M} (hz : IsMaxPt z) (hzR : ¬ S.R.mem z) :
     (neg S.R).mem z := fun y hzy hy => hzR (hz y hzy ▸ hy)
-
-theorem exists_ne_above {x : M} (hx : ¬ IsMaxPt x) : ∃ p, x ≼ p ∧ p ≠ x :=
-  Classical.byContradiction fun hc => hx fun p hxp =>
-    Classical.byContradiction fun hne => hc ⟨p, hxp, hne⟩
 
 /-- A point of the region below an entrance is that entrance. -/
 theorem eq_u_of_le (hM : InKPMin M) (S : RootSplit M) {x : M} (hx : S.R.mem x)

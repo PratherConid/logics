@@ -33,7 +33,8 @@ has.
 The condition is about the whole frame, not one point.  The axiom holds at `r`
 only if the region at `r` has one entrance, but that is not enough: holding at
 `r` means holding at every point above `r`, and a region further up can still
-be entered twice.
+be entered twice.  One entrance at every region from `r` up is enough
+(`kp_mem_of_principal`).
 
 Every region having one entrance suffices in any frame, with no finiteness at
 all.  The converse needs minimal points, which `HasMinimal` names and every
@@ -99,22 +100,27 @@ def kpTrim {P : Type} [Frame P] (r : P) (a : Upset P) (m : P) : Upset P :=
    fun hxy hx => ⟨(kpRegion r a).upward hxy hx.1,
      fun hym => hx.2 (Frame.le_trans hxy hym)⟩⟩
 
-/-- **One entrance is enough.**  If every region has a least point the axiom
-holds, whatever the frame: the least point settles which disjunct to take, and
-upward closure carries it to the rest of the region. -/
-theorem kp_top_of_principal {P : Type} [Frame P]
-    (h : ∀ (r : P) (a : Upset P), (kpRegion r a).Principal) :
-    ∀ a b c : Upset P, kpAt a b c = ⊤ := by
-  intro a b c
-  refine (BoundedLattice.eq_top_iff _).mpr ?_
-  intro p _ r _ hr
+/-- **One entrance is enough, point by point.**  If every region above `x` has
+a least point, the axiom holds at `x`: the least point settles which disjunct
+to take, and upward closure carries it to the rest of the region. -/
+theorem kp_mem_of_principal {P : Type} [Frame P] {x : P} {a : Upset P}
+    (h : ∀ r, x ≼ r → (kpRegion r a).Principal) (b c : Upset P) :
+    (kpAt a b c).mem x := by
+  intro r hxr hr
   by_cases hemp : ∃ s, (kpRegion r a).mem s
   · obtain ⟨s, hs⟩ := hemp
-    obtain ⟨m, hmem, hmin⟩ := h r a s hs
+    obtain ⟨m, hmem, hmin⟩ := h r hxr s hs
     rcases hr m hmem.1 hmem.2 with hb | hc
     · exact Or.inl fun s' hrs' hna' => b.upward (hmin s' ⟨hrs', hna'⟩) hb
     · exact Or.inr fun s' hrs' hna' => c.upward (hmin s' ⟨hrs', hna'⟩) hc
   · exact Or.inl fun s' hrs' hna' => absurd ⟨s', hrs', hna'⟩ hemp
+
+/-- **One entrance is enough.**  If every region has a least point the axiom
+holds at every point, whatever the frame. -/
+theorem kp_top_of_principal {P : Type} [Frame P]
+    (h : ∀ (r : P) (a : Upset P), (kpRegion r a).Principal) :
+    ∀ a b c : Upset P, kpAt a b c = ⊤ := fun a b c =>
+  (BoundedLattice.eq_top_iff _).mpr fun _ _ => kp_mem_of_principal (fun r _ => h r a) b c
 
 /-- **Under the axiom a minimal point is least.**  The axiom at `kpTrim r a m`
 and `↑m` -- the region with the cone of `m` removed, and that cone -- forces

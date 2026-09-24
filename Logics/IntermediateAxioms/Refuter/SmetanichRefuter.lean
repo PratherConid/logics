@@ -45,10 +45,10 @@ two elements
 * `lower = (a ⇨ b) ⊔ neg b`, and
 * `upper = (neg b ⇨ a) ⇨ peirceVal a b`, the axiom's own value,
 
-span a copy of `Fin 4`.  Three of the conditions for that need no hypothesis:
-`lower ⊑ upper`, `neg lower = ⊥`, and hence `lower ≠ ⊥`.  The other two follow
-from `upper ⇨ lower = lower`, which in turn reduces to `core_le_a`, an
-inequality that again holds in every Heyting algebra.
+span a copy of `Fin 4`.  Two of the conditions for that need no hypothesis:
+`lower ⊑ upper` and `neg lower = ⊥`.  The third, `upper ⇨ lower = lower`,
+reduces to `core_le_a`, an inequality that again holds in every Heyting algebra.
+The last, `upper ≠ ⊤`, is the refutation itself.
 -/
 
 open PartialOrder Lattice BoundedLattice HeytingAlgebra
@@ -73,26 +73,14 @@ theorem smetanich_four_eval_ge (v : Nat → Fin 4) :
   inf_eq_left_iff.mp (smetanich_four_ge_two (v 0) (v 1))
 
 /-- **No algebra strictly below `Fin 4` refutes `Peirce₁₂OrImpOr₂₁F`.** -/
-theorem refuterLB_four : RefuterLB (Fin 4) smetanichForm := by
-  intro γ iγ hsh hnv
-  obtain ⟨Q, iQ, ⟨f, hfs⟩, ⟨g, hgi⟩⟩ := hsh
-  by_cases hinj : Function.Injective f.toFun
-  · -- the quotient is an isomorphism: pull `γ` back into `Fin 4`
-    obtain ⟨h, hhi⟩ := embeds_of_iso f hinj hfs g hgi
-    obtain ⟨v, hvne⟩ := @exists_ne_top γ iγ _ hnv
-    have hfail := smetanich_four_fail _ _ (ne_top_of_embeds h hhi hvne)
-    have hsurj : Function.Surjective h.toFun := by
-      intro y
-      rcases four_cases y with rfl | rfl | rfl | rfl
-      · exact ⟨⊥, h.map_bot⟩
-      · exact ⟨v 1, hfail.2⟩
-      · exact ⟨v 0, hfail.1⟩
-      · exact ⟨⊤, h.map_top⟩
-    exact @sh_of_bijective γ (Fin 4) iγ _ h ⟨hhi, hsurj⟩
-  · -- the quotient collapses: the principle becomes valid below it
-    obtain ⟨a, b, hab, hne⟩ := exists_collapse f hinj
-    exact absurd (@valid_of_embeds γ Q iγ iQ ⟨g, hgi⟩ _
-      (valid_of_collapse f hfs hab hne four_coatom' smetanich_four_eval_ge)) hnv
+theorem refuterLB_four : RefuterLB (Fin 4) smetanichForm :=
+  refuterLB_of_coatom four_coatom' smetanich_four_eval_ge fun _ _ h _ v hv y => by
+    have hfail := smetanich_four_fail _ _ hv
+    rcases four_cases y with rfl | rfl | rfl | rfl
+    · exact ⟨⊥, h.map_bot⟩
+    · exact ⟨v 1, hfail.2⟩
+    · exact ⟨v 0, hfail.1⟩
+    · exact ⟨⊤, h.map_top⟩
 
 /-! ## `ForkUp 1 1`
 
@@ -118,31 +106,21 @@ theorem smetanich_fork_eval_ge (v : Nat → ForkUp 1 1) :
   inf_eq_left_iff.mp (smetanich_fork_ge_coatom (v 0) (v 1))
 
 /-- **No algebra strictly below `ForkUp 1 1` refutes `Peirce₁₂OrImpOr₂₁F`.** -/
-theorem refuterLB_fork : RefuterLB (ForkUp 1 1) smetanichForm := by
-  intro γ iγ hsh hnv
-  obtain ⟨Q, iQ, ⟨f, hfs⟩, ⟨g, hgi⟩⟩ := hsh
-  by_cases hinj : Function.Injective f.toFun
-  · obtain ⟨h, hhi⟩ := embeds_of_iso f hinj hfs g hgi
-    obtain ⟨v, hvne⟩ := @exists_ne_top γ iγ _ hnv
-    have hfail := smetanich_fork_fail _ _ (ne_top_of_embeds h hhi hvne)
+theorem refuterLB_fork : RefuterLB (ForkUp 1 1) smetanichForm :=
+  refuterLB_of_coatom fork_coatom' smetanich_fork_eval_ge fun _ _ h _ v hv y => by
+    have hfail := smetanich_fork_fail _ _ hv
     have h0 : h.toFun (v 0) = ForkUp.tails 0 0 := hfail.1
     have h1 : h.toFun (v 1) = ForkUp.tails 0 1 ∨ h.toFun (v 1) = ForkUp.tails 1 0 := hfail.2
-    have hsurj : Function.Surjective h.toFun := by
-      intro y
-      rcases fork_cases y with rfl | rfl | rfl | rfl | rfl
-      · exact ⟨⊤, h.map_top⟩
-      · exact ⟨v 0, h0⟩
-      · rcases h1 with he | he
-        · exact ⟨v 1, he⟩
-        · exact ⟨neg (v 1), by rw [h.map_neg, he, fork_neg_tails.2]⟩
-      · rcases h1 with he | he
-        · exact ⟨neg (v 1), by rw [h.map_neg, he, fork_neg_tails.1]⟩
-        · exact ⟨v 1, he⟩
-      · exact ⟨⊥, h.map_bot⟩
-    exact @sh_of_bijective γ (ForkUp 1 1) iγ _ h ⟨hhi, hsurj⟩
-  · obtain ⟨a, b, hab, hne⟩ := exists_collapse f hinj
-    exact absurd (@valid_of_embeds γ Q iγ iQ ⟨g, hgi⟩ _
-      (valid_of_collapse f hfs hab hne fork_coatom' smetanich_fork_eval_ge)) hnv
+    rcases fork_cases y with rfl | rfl | rfl | rfl | rfl
+    · exact ⟨⊤, h.map_top⟩
+    · exact ⟨v 0, h0⟩
+    · rcases h1 with he | he
+      · exact ⟨v 1, he⟩
+      · exact ⟨neg (v 1), by rw [h.map_neg, he, fork_neg_tails.2]⟩
+    · rcases h1 with he | he
+      · exact ⟨neg (v 1), by rw [h.map_neg, he, fork_neg_tails.1]⟩
+      · exact ⟨v 1, he⟩
+    · exact ⟨⊥, h.map_bot⟩
 
 /-! ## The two are incomparable
 
@@ -186,7 +164,7 @@ theorem peirceVal_le_upper : peirceVal a b ⊑ upper a b := le_himp_self _ _
 theorem a_le_upper : a ⊑ upper a b :=
   le_trans (le_himp_self a _) (peirceVal_le_upper a b)
 
-/-! ## The three conditions that need no hypothesis -/
+/-! ## The two conditions that need no hypothesis -/
 
 /-- The lower element lies below the upper one. -/
 theorem lower_le_upper : lower a b ⊑ upper a b := by
@@ -204,18 +182,6 @@ theorem neg_lower : neg (lower a b) = ⊥ := by
       (neg_antitone (le_himp_self b a))
   have h2 : neg (lower a b) ⊑ neg (neg b) := neg_antitone (le_sup_right (a ⇨ b) (neg b))
   exact le_trans (le_inf h1 h2) (le_of_eq (inf_neg_eq_bot (neg b)))
-
-/-- And it is not `⊥`, given that the principle fails: otherwise the algebra
-would be degenerate and the principle would hold. -/
-theorem lower_ne_bot (hT : upper a b ≠ ⊤) : lower a b ≠ ⊥ := by
-  intro hb
-  apply hT
-  have htop : (⊤ : α) = ⊥ := by
-    have h := neg_lower a b
-    rw [hb] at h
-    rw [← h]
-    exact (neg_bot (α := α)).symm
-  exact le_antisymm (le_top _) (le_trans (le_of_eq htop) (bot_le _))
 
 /-! ## The inequality the branch turns on -/
 
@@ -252,7 +218,7 @@ theorem core_le_a : core a b ⊑ a :=
   le_trans (le_inf (core_le_ante a b) (le_himp_of_inf_le (core_inf_a_le_b a b)))
     (himp_inf_le (a ⇨ b) a)
 
-/-! ## The two remaining conditions -/
+/-! ## The remaining condition -/
 
 /-- The upper element implies down to the lower one.  This is the only place
 weak excluded middle is used: it splits the arrow into a `neg b` part, which
@@ -270,17 +236,6 @@ theorem upper_himp_lower (hW : neg b ⊔ neg (neg b) = ⊤) :
   · exact le_trans (inf_le_left _ _) (le_sup_right (a ⇨ b) (neg b))
   · exact hx
 
-/-- And the two are distinct, so the chain really has four elements: if they
-agreed, the arrow between them would be `⊤`, and so would `upper`. -/
-theorem lower_ne_upper (hT : upper a b ≠ ⊤) (hW : neg b ⊔ neg (neg b) = ⊤) :
-    lower a b ≠ upper a b := by
-  intro he
-  apply hT
-  have h := upper_himp_lower a b hW
-  rw [← he] at h
-  rw [← he, ← h]
-  exact himp_eq_top_of_le le_rfl
-
 end ChainWitness
 
 /-! ## The two algebras exhaust the refuters -/
@@ -297,8 +252,7 @@ theorem sh_four_or_fork_of_refutes (α : Type) (iα : HeytingAlgebra α)
     have hT : @upper α iα (v 0) (v 1) ≠ ⊤ := hv
     exact @four_embeds α iα (lower (v 0) (v 1)) (upper (v 0) (v 1))
       (lower_le_upper (v 0) (v 1)) (neg_lower (v 0) (v 1))
-      (upper_himp_lower (v 0) (v 1) hW) (lower_ne_bot (v 0) (v 1) hT)
-      (lower_ne_upper (v 0) (v 1) hT hW) hT
+      (upper_himp_lower (v 0) (v 1) hW) hT
   · exact Or.inr (@sh_forkUp α iα (v 1) hW)
 
 /-- **The criterion.**  A schema derives `Peirce₁₂OrImpOr₂₁F` exactly when it
@@ -316,11 +270,7 @@ theorem derivesFromSchema_smetanich_iff (X : Form) :
   · intro h
     exact ⟨fun hv => smetanichForm_nvalid_four (DerivesFromSchema.valid hv h _),
       fun hv => smetanichForm_nvalid_fork (DerivesFromSchema.valid hv h _)⟩
-  · intro hX
-    refine Lindenbaum.derivesFromSchema_iff.mpr ?_
-    intro α iα hv v
-    refine Classical.byContradiction fun hne => ?_
-    have hnv : ¬ ∀ u : Nat → α, smetanichForm.eval u = ⊤ := fun hall => hne (hall v)
-    rcases sh_four_or_fork_of_refutes α iα hnv with hsh | hsh
-    · exact hX.1 (@valid_of_sh (Fin 4) α _ iα hsh _ hv)
-    · exact hX.2 (@valid_of_sh (ForkUp 1 1) α _ iα hsh _ hv)
+  · exact fun hX => DerivesFromSchema.of_sh fun α iα hnv =>
+      (sh_four_or_fork_of_refutes α iα hnv).elim
+        (fun hs => ⟨Fin 4, inferInstance, hs, hX.1⟩)
+        (fun hs => ⟨ForkUp 1 1, inferInstance, hs, hX.2⟩)

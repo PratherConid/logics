@@ -207,6 +207,20 @@ theorem le_himp_self (a b : α) : a ⊑ (b ⇨ a) := le_himp_of_inf_le (inf_le_l
 theorem neg_antitone {a b : α} (h : a ⊑ b) : neg b ⊑ neg a :=
   le_himp_of_inf_le (le_trans (inf_le_inf le_rfl h) (himp_inf_le b ⊥))
 
+/-- Implication is antitone in its hypothesis. -/
+theorem himp_le_himp_left {x y z : α} (h : x ⊑ y) : (y ⇨ z) ⊑ (x ⇨ z) :=
+  le_himp_of_inf_le (le_trans (inf_le_inf le_rfl h) (himp_inf_le y z))
+
+/-- A negation lies below every arrow out of what it negates. -/
+theorem neg_le_himp (a b : α) : neg a ⊑ (a ⇨ b) :=
+  le_himp_of_inf_le (le_trans (himp_inf_le a ⊥) (bot_le b))
+
+/-- An arrow into an excluded middle is dense: it lies above that excluded
+middle, whose negation is absurd. -/
+theorem neg_himp_sup_neg_eq_bot (a b : α) : neg (a ⇨ (b ⊔ neg b)) = ⊥ :=
+  (eq_bot_iff _).mpr (le_trans (neg_antitone (le_himp_self (b ⊔ neg b) a))
+    (le_of_eq (neg_sup_neg_eq_bot b)))
+
 end HeytingAlgebra
 
 /-- **A Heyting algebra is distributive**: split `a ⊓ (b ⊔ c)` by `sup_cases`
@@ -253,6 +267,10 @@ class Frame (P : Type u) where
   le_trans {p q r : P} : le p q → le q r → le p r
 
 infix:50 " ≼ " => Frame.le
+
+/-- No two distinct points lie below each other: the preorder is a partial
+order. -/
+def Frame.Antisymm (P : Type u) [Frame P] : Prop := ∀ p q : P, p ≼ q → q ≼ p → p = q
 
 /-- An upward closed set of frame points: once a point is in, everything later
 is in.  This is exactly persistence of truth along the order. -/
@@ -312,6 +330,22 @@ instance : HeytingAlgebra (Upset P) where
 
 /-- The upward closed set of everything above a point. -/
 def up (p : P) : Upset P := ⟨fun q => p ≼ q, fun h hp => Frame.le_trans hp h⟩
+
+/-- A point is in the join of a list exactly when it is in one of its entries. -/
+theorem mem_supList : ∀ {L : List (Upset P)} {p : P},
+    (supList L).mem p ↔ ∃ U ∈ L, U.mem p
+  | [], _ => ⟨fun h => h.elim, fun ⟨_, hU, _⟩ => by cases hU⟩
+  | U :: t, p => by
+    show U.mem p ∨ (supList t).mem p ↔ _
+    rw [mem_supList]
+    constructor
+    · rintro (h | ⟨V, hV, hp⟩)
+      · exact ⟨U, List.mem_cons.mpr (Or.inl rfl), h⟩
+      · exact ⟨V, List.mem_cons_of_mem U hV, hp⟩
+    · rintro ⟨V, hV, hp⟩
+      rcases List.mem_cons.mp hV with rfl | hV
+      · exact Or.inl hp
+      · exact Or.inr ⟨V, hV, hp⟩
 
 /-! ### A worked frame
 

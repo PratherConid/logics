@@ -42,26 +42,16 @@ theorem weakEm_fork_fail : ∀ a : ForkUp 1 1, (neg a ⊔ neg (neg a)) ≠ ⊤ �
       z = neg a ⊔ neg (neg a) := by decide
 
 /-- **Nothing below the fork refutes `WeakEmF`.** -/
-theorem refuterLB_fork_weakEm : RefuterLB (ForkUp 1 1) weakEmForm := by
-  intro γ iγ hsh hnv
-  obtain ⟨Q, iQ, ⟨f, hfs⟩, ⟨g, hgi⟩⟩ := hsh
-  by_cases hinj : Function.Injective f.toFun
-  · obtain ⟨h, hhi⟩ := embeds_of_iso f hinj hfs g hgi
-    obtain ⟨v, hvne⟩ := @exists_ne_top γ iγ _ hnv
-    have hfail := weakEm_fork_fail _ (ne_top_of_embeds h hhi hvne)
-    have hsurj : Function.Surjective h.toFun := by
-      intro z
-      rcases hfail z with hz | hz | hz | hz | hz
-      · exact ⟨⊥, by rw [h.map_bot, hz]⟩
-      · exact ⟨⊤, by rw [h.map_top, hz]⟩
-      · exact ⟨neg (v 0), by rw [h.map_neg]; exact hz.symm⟩
-      · exact ⟨neg (neg (v 0)), by rw [h.map_neg, h.map_neg]; exact hz.symm⟩
-      · exact ⟨neg (v 0) ⊔ neg (neg (v 0)),
-          by rw [h.map_sup, h.map_neg, h.map_neg, h.map_neg]; exact hz.symm⟩
-    exact @sh_of_bijective γ (ForkUp 1 1) iγ _ h ⟨hhi, hsurj⟩
-  · obtain ⟨a, b, hab, hne⟩ := exists_collapse f hinj
-    exact absurd (@valid_of_embeds γ Q iγ iQ ⟨g, hgi⟩ _
-      (valid_of_collapse f hfs hab hne fork_coatom' weakEmForm_eval_ge)) hnv
+theorem refuterLB_fork_weakEm : RefuterLB (ForkUp 1 1) weakEmForm :=
+  refuterLB_of_coatom fork_coatom' weakEmForm_eval_ge fun _ _ h _ v hv z => by
+    have hfail := weakEm_fork_fail _ hv
+    rcases hfail z with hz | hz | hz | hz | hz
+    · exact ⟨⊥, by rw [h.map_bot, hz]⟩
+    · exact ⟨⊤, by rw [h.map_top, hz]⟩
+    · exact ⟨neg (v 0), by rw [h.map_neg]; exact hz.symm⟩
+    · exact ⟨neg (neg (v 0)), by rw [h.map_neg, h.map_neg]; exact hz.symm⟩
+    · exact ⟨neg (v 0) ⊔ neg (neg (v 0)),
+        by rw [h.map_sup, h.map_neg, h.map_neg, h.map_neg]; exact hz.symm⟩
 
 /-! # Part two: which schemas derive the axiom -/
 
@@ -80,13 +70,8 @@ theorem derivesFromSchema_weakEm_iff (X : Form) :
   constructor
   · intro h hv
     exact weakEmForm_nvalid_fork (DerivesFromSchema.valid hv h _)
-  · intro hX
-    refine Lindenbaum.derivesFromSchema_iff.mpr ?_
-    intro α iα hv v
-    refine Classical.byContradiction fun hne => ?_
-    have hnv : ¬ ∀ u : Nat → α, weakEmForm.eval u = ⊤ := fun hall => hne (hall v)
-    exact hX (@valid_of_sh (ForkUp 1 1) α _ iα
-      (sh_forkUp_of_refutes_weakEm α iα hnv) _ hv)
+  · exact fun hX => DerivesFromSchema.of_sh fun α iα hnv =>
+      ⟨ForkUp 1 1, inferInstance, sh_forkUp_of_refutes_weakEm α iα hnv, hX⟩
 
 /-- **Smetanich's axiom derives weak excluded middle**, failing as it does in
 the fork. -/

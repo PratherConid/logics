@@ -11,8 +11,8 @@ fails.
 
 * the three element chain, into every algebra where excluded middle fails;
 * the five element fork, into every algebra where its weak form fails;
-* the four element chain, wherever two elements sit strictly between the
-  bounds with `neg x = ⊥` and `y ⇨ x = x`;
+* the four element chain, wherever `x ⊑ y` with `neg x = ⊥`, `y ⇨ x = x` and
+  `y ≠ ⊤`;
 * the six element diamond, wherever two elements each have absurd negation and
   each is the value of the arrow into the other.
 
@@ -213,7 +213,6 @@ theorem neg_join : neg (neg t ⊔ neg (neg t)) = ⊥ := by
 theorem neg_left : neg (neg t) = neg (neg t) := rfl
 theorem neg_right : neg (neg (neg t)) = neg t := neg_neg_neg t
 
-theorem bot_inf' (a : α) : (⊥ : α) ⊓ a = ⊥ := by rw [inf_comm]; exact inf_bot a
 
 theorem left_inf_join : neg t ⊓ (neg t ⊔ neg (neg t)) = neg t :=
   inf_eq_left_iff.mpr (left_le_join t)
@@ -254,7 +253,7 @@ theorem map_inf' (x y : ForkUp 1 1) : map t (x ⊓ y) = map t x ⊓ map t y := b
     rcases forkUp_cases y with rfl|rfl|rfl|rfl|rfl <;>
     simp [ForkUp.inf_def, ForkUp.mx, left_inf_right, right_inf_left,
       left_inf_join, join_inf_left, right_inf_join, join_inf_right, inf_idem,
-      inf_top, top_inf, inf_bot, bot_inf']
+      inf_top, top_inf, inf_bot, bot_inf]
 
 theorem map_sup' (x y : ForkUp 1 1) : map t (x ⊔ y) = map t x ⊔ map t y := by
   rcases forkUp_cases x with rfl|rfl|rfl|rfl|rfl <;>
@@ -337,9 +336,11 @@ theorem sh_forkUp {α : Type} [HeytingAlgebra α] {t : α}
 
 /-! ## A four element chain inside an algebra
 
-Two elements `x ⊏ y` strictly between the bounds span a copy of `Fin 4` as soon
-as `neg x = ⊥` and `y ⇨ x = x`: those are exactly the two arrows of the four
-element chain that are not forced by the order. -/
+Two elements `x ⊑ y` with `y ≠ ⊤` span a copy of `Fin 4` as soon as
+`neg x = ⊥` and `y ⇨ x = x`: those are exactly the two arrows of the four
+element chain that are not forced by the order.  They also keep the chain
+strict: `x = ⊥` would make `⊤ = neg ⊥ = ⊥`, and `x = y` would make
+`y = y ⇨ y = ⊤`. -/
 
 theorem four_val_cases : ∀ i : Fin 4, i.val = 0 ∨ i.val = 1 ∨ i.val = 2 ∨ i.val = 3 := by
   decide
@@ -439,18 +440,31 @@ theorem injective (hxy : x ⊑ y) (hxb : x ≠ ⊥) (hxy' : x ≠ y) (hyt : y �
 
 end FourEmbed
 
-/-- **A four element chain embeds** whenever two elements sit strictly between
-the bounds with `neg x = ⊥` and `y ⇨ x = x`. -/
+/-- **A four element chain embeds** whenever `x ⊑ y` with `neg x = ⊥`,
+`y ⇨ x = x` and `y ≠ ⊤`. -/
 theorem four_embeds {α : Type} [HeytingAlgebra α] {x y : α}
-    (hxy : x ⊑ y) (hnx : neg x = ⊥) (hyx : (y ⇨ x) = x)
-    (hxb : x ≠ ⊥) (hxy' : x ≠ y) (hyt : y ≠ ⊤) : Embeds (Fin 4) α :=
-  ⟨{ toFun := FourEmbed.map x y
-     map_bot := FourEmbed.map_zero x y (by decide)
-     map_top := FourEmbed.map_three x y (by decide)
-     map_inf := FourEmbed.map_inf' x y hxy
-     map_sup := FourEmbed.map_sup' x y hxy
-     map_himp := FourEmbed.map_himp' x y hxy hnx hyx },
-   FourEmbed.injective x y hxy hxb hxy' hyt⟩
+    (hxy : x ⊑ y) (hnx : neg x = ⊥) (hyx : (y ⇨ x) = x) (hyt : y ≠ ⊤) :
+    Embeds (Fin 4) α := by
+  have hxb : x ≠ ⊥ := by
+    intro hb
+    apply hyt
+    have h := hnx
+    rw [hb] at h
+    have htop : (⊤ : α) = ⊥ := by rw [← h]; exact (neg_bot (α := α)).symm
+    exact le_antisymm (le_top _) (le_trans (le_of_eq htop) (bot_le _))
+  have hxy' : x ≠ y := by
+    intro he
+    apply hyt
+    rw [← he] at hyx ⊢
+    rw [← hyx]
+    exact himp_eq_top_of_le le_rfl
+  exact ⟨{ toFun := FourEmbed.map x y
+           map_bot := FourEmbed.map_zero x y (by decide)
+           map_top := FourEmbed.map_three x y (by decide)
+           map_inf := FourEmbed.map_inf' x y hxy
+           map_sup := FourEmbed.map_sup' x y hxy
+           map_himp := FourEmbed.map_himp' x y hxy hnx hyx },
+    FourEmbed.injective x y hxy hxb hxy' hyt⟩
 
 
 /-! ## The six element diamond inside an algebra
@@ -503,7 +517,6 @@ theorem right_le_join : y ⊑ x ⊔ y := le_sup_right x y
 theorem meet_le_join : x ⊓ y ⊑ x ⊔ y :=
   le_trans (meet_le_left x y) (left_le_join x y)
 
-theorem bot_inf' (a : α) : (⊥ : α) ⊓ a = ⊥ := by rw [inf_comm]; exact inf_bot a
 
 /-! ### Meets, in the form the case analysis needs -/
 
@@ -606,7 +619,7 @@ theorem map_inf' (u v : KiteUp 1 1) : map x y (u ⊓ v) = map x y u ⊓ map x y 
     rcases kite_cases v with rfl|rfl|rfl|rfl|rfl|rfl <;>
     simp [KiteUp.inf_def, ForkUp.mx, right_inf_left, left_inf_join,
       right_inf_join, left_inf_meet, right_inf_meet, meet_inf_join, inf_idem,
-      inf_top, top_inf, inf_bot, bot_inf']
+      inf_top, top_inf, inf_bot, bot_inf]
 
 theorem map_sup' (u v : KiteUp 1 1) : map x y (u ⊔ v) = map x y u ⊔ map x y v := by
   rcases kite_cases u with rfl|rfl|rfl|rfl|rfl|rfl <;>
@@ -802,10 +815,6 @@ Everything the order forces, and then the ones with content. -/
   himp_eq_top_of_le (nn_le_c s)
 @[simp] theorem tn_himp_c : ((neg s ⊔ s) ⇨ (neg s ⊔ neg (neg s))) = ⊤ :=
   himp_eq_top_of_le (tn_le_c s)
-
-/-- Implication reverses in its hypothesis. -/
-theorem himp_le_himp_left {x y z : α} (h : x ⊑ y) : (y ⇨ z) ⊑ (x ⇨ z) :=
-  le_himp_of_inf_le (le_trans (inf_le_inf le_rfl h) (himp_inf_le y z))
 
 theorem neg_himp_s : (neg s ⇨ s) = neg (neg s) := by
   refine le_antisymm ?_ (le_himp_of_inf_le (le_trans (le_of_eq (nn_inf_neg s)) (bot_le s)))

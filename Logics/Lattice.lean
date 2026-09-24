@@ -161,9 +161,22 @@ theorem bot_sup : ⊥ ⊔ a = a := sup_eq_right_iff.mpr (bot_le a)
 
 theorem inf_bot : a ⊓ ⊥ = ⊥ := (eq_bot_iff _).mpr (inf_le_right a ⊥)
 
+theorem bot_inf : ⊥ ⊓ a = ⊥ := by rw [inf_comm]; exact inf_bot a
+
 theorem sup_top : a ⊔ ⊤ = ⊤ := (eq_top_iff _).mpr (le_sup_right a ⊤)
 
 theorem top_sup : (⊤ : α) ⊔ a = ⊤ := by rw [sup_comm]; exact sup_top a
+
+/-- The join of a list, `⊥` for the empty one. -/
+def supList : List α → α
+  | [] => ⊥
+  | x :: t => x ⊔ supList t
+
+theorem le_supList : ∀ {L : List α} {x : α}, x ∈ L → x ⊑ supList L
+  | _ :: t, x, h => by
+    rcases List.mem_cons.mp h with rfl | ht
+    · exact le_sup_left _ _
+    · exact le_trans (le_supList ht) (le_sup_right _ _)
 
 end BoundedLattice
 

@@ -171,6 +171,42 @@ theorem inv_injective (f : Hom α β)
 
 end Hom
 
+/-! ## The image of a homomorphism
+
+The values of a homomorphism are closed under the operations, so whatever is
+built from values is a value again. -/
+
+namespace Hom
+
+variable {α β : Type u} [HeytingAlgebra α] [HeytingAlgebra β]
+
+/-- `b` is a value of `f`. -/
+def InImg (f : Hom α β) (b : β) : Prop := ∃ a, f.toFun a = b
+
+variable {f : Hom α β}
+
+theorem img_inf {x y : β} : f.InImg x → f.InImg y → f.InImg (x ⊓ y)
+  | ⟨a, ha⟩, ⟨b, hb⟩ => ⟨a ⊓ b, by rw [f.map_inf, ha, hb]⟩
+
+theorem img_sup {x y : β} : f.InImg x → f.InImg y → f.InImg (x ⊔ y)
+  | ⟨a, ha⟩, ⟨b, hb⟩ => ⟨a ⊔ b, by rw [f.map_sup, ha, hb]⟩
+
+theorem img_himp {x y : β} : f.InImg x → f.InImg y → f.InImg (x ⇨ y)
+  | ⟨a, ha⟩, ⟨b, hb⟩ => ⟨a ⇨ b, by rw [f.map_himp, ha, hb]⟩
+
+theorem img_bot : f.InImg ⊥ := ⟨⊥, f.map_bot⟩
+
+theorem img_top : f.InImg ⊤ := ⟨⊤, f.map_top⟩
+
+theorem img_neg {x : β} (h : f.InImg x) : f.InImg (neg x) := img_himp h img_bot
+
+theorem img_supList : ∀ {L : List β}, (∀ x ∈ L, f.InImg x) → f.InImg (supList L)
+  | [], _ => img_bot
+  | x :: _, h => img_sup (h x (List.mem_cons.mpr (Or.inl rfl)))
+      (img_supList fun y hy => h y (List.mem_cons_of_mem x hy))
+
+end Hom
+
 /-- An isomorphism puts each algebra below the other. -/
 theorem sh_of_bijective {α β : Type} [HeytingAlgebra α] [HeytingAlgebra β]
     (f : Hom α β) (hf : Function.Injective f.toFun ∧ Function.Surjective f.toFun) : SH β α :=
@@ -252,3 +288,24 @@ holds vacuously. -/
 def RefuterLB (A : Type) [iA : HeytingAlgebra A] (p : Form) : Prop :=
   ∀ (γ : Type) (iγ : HeytingAlgebra γ),
     @SH γ A iγ iA → (¬ ∀ v : Nat → γ, p.eval v = ⊤) → @SH A γ iA iγ
+
+/-- **A refuter with a coatom is minimal once its refuting subalgebras are all
+of it.**  Let `c` be the largest element short of the top, with `p` never
+dropping below it.  A homomorphic image that merges two elements sends `c` to
+the top, and `p` with it (`valid_of_collapse`).  One that merges nothing is `A`
+itself, so what lies below it is a subalgebra of `A`, and a refutation there is
+a refutation in `A` at values of the embedding.  It is then enough that such an
+embedding is onto. -/
+theorem refuterLB_of_coatom {A : Type} [HeytingAlgebra A] {p : Form} {c : A}
+    (hc : ∀ x : A, x ≠ ⊤ → x ⊑ c) (hp : ∀ v : Nat → A, c ⊑ p.eval v)
+    (honto : ∀ (γ : Type) [HeytingAlgebra γ] (h : Hom γ A), Function.Injective h.toFun →
+      ∀ v : Nat → γ, p.eval (fun n => h.toFun (v n)) ≠ ⊤ → Function.Surjective h.toFun) :
+    RefuterLB A p := by
+  intro γ iγ hsh hnv
+  obtain ⟨Q, iQ, ⟨f, hfs⟩, ⟨g, hgi⟩⟩ := hsh
+  by_cases hinj : Function.Injective f.toFun
+  · obtain ⟨h, hhi⟩ := embeds_of_iso f hinj hfs g hgi
+    obtain ⟨v, hvne⟩ := exists_ne_top hnv
+    exact sh_of_bijective h ⟨hhi, honto γ h hhi v (ne_top_of_embeds h hhi hvne)⟩
+  · obtain ⟨a, b, hab, hne⟩ := exists_collapse f hinj
+    exact absurd (valid_of_embeds ⟨g, hgi⟩ (valid_of_collapse f hfs hab hne hc hp)) hnv

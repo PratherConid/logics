@@ -44,24 +44,14 @@ theorem bd2_four_eval_ge (v : Nat → Fin 4) : (2 : Fin 4) ⊑ bd2Form.eval v :=
   inf_eq_left_iff.mp (bd2_four_ge_two (v 0) (v 1))
 
 /-- **Nothing below `Fin 4` refutes `BD2F`.** -/
-theorem refuterLB_four_bd2 : RefuterLB (Fin 4) bd2Form := by
-  intro γ iγ hsh hnv
-  obtain ⟨Q, iQ, ⟨f, hfs⟩, ⟨g, hgi⟩⟩ := hsh
-  by_cases hinj : Function.Injective f.toFun
-  · obtain ⟨h, hhi⟩ := embeds_of_iso f hinj hfs g hgi
-    obtain ⟨v, hvne⟩ := @exists_ne_top γ iγ _ hnv
-    have hfail := bd2_four_fail _ _ (ne_top_of_embeds h hhi hvne)
-    have hsurj : Function.Surjective h.toFun := by
-      intro y
-      rcases four_cases y with rfl | rfl | rfl | rfl
-      · exact ⟨⊥, h.map_bot⟩
-      · exact ⟨v 1, hfail.2⟩
-      · exact ⟨v 0, hfail.1⟩
-      · exact ⟨⊤, h.map_top⟩
-    exact @sh_of_bijective γ (Fin 4) iγ _ h ⟨hhi, hsurj⟩
-  · obtain ⟨a, b, hab, hne⟩ := exists_collapse f hinj
-    exact absurd (@valid_of_embeds γ Q iγ iQ ⟨g, hgi⟩ _
-      (valid_of_collapse f hfs hab hne four_coatom' bd2_four_eval_ge)) hnv
+theorem refuterLB_four_bd2 : RefuterLB (Fin 4) bd2Form :=
+  refuterLB_of_coatom four_coatom' bd2_four_eval_ge fun _ _ h _ v hv y => by
+    have hfail := bd2_four_fail _ _ hv
+    rcases four_cases y with rfl | rfl | rfl | rfl
+    · exact ⟨⊥, h.map_bot⟩
+    · exact ⟨v 1, hfail.2⟩
+    · exact ⟨v 0, hfail.1⟩
+    · exact ⟨⊤, h.map_top⟩
 
 /-! # Part two: which schemas derive the axiom -/
 
@@ -77,25 +67,8 @@ def upper : α := a ⊔ lower a b
 
 theorem lower_le_upper : lower a b ⊑ upper a b := le_sup_right _ _
 
-/-- Implication reverses in its hypothesis. -/
-theorem himp_le_himp_left {x y z : α} (h : x ⊑ y) : (y ⇨ z) ⊑ (x ⇨ z) :=
-  le_himp_of_inf_le (le_trans (inf_le_inf le_rfl h) (himp_inf_le y z))
-
 /-- `lower` is dense: it sits above `b ⊔ neg b`, whose negation is `⊥`. -/
-theorem neg_lower : neg (lower a b) = ⊥ :=
-  (eq_bot_iff _).mpr (le_trans (neg_antitone (le_himp_self (b ⊔ neg b) a))
-    (le_of_eq (neg_sup_neg_eq_bot b)))
-
-/-- And it is not `⊥`, given that the axiom fails. -/
-theorem lower_ne_bot (hT : upper a b ≠ ⊤) : lower a b ≠ ⊥ := by
-  intro hb
-  apply hT
-  have htop : (⊤ : α) = ⊥ := by
-    have h := neg_lower a b
-    rw [hb] at h
-    rw [← h]
-    exact (neg_bot (α := α)).symm
-  exact le_antisymm (le_top _) (le_trans (le_of_eq htop) (bot_le _))
+theorem neg_lower : neg (lower a b) = ⊥ := neg_himp_sup_neg_eq_bot a b
 
 /-- **Pure currying.**  The arrow out of `a ⊔ lower` is at most the arrow out
 of `a`, and `a ⇨ (a ⇨ c)` collapses to `a ⇨ c`. -/
@@ -105,15 +78,6 @@ theorem upper_himp_lower : (upper a b ⇨ lower a b) = lower a b := by
   show (a ⇨ (a ⇨ (b ⊔ neg b))) ⊑ lower a b
   rw [← himp_curry, inf_idem]
   exact le_rfl
-
-/-- So the two are distinct, and the chain has four elements. -/
-theorem lower_ne_upper (hT : upper a b ≠ ⊤) : lower a b ≠ upper a b := by
-  intro he
-  apply hT
-  have h := upper_himp_lower a b
-  rw [← he] at h
-  rw [← he, ← h]
-  exact himp_eq_top_of_le le_rfl
 
 end BD2Witness
 
@@ -126,8 +90,7 @@ theorem sh_four_of_refutes_bd2 (α : Type) (iα : HeytingAlgebra α)
   have hT : @upper α iα (v 0) (v 1) ≠ ⊤ := hv
   exact @four_embeds α iα (lower (v 0) (v 1)) (upper (v 0) (v 1))
     (lower_le_upper (v 0) (v 1)) (neg_lower (v 0) (v 1))
-    (upper_himp_lower (v 0) (v 1)) (lower_ne_bot (v 0) (v 1) hT)
-    (lower_ne_upper (v 0) (v 1) hT) hT
+    (upper_himp_lower (v 0) (v 1)) hT
 
 /-- **The criterion.**  A schema derives `BD2F` exactly when it misses the top
 value in `Fin 4` — one algebra, no conjunction. -/
@@ -136,9 +99,5 @@ theorem derivesFromSchema_bd2_iff (X : Form) :
   constructor
   · intro h hv
     exact bd2Form_nvalid_four (DerivesFromSchema.valid hv h _)
-  · intro hX
-    refine Lindenbaum.derivesFromSchema_iff.mpr ?_
-    intro α iα hv v
-    refine Classical.byContradiction fun hne => ?_
-    have hnv : ¬ ∀ u : Nat → α, bd2Form.eval u = ⊤ := fun hall => hne (hall v)
-    exact hX (@valid_of_sh (Fin 4) α _ iα (sh_four_of_refutes_bd2 α iα hnv) _ hv)
+  · exact fun hX => DerivesFromSchema.of_sh fun α iα hnv =>
+      ⟨Fin 4, inferInstance, sh_four_of_refutes_bd2 α iα hnv, hX⟩

@@ -38,10 +38,6 @@ section Core
 
 variable {α : Type} [HeytingAlgebra α]
 
-/-- A negation lies below every arrow out of what it negates. -/
-theorem neg_le_himp (a b : α) : neg a ⊑ (a ⇨ b) :=
-  le_himp_of_inf_le (le_trans (himp_inf_le a ⊥) (bot_le b))
-
 /-- **Where the double negation does its work.**  An arrow into an excluded
 middle, cut down by the double negation of its subject, is an arrow into the
 subject: the other half of the excluded middle is ruled out. -/
@@ -99,14 +95,10 @@ theorem derivesFromSchema_linearity_iff (X : Form) :
   · intro h
     exact ⟨fun hv => linearityForm_nvalid_fork (DerivesFromSchema.valid hv h _),
       fun hv => linearityForm_nvalid_kite (DerivesFromSchema.valid hv h _)⟩
-  · intro hX
-    refine Lindenbaum.derivesFromSchema_iff.mpr ?_
-    intro α iα hv v
-    refine Classical.byContradiction fun hne => ?_
-    have hnv : ¬ ∀ u : Nat → α, linearityForm.eval u = ⊤ := fun hall => hne (hall v)
-    rcases sh_fork_or_kite_of_refutes_linearity α iα hnv with hs | hs
-    · exact hX.1 (@valid_of_sh (ForkUp 1 1) α _ iα hs _ hv)
-    · exact hX.2 (@valid_of_sh (KiteUp 1 1) α _ iα hs _ hv)
+  · exact fun hX => DerivesFromSchema.of_sh fun α iα hnv =>
+      (sh_fork_or_kite_of_refutes_linearity α iα hnv).elim
+        (fun hs => ⟨ForkUp 1 1, inferInstance, hs, hX.1⟩)
+        (fun hs => ⟨KiteUp 1 1, inferInstance, hs, hX.2⟩)
 
 /-! # Part two: neither refuter can be shrunk, and neither can be dropped -/
 
@@ -122,25 +114,15 @@ theorem linearity_fork_fail : ∀ a b : ForkUp 1 1, ((a ⇨ b) ⊔ (b ⇨ a)) �
     ∀ z : ForkUp 1 1, z = ⊥ ∨ z = ⊤ ∨ z = a ∨ z = b ∨ z = a ⊔ b := by decide
 
 /-- **Nothing below the fork refutes linearity.** -/
-theorem refuterLB_fork_linearity : RefuterLB (ForkUp 1 1) linearityForm := by
-  intro γ iγ hsh hnv
-  obtain ⟨Q, iQ, ⟨f, hfs⟩, ⟨g, hgi⟩⟩ := hsh
-  by_cases hinj : Function.Injective f.toFun
-  · obtain ⟨h, hhi⟩ := embeds_of_iso f hinj hfs g hgi
-    obtain ⟨v, hvne⟩ := @exists_ne_top γ iγ _ hnv
-    have hfail := linearity_fork_fail _ _ (ne_top_of_embeds h hhi hvne)
-    have hsurj : Function.Surjective h.toFun := by
-      intro z
-      rcases hfail z with hz | hz | hz | hz | hz
-      · exact ⟨⊥, by rw [h.map_bot, hz]⟩
-      · exact ⟨⊤, by rw [h.map_top, hz]⟩
-      · exact ⟨v 0, hz.symm⟩
-      · exact ⟨v 1, hz.symm⟩
-      · exact ⟨v 0 ⊔ v 1, by rw [h.map_sup]; exact hz.symm⟩
-    exact @sh_of_bijective γ (ForkUp 1 1) iγ _ h ⟨hhi, hsurj⟩
-  · obtain ⟨a, b, hab, hne⟩ := exists_collapse f hinj
-    exact absurd (@valid_of_embeds γ Q iγ iQ ⟨g, hgi⟩ _
-      (valid_of_collapse f hfs hab hne fork_coatom' linearityForm_fork_eval_ge)) hnv
+theorem refuterLB_fork_linearity : RefuterLB (ForkUp 1 1) linearityForm :=
+  refuterLB_of_coatom fork_coatom' linearityForm_fork_eval_ge fun _ _ h _ v hv z => by
+    have hfail := linearity_fork_fail _ _ hv
+    rcases hfail z with hz | hz | hz | hz | hz
+    · exact ⟨⊥, by rw [h.map_bot, hz]⟩
+    · exact ⟨⊤, by rw [h.map_top, hz]⟩
+    · exact ⟨v 0, hz.symm⟩
+    · exact ⟨v 1, hz.symm⟩
+    · exact ⟨v 0 ⊔ v 1, by rw [h.map_sup]; exact hz.symm⟩
 
 theorem linearity_kite_ge_coatom : ∀ a b : KiteUp 1 1,
     ((KiteUp.tails 0 0 : KiteUp 1 1) ⊓ ((a ⇨ b) ⊔ (b ⇨ a))) = KiteUp.tails 0 0 := by
@@ -155,26 +137,16 @@ theorem linearity_kite_fail : ∀ a b : KiteUp 1 1, ((a ⇨ b) ⊔ (b ⇨ a)) �
   decide
 
 /-- **Nothing below the diamond refutes linearity either.** -/
-theorem refuterLB_kite_linearity : RefuterLB (KiteUp 1 1) linearityForm := by
-  intro γ iγ hsh hnv
-  obtain ⟨Q, iQ, ⟨f, hfs⟩, ⟨g, hgi⟩⟩ := hsh
-  by_cases hinj : Function.Injective f.toFun
-  · obtain ⟨h, hhi⟩ := embeds_of_iso f hinj hfs g hgi
-    obtain ⟨v, hvne⟩ := @exists_ne_top γ iγ _ hnv
-    have hfail := linearity_kite_fail _ _ (ne_top_of_embeds h hhi hvne)
-    have hsurj : Function.Surjective h.toFun := by
-      intro z
-      rcases hfail z with hz | hz | hz | hz | hz | hz
-      · exact ⟨⊥, by rw [h.map_bot, hz]⟩
-      · exact ⟨⊤, by rw [h.map_top, hz]⟩
-      · exact ⟨v 0, hz.symm⟩
-      · exact ⟨v 1, hz.symm⟩
-      · exact ⟨v 0 ⊓ v 1, by rw [h.map_inf]; exact hz.symm⟩
-      · exact ⟨v 0 ⊔ v 1, by rw [h.map_sup]; exact hz.symm⟩
-    exact @sh_of_bijective γ (KiteUp 1 1) iγ _ h ⟨hhi, hsurj⟩
-  · obtain ⟨a, b, hab, hne⟩ := exists_collapse f hinj
-    exact absurd (@valid_of_embeds γ Q iγ iQ ⟨g, hgi⟩ _
-      (valid_of_collapse f hfs hab hne kite_coatom' linearityForm_kite_eval_ge)) hnv
+theorem refuterLB_kite_linearity : RefuterLB (KiteUp 1 1) linearityForm :=
+  refuterLB_of_coatom kite_coatom' linearityForm_kite_eval_ge fun _ _ h _ v hv z => by
+    have hfail := linearity_kite_fail _ _ hv
+    rcases hfail z with hz | hz | hz | hz | hz | hz
+    · exact ⟨⊥, by rw [h.map_bot, hz]⟩
+    · exact ⟨⊤, by rw [h.map_top, hz]⟩
+    · exact ⟨v 0, hz.symm⟩
+    · exact ⟨v 1, hz.symm⟩
+    · exact ⟨v 0 ⊓ v 1, by rw [h.map_inf]; exact hz.symm⟩
+    · exact ⟨v 0 ⊔ v 1, by rw [h.map_sup]; exact hz.symm⟩
 
 /-- The fork is not below the diamond: weak excluded middle holds in the
 diamond and fails in the fork. -/

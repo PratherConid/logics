@@ -1,4 +1,4 @@
-import Logics.Heyting
+import Logics.Homomorphism
 
 /-!
 # The Lindenbaum algebra
@@ -22,6 +22,8 @@ from `X` is established by exhibiting a single algebra validating `X`, and
 derivability by ranging over all of them, so the two techniques are
 interchangeable.  Taking `X` to be `⊤`, which says nothing, gives the
 unrelativized statement: a formula is derivable exactly when it is valid.
+Since validity travels down the Jankov order, the algebras to range over can be
+taken low in it (`DerivesFromSchema.of_sh`).
 -/
 
 /-! ## Entailment over a schema -/
@@ -374,3 +376,15 @@ theorem DerivesFromSchema.trans {X Y Z : Form}
     DerivesFromSchema X Z :=
   Lindenbaum.schema_completeness fun _ _ hX v =>
     DerivesFromSchema.valid (fun w => DerivesFromSchema.valid hX h₁ w) h₂ v
+
+/-- **Deriving through the order.**  If below every algebra refuting `p` lies
+one refuting the schema, the schema derives `p`: an algebra validating the
+schema validates everything below it, so it cannot refute `p`. -/
+theorem DerivesFromSchema.of_sh {X p : Form}
+    (h : ∀ (α : Type) [HeytingAlgebra α], (¬ ∀ v : Nat → α, p.eval v = ⊤) →
+      ∃ (A : Type) (_ : HeytingAlgebra A), SH A α ∧ ¬ ∀ w : Nat → A, X.eval w = ⊤) :
+    DerivesFromSchema X p := by
+  refine Lindenbaum.derivesFromSchema_iff.mpr fun α _ hX v => ?_
+  refine Classical.byContradiction fun hne => ?_
+  obtain ⟨A, _, hsh, hA⟩ := h α fun hall => hne (hall v)
+  exact hA (valid_of_sh hsh hX)
