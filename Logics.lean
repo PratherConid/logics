@@ -5,6 +5,7 @@ import Logics.Heyting
 import Logics.Lindenbaum
 import Logics.Homomorphism
 import Logics.FiniteFrame
+import Logics.Birkhoff
 import Logics.ConcreteEmbed
 import Logics.Filter
 import Logics.Jankov

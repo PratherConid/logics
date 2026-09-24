@@ -56,10 +56,9 @@ other, to the one point seeing neither, and to the root.
 
 ## What is not here
 
-The theorem constrains the members of `𝓜` and produces none.  That the frames of
-the first regime, and those of the second found by search, are each in `𝓜` is
-checked by machine but not formalised; so is the count of members by size that
-suggests there are infinitely many.
+The theorem constrains the members of `𝓜` and produces none.  That the three
+frames of the first regime are members is checked by machine but not
+formalised.
 -/
 
 open PartialOrder Lattice BoundedLattice HeytingAlgebra

@@ -11,6 +11,7 @@ import Logics.IntermediateAxioms.Refuter.LCRefuter
 import Logics.IntermediateAxioms.Refuter.ScottRefuter
 import Logics.IntermediateAxioms.Refuter.KPRefuter
 import Logics.IntermediateAxioms.Refuter.KPMinimal
+import Logics.IntermediateAxioms.Refuter.KPInfinite
 
 /-!
 # Axioms of the intermediate logics
@@ -43,4 +44,6 @@ infinite one.
   complete for every schema with the finite model property
 * `Refuter.KPMinimal`        -- the shape of that list's minimal members: two
   regimes, one with at most three frames and one with a fixed pure part
+* `Refuter.KPInfinite`       -- those minimal members are infinitely many: a
+  ladder of frames, one of each size from seven points up
 -/

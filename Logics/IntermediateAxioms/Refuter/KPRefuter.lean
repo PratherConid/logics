@@ -15,17 +15,30 @@ list, proves it sound, and proves it complete wherever completeness can be had.
 
 ## The condition
 
-A point `r` and an upward closed set `a` cut out a region, `↑r ⊓ ¬a`: the
-points above `r` that refute `a` outright.  The axiom holds at `r` for every
-`b` and `c` exactly when that region is entered at a single point
-(`kp_top_iff_principal`), and fails exactly when it is entered at two
-unrelated points (`kp_ntop_iff_splits`).  So refuting the axiom is never about
-the two disjuncts; they only witness a fork the frame already has.
+Everything here is about a frame `P`: a preorder of points, with the
+variables ranging over its upward closed sets.  The axiom holds at a point
+when that point lies in its value under every choice of the variables, and
+holds in the frame when it holds at every point, that is, when its value in
+`Upset P` is always the top.  The condition below is a property of the order
+on points; no algebra appears in it.
 
-One entrance suffices in any frame, with no finiteness at all.  The converse
-needs minimal points, which `HasMinimal` names and every finite frame has
-(`hasMinimal_of_list`).  Everything is stated for preorders, so the proofs
-never compare points for equality.
+A point `r` of the frame and an upward closed set of points `a` cut out a
+region, `↑r ⊓ ¬a`: the points above `r` that have no point of `a` above them.
+The axiom holds in the frame exactly when every such region is entered at a
+single point (`kp_top_iff_principal`), and fails exactly when some region is
+entered at two unrelated points (`kp_ntop_iff_splits`).  So refuting the axiom
+is never about the two disjuncts; they only witness a fork the frame already
+has.
+
+The condition is about the whole frame, not one point.  The axiom holds at `r`
+only if the region at `r` has one entrance, but that is not enough: holding at
+`r` means holding at every point above `r`, and a region further up can still
+be entered twice.
+
+Every region having one entrance suffices in any frame, with no finiteness at
+all.  The converse needs minimal points, which `HasMinimal` names and every
+finite frame has (`hasMinimal_of_list`).  Everything is stated for preorders,
+so the proofs never compare points for equality.
 
 ## The list
 
@@ -52,13 +65,12 @@ property.  No computation over finite frames can reach that question.
 
 ## Why the list is infinite
 
-This section is argued, not formalised.  A list that is a criterion must
-contain every member of `𝓜`, the frames of `𝓛` minimal in the Jankov order.
-A list that decided the axiom on arbitrary algebras, rather than schema by
-schema, would by compactness have to be finite.  A search outside Lean over
-every frame with at most nine points finds new members of `𝓜` at each size --
-one with four points, two with five, three with six, three with seven, five
-with eight and six with nine -- so neither kind of finite list is expected.
+`𝓜`, the frames of `𝓛` minimal in the Jankov order, is infinite: a ladder of
+frames, one of each size from seven points up, are all members.  Two steps from
+there are argued rather than formalised.  A list that is a criterion must
+contain every member of `𝓜`; and a list that decided the axiom on arbitrary
+algebras, rather than schema by schema, would by compactness have to be finite.
+So no finite list of either kind exists.
 -/
 
 open PartialOrder Lattice BoundedLattice HeytingAlgebra

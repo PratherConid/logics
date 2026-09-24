@@ -209,6 +209,18 @@ theorem neg_antitone {a b : α} (h : a ⊑ b) : neg b ⊑ neg a :=
 
 end HeytingAlgebra
 
+/-- **A Heyting algebra is distributive**: split `a ⊓ (b ⊔ c)` by `sup_cases`
+along `b ⊔ c`. -/
+instance HeytingAlgebra.distrib {α : Type u} [HeytingAlgebra α] : Distrib α where
+  inf_sup_le a b c := by
+    refine HeytingAlgebra.sup_cases (Lattice.inf_le_right a (b ⊔ c)) ?_ ?_
+    · exact PartialOrder.le_trans (Lattice.le_inf
+        (PartialOrder.le_trans (Lattice.inf_le_right _ _) (Lattice.inf_le_left _ _))
+        (Lattice.inf_le_left _ _)) (Lattice.le_sup_left _ _)
+    · exact PartialOrder.le_trans (Lattice.le_inf
+        (PartialOrder.le_trans (Lattice.inf_le_right _ _) (Lattice.inf_le_left _ _))
+        (Lattice.inf_le_left _ _)) (Lattice.le_sup_right _ _)
+
 /-- The arrow of a product is taken componentwise too, the adjunction holding
 in each component separately. -/
 instance HProd.instHeytingAlgebra {α β : Type u}

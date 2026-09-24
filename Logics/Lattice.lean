@@ -167,6 +167,17 @@ theorem top_sup : (⊤ : α) ⊔ a = ⊤ := by rw [sup_comm]; exact sup_top a
 
 end BoundedLattice
 
+/-! ## Distributive lattices
+
+A lattice is distributive when meet distributes over join.  One inequality is
+enough, the other holding in every lattice.  Being distributive is a property of
+a lattice rather than more structure on it, so it is a class of propositions
+over `Lattice`. -/
+
+/-- Meet distributes over join. -/
+class Distrib (α : Type u) [Lattice α] : Prop where
+  inf_sup_le : ∀ a b c : α, a ⊓ (b ⊔ c) ⊑ (a ⊓ b) ⊔ (a ⊓ c)
+
 /-! ## Products
 
 Two orders side by side, compared componentwise.  Nothing here is specific to
