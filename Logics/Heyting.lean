@@ -495,6 +495,11 @@ def neg (p : Form) : Form := .imp p .fls
 /-- `⊤` abbreviates `⊥ → ⊥`. -/
 def tru : Form := .imp .fls .fls
 
+/-- The conjunction of a list of formulas, `⊤` when the list is empty. -/
+def conj : List Form → Form
+  | [] => tru
+  | p :: ps => .and p (conj ps)
+
 end Form
 
 /-! ## Models -/
@@ -635,6 +640,39 @@ theorem trans {Δ : List Form} {r : Form} (d : Δ ⊢ r) :
       intro _ hs; exact .orE (ih hs) (ih₁ (derives_cons hs _)) (ih₂ (derives_cons hs _))
   | impI _ ih => intro _ hs; exact .impI (ih (derives_cons hs _))
   | impE _ _ ih₁ ih₂ => intro _ hs; exact .impE (ih₁ hs) (ih₂ hs)
+
+/-- A conjunction of a list follows from its members. -/
+theorem conj_intro {Γ : List Form} : ∀ {ps : List Form}, (∀ q ∈ ps, Γ ⊢ q) → Γ ⊢ Form.conj ps
+  | [], _ => Derives.tru
+  | _ :: _, h =>
+    .andI (h _ (List.mem_cons_self ..)) (conj_intro fun q hq => h q (List.mem_cons_of_mem _ hq))
+
+/-- Each member of a list follows from its conjunction. -/
+theorem conj_elim {Γ : List Form} :
+    ∀ {ps : List Form} {q : Form}, (Γ ⊢ Form.conj ps) → q ∈ ps → Γ ⊢ q
+  | [], _, _, h => nomatch h
+  | _ :: _, _, d, h => by
+    rcases List.mem_cons.mp h with rfl | h
+    · exact .andE₁ d
+    · exact conj_elim (.andE₂ d) h
+
+/-- **Joining derivations.**  When each formula of a list is derived from
+formulas with a property `P`, one list of such formulas derives them all: the
+concatenation of the lists, each derivation weakened to it. -/
+theorem jointly {P : Form → Prop} : ∀ {Δ : List Form},
+    (∀ q ∈ Δ, ∃ Θ : List Form, (∀ r ∈ Θ, P r) ∧ (Θ ⊢ q)) →
+      ∃ Θ : List Form, (∀ r ∈ Θ, P r) ∧ ∀ q ∈ Δ, Θ ⊢ q
+  | [], _ => ⟨[], (fun _ h => nomatch h), (fun _ h => nomatch h)⟩
+  | q :: _, h => by
+    obtain ⟨Θ₁, hΘ₁, d₁⟩ := h q (List.mem_cons_self ..)
+    obtain ⟨Θ₂, hΘ₂, d₂⟩ := jointly fun r hr => h r (List.mem_cons_of_mem _ hr)
+    refine ⟨Θ₁ ++ Θ₂, fun r hr => ?_, fun r hr => ?_⟩
+    · rcases List.mem_append.mp hr with hr | hr
+      · exact hΘ₁ r hr
+      · exact hΘ₂ r hr
+    · rcases List.mem_cons.mp hr with rfl | hr
+      · exact d₁.weaken _ fun _ h => List.mem_append_left _ h
+      · exact (d₂ r hr).weaken _ fun _ h => List.mem_append_right _ h
 
 theorem evalCtx_le_of_mem {α : Type u} [HeytingAlgebra α] (v : Nat → α) {p : Form}
     {Γ : List Form} (h : p ∈ Γ) : evalCtx v Γ ⊑ p.eval v := by
@@ -783,6 +821,14 @@ theorem Form.subst_subst (σ τ : Nat → Form) :
   | .or p q => by show Form.or _ _ = Form.or _ _; rw [subst_subst σ τ p, subst_subst σ τ q]
   | .imp p q => by show Form.imp _ _ = Form.imp _ _; rw [subst_subst σ τ p, subst_subst σ τ q]
 
+/-- Substituting into a conjunction of a list substitutes into each member. -/
+theorem Form.conj_subst (σ : Nat → Form) :
+    ∀ ps : List Form, (Form.conj ps).subst σ = Form.conj (ps.map (Form.subst σ))
+  | [] => rfl
+  | _ :: ps => by
+    show Form.and _ _ = Form.and _ _
+    rw [conj_subst σ ps]
+
 /-- **Substitution preserves derivations.**  Replacing the variables throughout
 a derivation, in its hypotheses and its conclusion alike, gives a derivation
 again, since every rule is schematic in the formulas it mentions. -/
@@ -836,32 +882,21 @@ theorem refl (X : Form) : DerivesFromSchema X X :=
 /-- **Derivability from a schema is transitive.**  Each instance of `Y` that
 the derivation of `Z` uses is derived from instances of `X`, by substituting
 into the derivation of `Y` (`Derives.subst`); an instance of an instance of `X`
-is an instance of `X` (`Form.subst_subst`); and cutting those derivations
-against the hypotheses of the derivation of `Z` (`Derives.trans`) leaves one
-from instances of `X` alone. -/
+is an instance of `X` (`Form.subst_subst`); and joining those derivations
+(`Derives.jointly`) and cutting them against the hypotheses of the derivation
+of `Z` (`Derives.trans`) leaves one from instances of `X` alone. -/
 theorem trans {X Y Z : Form} (h₁ : DerivesFromSchema X Y) (h₂ : DerivesFromSchema Y Z) :
     DerivesFromSchema X Z := by
   obtain ⟨Γ, hΓ, dY⟩ := h₁
   obtain ⟨Δ, hΔ, dZ⟩ := h₂
-  suffices H : ∀ Δ : List Form, (∀ q ∈ Δ, ∃ τ : Nat → Form, q = Y.subst τ) →
-      ∃ Θ : List Form, (∀ r ∈ Θ, ∃ ρ : Nat → Form, r = X.subst ρ) ∧ ∀ q ∈ Δ, Θ ⊢ q by
-    obtain ⟨Θ, hΘ, hq⟩ := H Δ hΔ
-    exact ⟨Θ, hΘ, dZ.trans hq⟩
-  intro Δ hΔ
-  induction Δ with
-  | nil => exact ⟨[], (fun _ h => nomatch h), (fun _ h => nomatch h)⟩
-  | cons q Δ ih =>
-    obtain ⟨τ, rfl⟩ := hΔ q (List.mem_cons_self ..)
-    obtain ⟨Θ, hΘ, hd⟩ := ih fun r hr => hΔ r (List.mem_cons_of_mem _ hr)
-    refine ⟨Γ.map (Form.subst τ) ++ Θ, fun r hr => ?_, fun r hr => ?_⟩
-    · rcases List.mem_append.mp hr with hr | hr
-      · obtain ⟨s, hs, rfl⟩ := List.mem_map.mp hr
-        obtain ⟨σ, rfl⟩ := hΓ s hs
-        exact ⟨_, Form.subst_subst σ τ X⟩
-      · exact hΘ r hr
-    · rcases List.mem_cons.mp hr with rfl | hr
-      · exact (dY.subst τ).weaken _ fun _ h => List.mem_append_left _ h
-      · exact (hd r hr).weaken _ fun _ h => List.mem_append_right _ h
+  obtain ⟨Θ, hΘ, hq⟩ := Derives.jointly (P := fun r => ∃ ρ : Nat → Form, r = X.subst ρ)
+    fun q hq => by
+      obtain ⟨τ, rfl⟩ := hΔ q hq
+      refine ⟨Γ.map (Form.subst τ), fun r hr => ?_, dY.subst τ⟩
+      obtain ⟨s, hs, rfl⟩ := List.mem_map.mp hr
+      obtain ⟨σ, rfl⟩ := hΓ s hs
+      exact ⟨_, Form.subst_subst σ τ X⟩
+  exact ⟨Θ, hΘ, dZ.trans hq⟩
 
 /-- A schema derives what one of its instances entails. -/
 theorem of_ent {X A p : Form} (h : Ent A p) (hA : ∃ σ : Nat → Form, A = X.subst σ) :
@@ -881,6 +916,38 @@ theorem of_ent_self {X p : Form} (h : Ent X p) : DerivesFromSchema X p :=
   of_ent h ⟨.var, (Form.subst_var X).symm⟩
 
 end DerivesFromSchema
+
+/-- `p` follows from the schemas `Xs` together when some finite list of
+substitution instances of members of `Xs` derives it. -/
+def DerivesFromSchemas (Xs : List Form) (p : Form) : Prop :=
+  ∃ Γ : List Form, (∀ q ∈ Γ, ∃ X ∈ Xs, ∃ σ : Nat → Form, q = X.subst σ) ∧ (Γ ⊢ p)
+
+/-- **Several schemas are their conjunction.**  An instance of a member follows
+from the conjunction's instance at the same substitution, and that instance from
+the members' instances there (`Form.conj_subst`); joining the derivations
+(`Derives.jointly`) and cutting them against the given one turns a derivation
+from either kind of instance into one from the other. -/
+theorem DerivesFromSchemas.iff_conj {Xs : List Form} {p : Form} :
+    DerivesFromSchemas Xs p ↔ DerivesFromSchema (Form.conj Xs) p := by
+  constructor
+  · rintro ⟨Γ, hΓ, d⟩
+    obtain ⟨Θ, hΘ, hq⟩ := Derives.jointly
+      (P := fun r => ∃ σ : Nat → Form, r = (Form.conj Xs).subst σ) fun q hq => by
+        obtain ⟨X, hX, σ, rfl⟩ := hΓ q hq
+        refine ⟨[(Form.conj Xs).subst σ], fun r hr => ⟨σ, List.mem_singleton.mp hr⟩, ?_⟩
+        rw [Form.conj_subst]
+        exact Derives.conj_elim (.ax (List.mem_cons_self ..)) (List.mem_map_of_mem hX)
+    exact ⟨Θ, hΘ, d.trans hq⟩
+  · rintro ⟨Γ, hΓ, d⟩
+    obtain ⟨Θ, hΘ, hq⟩ := Derives.jointly
+      (P := fun r => ∃ X ∈ Xs, ∃ σ : Nat → Form, r = X.subst σ) fun q hq => by
+        obtain ⟨σ, rfl⟩ := hΓ q hq
+        refine ⟨Xs.map (Form.subst σ), fun r hr => ?_, ?_⟩
+        · obtain ⟨X, hX, rfl⟩ := List.mem_map.mp hr
+          exact ⟨X, hX, σ, rfl⟩
+        · rw [Form.conj_subst]
+          exact Derives.conj_intro fun r hr => .ax hr
+    exact ⟨Θ, hΘ, d.trans hq⟩
 
 /-- Two schemas derive each other: they axiomatise the same logic. -/
 def SchemaEquiv (X Y : Form) : Prop := DerivesFromSchema X Y ∧ DerivesFromSchema Y X

@@ -24,8 +24,9 @@ a `cut` at the formula it states, and using another entailment is `Ent.mp`.
 **The derivations.**  An entailment from an instance of `X` is a derivation
 from the schema `X` (`DerivesFromSchema.of_ent`, `of_ent₂` for two
 instances), given the substitution producing the instance, `Form.args [s, t]`
-for `X s t`.  Each class ends with its members' equivalence to the class's
-representative (`SchemaEquiv`).
+for `X s t`; a derivation from instances of several schemas together is
+`DerivesFromSchemas`.  Each class ends with its members' equivalence to the
+class's representative (`SchemaEquiv`).
 
 **The shifts.**  Most entailments take one principle at a *shifted* instance
 and conclude another at the plain one.  The shifts are what make the combined
@@ -577,8 +578,8 @@ theorem pierce₁₂OrLuk₂₁_ent_demorgan₁₂OrLuk₁₂ :
 /-- `demorgan₁₂OrLuk₁₂Form` at `a → b` and `a` gives `em₁OrLuk₂₁Form`, through
 `demorgan₁₂OrLuk₁₂_himp_ent`. -/
 theorem demorgan₁₂OrLuk₁₂_ent_em₁OrLuk₂₁ :
-    Ent (demorgan₁₂OrLuk₁₂Form (.imp (.var 0) (.var 1)) (.var 0)) (em₁OrLuk₂₁Form (.var 0) (.var 1))
-      :=
+    Ent (demorgan₁₂OrLuk₁₂Form (.imp (.var 0) (.var 1)) (.var 0))
+      (em₁OrLuk₂₁Form (.var 0) (.var 1)) :=
   .orE ((demorgan₁₂OrLuk₁₂_himp_ent _ _).mp .h₀) (.orI₁ (.orI₁ .h₀)) (.orI₂ .h₀)
 
 /-- Excluded middle gives double negation elimination, in the left disjunct. -/
@@ -708,8 +709,8 @@ theorem derives_em₁OrLuk₂₁_of_bd2 :
   .of_ent bd2_ent_em₁OrLuk₂₁ ⟨Form.args [excludedMiddleForm (.var 0), .var 1], rfl⟩
 
 theorem derives_em₁OrLuk₂₁_of_demorgan₁₂OrLuk₁₂ :
-    DerivesFromSchema (demorgan₁₂OrLuk₁₂Form (.var 0) (.var 1)) (em₁OrLuk₂₁Form (.var 0) (.var 1))
-      :=
+    DerivesFromSchema (demorgan₁₂OrLuk₁₂Form (.var 0) (.var 1))
+      (em₁OrLuk₂₁Form (.var 0) (.var 1)) :=
   .of_ent demorgan₁₂OrLuk₁₂_ent_em₁OrLuk₂₁ ⟨Form.args [.imp (.var 0) (.var 1), .var 0], rfl⟩
 
 theorem derives_notNot₁OrLuk₂₁_of_em₁OrLuk₂₁ :
@@ -731,8 +732,8 @@ theorem derives_demorgan₁₂OrLuk₁₂_of_pierce₁₂OrLuk₂₁ :
       ⟨Form.args [.or (.var 1) (.imp (.var 1) (.var 0)), .var 0], rfl⟩
 
 theorem derives_pierce₁₂OrLuk₂₁_of_cm₁OrPeirce₂₁ :
-    DerivesFromSchema (cm₁OrPeirce₂₁Form (.var 0) (.var 1)) (pierce₁₂OrLuk₂₁Form (.var 0) (.var 1))
-      :=
+    DerivesFromSchema (cm₁OrPeirce₂₁Form (.var 0) (.var 1))
+      (pierce₁₂OrLuk₂₁Form (.var 0) (.var 1)) :=
   .of_ent cm₁OrPeirce₂₁_ent_pierce₁₂OrLuk₂₁ ⟨Form.args [.var 1, .var 0], rfl⟩
 
 theorem derives_cm₁OrPeirce₂₁_of_demorgan₁₂OrLuk₁₂ :
@@ -916,8 +917,8 @@ theorem notNotAnd_ent_noDiamond :
 `impOrForm`'s premise available under `b` and turns Łukasiewicz's conclusion
 into `a → b`. -/
 theorem impOr₁₂OrLuk₂₁_ent_luk₁₂OrLuk₂₁ :
-    Ent (impOr₁₂OrLuk₂₁Form (.var 0) (.and (.var 0) (.var 1))) (luk₁₂OrLuk₂₁Form (.var 0) (.var 1))
-      :=
+    Ent (impOr₁₂OrLuk₂₁Form (.var 0) (.and (.var 0) (.var 1)))
+      (luk₁₂OrLuk₂₁Form (.var 0) (.var 1)) :=
   .orE .h₀                              -- cases h
     (.orI₁ ((impOr_and_ent_luk _ _).mp .h₀))  -- | inl hIO => Or.inl (…)
     (.orI₂ (.impI (.impI (.andE₂ (.impE (.impE .h₂  -- | inr hLuk => Or.inr; intro hba ha
@@ -1072,8 +1073,8 @@ theorem impOr₁₂OrLuk₂₁_ent_pierce₁₂OrLuk₁₂ :
     (.orI₂ ((luk_sup_ent _ _).mp .h₀))  -- | inr hLuk
 
 theorem derives_pierce₁₂OrLuk₁₂_of_impOr₁₂OrLuk₂₁ :
-    DerivesFromSchema (impOr₁₂OrLuk₂₁Form (.var 0) (.var 1)) (pierce₁₂OrLuk₁₂Form (.var 0) (.var 1))
-      :=
+    DerivesFromSchema (impOr₁₂OrLuk₂₁Form (.var 0) (.var 1))
+      (pierce₁₂OrLuk₁₂Form (.var 0) (.var 1)) :=
   .of_ent impOr₁₂OrLuk₂₁_ent_pierce₁₂OrLuk₁₂ ⟨Form.args [.or (.var 0) (.var 1), .var 0], rfl⟩
 
 /-- **`noDiamondForm` derives `pierce₁₂OrLuk₁₂Form`**, through two other members
@@ -1248,7 +1249,405 @@ theorem noForkUp2x2_ent_noForkUp2x2Var3 :
                                         -- | inr hna => hQ.1 (Or.inl (fun ha => absurd ha hna))
 
 theorem noForkUp2x2_equiv_noForkUp2x2Var3 :
-    SchemaEquiv (noForkUp2x2Form (.var 0) (.var 1)) (noForkUp2x2Var3Form (.var 0) (.var 1) (.var 2))
-      :=
+    SchemaEquiv (noForkUp2x2Form (.var 0) (.var 1))
+      (noForkUp2x2Var3Form (.var 0) (.var 1) (.var 2)) :=
   ⟨.of_ent noForkUp2x2_ent_noForkUp2x2Var3 ⟨Form.args [.var 0, .var 2], rfl⟩,
    .of_ent noForkUp2x2Var3_ent_noForkUp2x2 ⟨Form.args [.var 0, Form.neg (.var 0), .var 1], rfl⟩⟩
+
+/-! ## `pierce₁₂OrLuk₁₂Form` and the principles of its three smallest refuters
+
+Among the finite frames, `pierce₁₂OrLuk₁₂Form` is refuted by three smallest
+ones: the uneven kite, the diamond with a hair and the tall fork.  Each of them
+is the only smallest refuter of a principle of its own, `noKiteUp1x2Form`,
+`noDiamondHairForm` and `noForkUp2x2Form`, and each of those follows from a
+single instance of `pierce₁₂OrLuk₁₂Form`.  The instances share a pattern: the
+Łukasiewicz disjunct's premise is provable or granted, so that disjunct gives
+the conclusion, or directly what the premise needs; the Peirce disjunct instead
+discharges the principle's premise. -/
+
+/-- At `a ∨ ¬ a, b`, Łukasiewicz's premise `¬ (a ∨ ¬ a) → ¬ b` is provable
+(`nn_em`), leaving `b → a ∨ ¬ a`, the conclusion's right disjunct.  Peirce's law
+there gives `noKiteUp1x2Form`'s premise, Peirce's law at `a` and `b ∨ ¬ b`:
+given `j : (a → b ∨ ¬ b) → a`, it decides `a`, from an arrow `k` out of
+`a ∨ ¬ a` into `b` through `fun ha => Or.inl (k (Or.inl ha))`.  The resulting
+`a ∨ b` gives the conclusion either way. -/
+theorem pierce₁₂OrLuk₁₂_ent_noKiteUp1x2 :
+    Ent (pierce₁₂OrLuk₁₂Form (excludedMiddleForm (.var 0)) (.var 1))
+      (noKiteUp1x2Form (.var 0) (.var 1)) :=
+  .impI (.orE .h₁                       -- intro h; cases hPL
+    (.orE (.impE .h₁ (.impI             -- | inl pe => cases h (fun j => …)
+        (.orE (.impE .h₁ (.impI         --     cases pe (fun k =>
+            (.orI₁ (.impE .h₁ (.impI    --       Or.inl (j (fun ha =>
+              (.orI₁ (.impE .h₁ (.orI₁ .h₀))))))))  --  Or.inl (k (Or.inl ha)))))
+          .h₀                           --     | inl ha => ha
+          (.impE .h₁ (.impI (.flsE (.impE .h₁ .h₀)))))))  -- | inr hna => j (absurd · hna)
+      (.orI₂ (.impI (.orI₁ .h₁)))       --   | inl ha => Or.inr (fun _ => Or.inl ha)
+      (.orI₁ .h₀))                      --   | inr hb => Or.inl hb
+    (.orI₂ (.impE .h₀ (.impI (.flsE (.impE (nn_em _) .h₀))))))
+                                        -- | inr lk => Or.inr (lk (fun hn => absurd hn (nn_em _)))
+
+/-- At `b, a`, `¬ ¬ b` grants Łukasiewicz's premise `¬ b → ¬ a`, leaving
+`a → b`; and it lets Peirce's law give `¬ a → b`, since under `¬ a` an arrow
+`b → a` refutes `b`.  Either implication is a disjunct of what the premise of
+`noForkUp2x2Form` asks for excluded middle at `a`. -/
+theorem pierce₁₂OrLuk₁₂_ent_noForkUp2x2 :
+    Ent (pierce₁₂OrLuk₁₂Form (.var 1) (.var 0)) (noForkUp2x2Form (.var 0) (.var 1)) :=
+  .impI (.orE .h₁                       -- intro hP; cases hPL
+    (.impE (.andE₁ .h₁) (.orI₁ (.impI   -- | inl pe => hP.1 (Or.inl (fun hna =>
+      (.impE .h₁ (.impI (.flsE (.impE (.andE₂ .h₃)  --   pe (fun k => absurd (hP.2 (fun hb =>
+        (.impI (.impE .h₂ (.impE .h₁ .h₀))))))))))  --   hna (k hb))))))
+    (.impE (.andE₁ .h₁) (.orI₂ (.impE .h₀  -- | inr lk => hP.1 (Or.inr (lk (fun hnb =>
+      (.impI (.flsE (.impE (.andE₂ .h₂) .h₀)))))))  --   absurd hnb hP.2)))
+
+/-- At `s = (a → ¬ b) ∨ (b ∧ (¬ a → a))` and `a`, Łukasiewicz's premise
+`¬ s → ¬ a` is provable, since `a` makes `¬ b` give the first disjunct of `s`
+and `b` the second; so `a` gives `s`, and `s` gives `b ∨ ¬ b`, the conclusion's
+right disjunct.  Peirce's law gives the premise of `noDiamondHairForm`: under
+`b`, an arrow `k` out of `s` into `a` yields `¬ a → a`, through the first
+disjunct, so `s` holds through the second, and `s` then decides `¬ a` or gives
+`¬ a → a`.  The resulting `a ∨ b` gives the conclusion either way. -/
+theorem pierce₁₂OrLuk₁₂_ent_noDiamondHair :
+    Ent (pierce₁₂OrLuk₁₂Form
+        (.or (.imp (.var 0) (Form.neg (.var 1)))
+          (.and (.var 1) (.imp (Form.neg (.var 0)) (.var 0))))
+        (.var 0))
+      (noDiamondHairForm (.var 0) (.var 1)) :=
+  .impI (.orE .h₁                       -- intro h; cases hPL
+    (.orE (.impE .h₁ (.impI             -- | inl pe => cases h (fun hb => …)
+        (.orE (.impE .h₁ (.impI         --     cases pe (fun k => Or.inr ⟨hb, fun hna =>
+            (.orI₂ (.andI .h₁ (.impI (.impE .h₁ (.orI₁ (.impI (.flsE (.impE .h₁ .h₀))))))))))
+                                        --       k (Or.inl (fun ha => absurd ha hna))⟩)
+          (.orI₁ (.impI (.impE (.impE .h₁ .h₀) .h₂)))  -- | inl f => Or.inl (fun ha => f ha hb)
+          (.orI₂ (.andE₂ .h₀)))))       --     | inr p => Or.inr p.2
+      (.orI₁ .h₀)                       --   | inl ha => Or.inl ha
+      (.orI₂ (.impI (.orI₁ .h₁))))      --   | inr hb => Or.inr (fun _ => Or.inl hb)
+    (.orI₂ (.impI (.orE                 -- | inr lk => Or.inr (fun ha => cases lk (…) ha
+      (.impE (.impE .h₁ (.impI (.impI (.impE .h₁ (.orI₁ (.impI (.impI
+          (.impE .h₃ (.orI₂ (.andI .h₀ (.impI .h₃))))))))))) .h₀)
+                                        --   fun hns ha' => hns (Or.inl (fun _ hb =>
+                                        --     hns (Or.inr ⟨hb, fun _ => ha'⟩)))
+      (.orI₂ (.impE .h₀ .h₁))           --   | inl f => Or.inr (f ha)
+      (.orI₁ (.andE₁ .h₀))))))          --   | inr p => Or.inl p.1
+
+/-- **`pierce₁₂OrLuk₁₂Form` derives `noKiteUp1x2Form`.** -/
+theorem derives_noKiteUp1x2_of_pierce₁₂OrLuk₁₂ :
+    DerivesFromSchema (pierce₁₂OrLuk₁₂Form (.var 0) (.var 1)) (noKiteUp1x2Form (.var 0) (.var 1)) :=
+  .of_ent pierce₁₂OrLuk₁₂_ent_noKiteUp1x2 ⟨Form.args [excludedMiddleForm (.var 0), .var 1], rfl⟩
+
+/-- **`pierce₁₂OrLuk₁₂Form` derives `noForkUp2x2Form`.** -/
+theorem derives_noForkUp2x2_of_pierce₁₂OrLuk₁₂ :
+    DerivesFromSchema (pierce₁₂OrLuk₁₂Form (.var 0) (.var 1)) (noForkUp2x2Form (.var 0) (.var 1)) :=
+  .of_ent pierce₁₂OrLuk₁₂_ent_noForkUp2x2 ⟨Form.args [.var 1, .var 0], rfl⟩
+
+/-- **`pierce₁₂OrLuk₁₂Form` derives `noDiamondHairForm`.** -/
+theorem derives_noDiamondHair_of_pierce₁₂OrLuk₁₂ :
+    DerivesFromSchema (pierce₁₂OrLuk₁₂Form (.var 0) (.var 1))
+      (noDiamondHairForm (.var 0) (.var 1)) :=
+  .of_ent pierce₁₂OrLuk₁₂_ent_noDiamondHair
+    ⟨Form.args [.or (.imp (.var 0) (Form.neg (.var 1)))
+      (.and (.var 1) (.imp (Form.neg (.var 0)) (.var 0))), .var 0], rfl⟩
+
+/-! ## `pierce₁₂OrLuk₁₂Form` from the principles of its three smallest refuters
+
+Conversely, four instances of the three principles together derive
+`pierce₁₂OrLuk₁₂Form`.  Write `π` for Peirce's law `((a → b) → a) → a`, `λ`
+for Łukasiewicz's `(¬ a → ¬ b) → (b → a)`, so that the goal is `π ∨ λ`, and
+
+* `n = ¬ (a ∧ ¬ b)`, `τ = a → b ∨ ¬ b` and `κ`, Peirce's law at `a` and
+  `b ∨ ¬ b`;
+* `U = π ∨ λ → λ ∨ (a → b)` and `V = λ → n ∨ ¬ n`.
+
+The instances are `noKiteUp1x2Form` at `π ∧ (λ ∨ (a → b)), λ` and at `λ ∧ κ, τ`,
+`noDiamondHairForm` at `n, λ` and `noForkUp2x2Form` at `n, a ∨ ¬ a`.  Each
+proves one step towards `π ∨ λ`, proving its own premise from what the earlier
+steps grant and turning both disjuncts of its conclusion into `π ∨ λ`:
+
+* the first kite gives `(U → π ∨ λ) → π ∨ λ`;
+* the second kite gives `U → (κ → π ∨ λ) → π ∨ λ`;
+* the hair gives `U → (V → π ∨ λ) → π ∨ λ`;
+* the fork gives `U → κ → V → π ∨ λ`;
+
+and the four chain to `π ∨ λ`.
+
+Read in a finite model where no two points satisfy the same formulas, the chain
+is a case split at a highest point `w` where `π ∨ λ` fails.  Such a point sees a
+point `p` where `b` holds and `a` fails but `¬ a` does not, `λ` failing exactly
+at the points that see `p`, and it sees a *Peirce gap*, a point where
+`(a → b) → a` holds but `a` does not.
+
+* `U` fails when a proper successor of `w` sees `p` and a point of `a ∧ ¬ b`:
+  the uneven kite.
+* Otherwise `κ` fails when `w` sees a Peirce gap one of whose successors in `a`
+  is not maximal: the uneven kite with its branches swapped.
+* Otherwise `V` fails when `w` sees a point that sees the point of `a ∧ ¬ b`
+  and another maximal point, but not `p`: the diamond with a hair.
+* Otherwise the fork's instance fails, on the tall fork.
+
+Parts of the arguments, `λ ∨ (a → b)`, `κ` and `a ∨ ¬ a`, hold on the points
+around the configuration, and where such a point still defeats an instance it
+forces an earlier case.  That is what lets one fixed list of instances serve
+every frame. -/
+
+namespace PierceLukOfThree
+
+/-- `¬ (a ∧ ¬ b)`: no point above sees `a` true and `b` refuted. -/
+abbrev notAndNot (p q : Form) : Form := Form.neg (.and p (Form.neg q))
+
+/-- `a → b ∨ ¬ b`. -/
+abbrev impEm (p q : Form) : Form := .imp p (excludedMiddleForm q)
+
+/-- `κ`: Peirce's law at `a` and `b ∨ ¬ b`. -/
+abbrev peirceEm (p q : Form) : Form := peirceForm p (excludedMiddleForm q)
+
+/-- The first kite's left argument, `π ∧ (λ ∨ (a → b))`. -/
+abbrev kiteArg₁ (p q : Form) : Form := .and (peirceForm p q) (.or (lukForm p q) (.imp p q))
+
+/-- The second kite's left argument, `λ ∧ κ`. -/
+abbrev kiteArg₂ (p q : Form) : Form := .and (lukForm p q) (peirceEm p q)
+
+/-- `U = PL → λ ∨ (a → b)`. -/
+abbrev stepU (p q : Form) : Form := .imp (pierce₁₂OrLuk₁₂Form p q) (.or (lukForm p q) (.imp p q))
+
+/-- `V = λ → n ∨ ¬ n`. -/
+abbrev stepV (p q : Form) : Form := .imp (lukForm p q) (excludedMiddleForm (notAndNot p q))
+
+/-! ### Small steps -/
+
+/-- `(a → b) → a` gives `λ`: `fun _ hb => hc (fun _ => hb)`. -/
+theorem luk_of_imp_imp (p q : Form) : Ent (.imp (.imp p q) p) (lukForm p q) :=
+  .impI (.impI (.impE .h₂ (.impI .h₁)))
+
+/-- `b` gives `π`: `fun hc => hc (fun _ => hb)`. -/
+theorem peirce_of_right (p q : Form) : Ent q (peirceForm p q) :=
+  .impI (.impE .h₀ (.impI .h₂))
+
+/-- `b` gives `π ∧ (λ ∨ (a → b))`: `⟨peirce_of_right hb, Or.inr (fun _ => hb)⟩`. -/
+theorem kiteArg₁_of_right (p q : Form) : Ent q (kiteArg₁ p q) :=
+  .andI ((peirce_of_right _ _).mp .h₀) (.orI₂ (.impI .h₁))
+
+/-- `¬ λ` is absurd: it refutes `a` (which gives `λ`), and `¬ a` gives `λ`. -/
+theorem neg_luk_ent_fls (p q : Form) : Ent (Form.neg (lukForm p q)) .fls :=
+  .impE .h₀ (.impI (.impI              -- apply hnl; intro hi hb
+    (.flsE (.impE (.impE .h₁           -- absurd hb (hi (fun ha => hnl (fun _ _ => ha)))
+      (.impI (.impE .h₃ (.impI (.impI .h₂))))) .h₀))))
+
+/-- `¬ (a → b ∨ ¬ b)` is absurd, `b ∨ ¬ b` being irrefutable. -/
+theorem neg_imp_em_ent_fls (p q : Form) : Ent (Form.neg (.imp p (excludedMiddleForm q))) .fls :=
+  .impE (nn_em q) (.impI (.impE .h₁ (.impI .h₁)))  -- nn_em (fun he => hn (fun _ => he))
+
+/-- `a → b` gives `n`: `fun h => h.2 (hab h.1)`. -/
+theorem notAndNot_of_imp (p q : Form) : Ent (.imp p q) (notAndNot p q) :=
+  .impI (.impE (.andE₂ .h₀) (.impE .h₁ (.andE₁ .h₀)))
+
+/-- `b` gives `n`: `fun h => h.2 hb`. -/
+theorem notAndNot_of_right (p q : Form) : Ent q (notAndNot p q) :=
+  .impI (.impE (.andE₂ .h₀) .h₁)
+
+/-- `¬ n` gives `λ`: `fun _ hb => absurd (notAndNot_of_right hb) hnn`. -/
+theorem luk_of_nn (p q : Form) : Ent (Form.neg (notAndNot p q)) (lukForm p q) :=
+  .impI (.impI (.flsE (.impE .h₂ ((notAndNot_of_right _ _).mp .h₀))))
+
+/-- `n → a ∨ ¬ a` gives `λ`: from `b`, `n` holds, and `¬ a` would refute `b`. -/
+theorem luk_of_notAndNot_imp_em (p q : Form) :
+    Ent (.imp (notAndNot p q) (excludedMiddleForm p)) (lukForm p q) :=
+  .impI (.impI (.orE (.impE .h₂ ((notAndNot_of_right _ _).mp .h₀))
+                                        -- intro hi hb; cases k (notAndNot_of_right hb)
+    .h₀                                 -- | inl ha => ha
+    (.flsE (.impE (.impE .h₂ .h₀) .h₁))))  -- | inr hna => absurd hb (hi hna)
+
+/-- An arrow into `λ ∨ ¬ λ`, out of anything `b` gives, gives `λ`: under `b` it
+decides `λ`, and `¬ λ` is absurd. -/
+theorem luk_of_imp_emLuk {p q x : Form} (hx : Ent q x) :
+    Ent (.imp x (excludedMiddleForm (lukForm p q))) (lukForm p q) :=
+  .impI (.impI (.orE (.impE .h₂ (hx.mp .h₀))  -- intro hi hb; cases k (hx hb)
+    (.impE (.impE .h₀ .h₂) .h₁)         -- | inl hl => hl hi hb
+    (.flsE ((neg_luk_ent_fls _ _).mp .h₀))))  -- | inr hnl => absurd
+
+/-- From `a → b ∨ ¬ b` and `n`, `a → b`. -/
+theorem imp_of_impEm_notAndNot (p q : Form) : Ent (impEm p q) (.imp (notAndNot p q) (.imp p q)) :=
+  .impI (.impI (.orE (.impE .h₂ .h₀)   -- intro hn ha; cases g ha
+    .h₀                                -- | inl hb => hb
+    (.flsE (.impE .h₂ (.andI .h₁ .h₀)))))  -- | inr hnb => absurd ⟨ha, hnb⟩ hn
+
+/-- `(¬ ¬ x → ¬ x) → ¬ x`, at `x = a ∧ ¬ b`: `fun hx => k (fun hnx => hnx hx) hx`. -/
+theorem notAndNot_of_imp_self (p q : Form) :
+    Ent (.imp (Form.neg (notAndNot p q)) (notAndNot p q)) (notAndNot p q) :=
+  .impI (.impE (.impE .h₁ (.impI (.impE .h₀ .h₁))) .h₀)
+
+/-! ### Peirce's law when no Peirce gap is in sight -/
+
+/-- `n` and `κ` give `π`: under `κ` it is enough to prove `a` from
+`a → b ∨ ¬ b`, which with `n` is `a → b`. -/
+theorem peirce_of_notAndNot_peirceEm (p q : Form) :
+    Ent (notAndNot p q) (.imp (peirceEm p q) (peirceForm p q)) :=
+  .impI (.impI (.impE .h₁ (.impI       -- intro hk hc; apply hk; intro g
+    (.impE .h₁ (.impE ((imp_of_impEm_notAndNot _ _).mp .h₀) .h₃)))))  -- hc (… g hn)
+
+/-- `¬ n → a ∨ ¬ a`, `V` and `κ` give `π`.  Given `(a → b) → a`, it gives `λ`,
+so `V` decides `n`: with `n` as before, with `¬ n` excluded middle at `a`. -/
+theorem peirce_of_three (p q : Form) :
+    Ent (.imp (Form.neg (notAndNot p q)) (excludedMiddleForm p))
+      (.imp (stepV p q) (.imp (peirceEm p q) (peirceForm p q))) :=
+  .impI (.impI (.impI                  -- intro hV hk hc
+    (.orE (.impE .h₂ ((luk_of_imp_imp _ _).mp .h₀))  -- cases hV (luk_of_imp_imp hc)
+      (.impE (.impE ((peirce_of_notAndNot_peirceEm _ _).mp .h₀) .h₂) .h₁)
+                                       -- | inl hn => peirce_of_notAndNot_peirceEm hn hk hc
+      (.orE (.impE .h₄ .h₀)            -- | inr hnn => cases h hnn
+        .h₀                            --   | inl ha => ha
+        (.impE .h₂ (.impI (.flsE (.impE .h₁ .h₀))))))))  -- | inr hna => hc (absurd · hna)
+
+/-! ### The four steps -/
+
+/-- **The fork at `n, a ∨ ¬ a`**: `U → κ → V → PL`.  Its premise holds: an
+arrow `¬ n → a ∨ ¬ a` gives `π` (with `V`, `κ`), so `U` decides between `λ`
+(then `V`) and `a → b` (then `n`); an arrow `n → a ∨ ¬ a` gives `λ`, then `V`.
+Then `n` gives `π` with `κ`, and `¬ n` gives `λ`. -/
+theorem fork_step (p q : Form) :
+    Ent (noForkUp2x2Form (notAndNot p q) (excludedMiddleForm p))
+      (.imp (stepU p q) (.imp (peirceEm p q) (.imp (stepV p q) (pierce₁₂OrLuk₁₂Form p q)))) :=
+  .impI (.impI (.impI                  -- intro hU hk hV
+    (.orE (.impE .h₃ (.andI            -- cases hF ⟨_, nn_em⟩
+      (.impI (.orE .h₀                 --   intro hD; cases hD
+        (.orE (.impE .h₄ (.orI₁ (.impE (.impE ((peirce_of_three _ _).mp .h₀) .h₂) .h₃)))
+                                       --   | inl h => cases hU (Or.inl (peirce_of_three h hV hk))
+          (.impE .h₃ .h₀)              --     | inl hl => hV hl
+          (.orI₁ ((notAndNot_of_imp _ _).mp .h₀)))  -- | inr hab => Or.inl (notAndNot_of_imp hab)
+        (.impE .h₂ ((luk_of_notAndNot_imp_em _ _).mp .h₀))))  -- | inr h => hV (… h)
+      (nn_em _)))
+      (.orI₁ (.impE ((peirce_of_notAndNot_peirceEm _ _).mp .h₀) .h₂))
+                                       -- | inl hn => Or.inl (… hn hk)
+      (.orI₂ ((luk_of_nn _ _).mp .h₀)))))  -- | inr hnn => Or.inr (luk_of_nn hnn)
+
+/-- **The hair at `n, λ`**: `U → (V → PL) → PL`.  Its premise
+`λ → ¬ n ∨ (¬ n → n)` is `V`, whence `PL`, and `U` turns that into `n ∨ λ`.
+Then `n` gives `V` outright, and `n → λ ∨ ¬ λ` gives `λ`. -/
+theorem hair_step (p q : Form) :
+    Ent (noDiamondHairForm (notAndNot p q) (lukForm p q))
+      (.imp (stepU p q)
+        (.imp (.imp (stepV p q) (pierce₁₂OrLuk₁₂Form p q)) (pierce₁₂OrLuk₁₂Form p q))) :=
+  .impI (.impI                         -- intro hU hW
+    (.orE (.impE .h₂ (.impI            -- cases hH (fun hy => …)
+      (.orE (.impE .h₂ (.impE .h₁ (.impI  --   cases hU (hW (fun hl => …))
+          (.orE (.impE .h₁ .h₀)         --     cases hy hl
+            (.orI₂ .h₀)                 --     | inl hnn => Or.inr hnn
+            (.orI₁ ((notAndNot_of_imp_self _ _).mp .h₀))))))  -- | inr k => Or.inl (… k)
+        (.orI₂ .h₀)                     --   | inl hl => Or.inr hl
+        (.orI₁ ((notAndNot_of_imp _ _).mp .h₀)))))  -- | inr hab => Or.inl (notAndNot_of_imp hab)
+      (.impE .h₁ (.impI (.orI₁ .h₁)))   -- | inl hn => hW (fun _ => Or.inl hn)
+      (.orI₂ ((luk_of_imp_emLuk (notAndNot_of_right _ _)).mp .h₀))))
+                                        -- | inr k => Or.inr (luk_of_imp_emLuk … k)
+
+/-- Peirce's law at `λ ∧ κ, τ ∨ ¬ τ` gives `κ`: given `τ → a`, an arrow
+`λ ∧ κ → τ ∨ ¬ τ` yields `τ` (from `a`, both `λ` and `κ` hold), hence `a`, hence
+`λ ∧ κ`. -/
+theorem peirceEm_of_peirce_kiteArg₂ (p q : Form) :
+    Ent (peirceForm (kiteArg₂ p q) (excludedMiddleForm (impEm p q))) (peirceEm p q) :=
+  .impI (.impE (.andE₂ (.impE .h₁ (.impI  -- intro f; apply (hQ (fun g => …)).2 f
+    (.cut (p := p)                      -- have ha : a := f (fun ha => …)
+      (.impE .h₁ (.impI (.orE (.impE .h₁ (.andI (.impI (.impI .h₂)) (.impI .h₁)))
+                                        --   cases g ⟨fun _ _ => ha, fun _ => ha⟩
+        (.impE .h₀ .h₁)                 --   | inl ht => ht ha
+        (.flsE ((neg_imp_em_ent_fls _ _).mp .h₀)))))  -- | inr hnt => absurd
+      (.andI (.impI (.impI .h₂)) (.impI .h₁))))))  -- ⟨fun _ _ => ha, fun _ => ha⟩
+    .h₀)
+
+/-- `τ → (λ ∧ κ) ∨ ¬ (λ ∧ κ)` gives `λ`: from `b`, `τ` and `κ` hold, and
+`¬ (λ ∧ κ)` would then refute `λ`. -/
+theorem luk_of_impEm_imp_em_kiteArg₂ (p q : Form) :
+    Ent (.imp (impEm p q) (excludedMiddleForm (kiteArg₂ p q))) (lukForm p q) :=
+  .impI (.impI (.orE (.impE .h₂ (.impI (.orI₁ .h₁)))  -- intro hi hb; cases k (fun _ => Or.inl hb)
+    (.impE (.impE (.andE₁ .h₀) .h₂) .h₁)             -- | inl hs => hs.1 hi hb
+    (.flsE ((neg_luk_ent_fls _ _).mp (.impI (.impE .h₁  -- | inr hns => absurd (hns ⟨·, _⟩)
+      (.andI .h₀ (.impI (.impE .h₀ (.impI (.orI₁ .h₄)))))))))))
+
+/-- **The second kite, at `λ ∧ κ, τ`**: `U → (κ → PL) → PL`.  Its premise:
+Peirce at `λ ∧ κ, τ ∨ ¬ τ` gives `κ`, so `PL`, and `U` turns that into
+`λ ∧ κ` or `τ`.  Then `τ` gives `κ`, and `τ → (λ ∧ κ) ∨ ¬ (λ ∧ κ)` gives
+`λ`. -/
+theorem kite2_step (p q : Form) :
+    Ent (noKiteUp1x2Form (kiteArg₂ p q) (impEm p q))
+      (.imp (stepU p q)
+        (.imp (.imp (peirceEm p q) (pierce₁₂OrLuk₁₂Form p q)) (pierce₁₂OrLuk₁₂Form p q))) :=
+  .impI (.impI                         -- intro hU hW
+    (.orE (.impE .h₂ (.impI            -- cases hK (fun hQ => …)
+      (.cut (p := peirceEm p q) ((peirceEm_of_peirce_kiteArg₂ _ _).mp .h₀)  -- have hk := … hQ
+        (.orE (.impE .h₃ (.impE .h₂ .h₀))  -- cases hU (hW hk)
+          (.orI₁ (.andI .h₀ .h₁))       -- | inl hl => Or.inl ⟨hl, hk⟩
+          (.orI₂ (.impI (.orI₁ (.impE .h₁ .h₀))))))))  -- | inr hab => Or.inr (Or.inl ∘ hab)
+      (.impE .h₁ (.impI (.impE .h₀ .h₁)))  -- | inl ht => hW (fun f => f ht)
+      (.orI₂ ((luk_of_impEm_imp_em_kiteArg₂ _ _).mp .h₀))))  -- | inr k => Or.inr (luk_of_… k)
+
+/-- Peirce's law at `π ∧ (λ ∨ (a → b)), λ ∨ ¬ λ` gives `U`: given `π`, the
+arrow `… → λ ∨ ¬ λ` gives `λ`, so `π ∧ (λ ∨ (a → b))`, whose right half is
+the goal. -/
+theorem stepU_of_peirce_kiteArg₁ (p q : Form) :
+    Ent (peirceForm (kiteArg₁ p q) (excludedMiddleForm (lukForm p q))) (stepU p q) :=
+  .impI (.orE .h₀                      -- intro hPL; cases hPL
+    (.andE₂ (.impE .h₂ (.impI          -- | inl hπ => (hQ (fun g => …)).2
+      (.andI .h₁ (.orI₁ ((luk_of_imp_emLuk (kiteArg₁_of_right _ _)).mp .h₀))))))
+                                       -- ⟨hπ, Or.inl (luk_of_imp_emLuk … g)⟩
+    (.orI₁ .h₀))                       -- | inr hl => Or.inl hl
+
+/-- `λ → s ∨ ¬ s` for `s = π ∧ (λ ∨ (a → b))` gives `π`: from `(a → b) → a`,
+`λ` holds; `s` gives `π`, and `¬ s` refutes `a`, so `a → b`. -/
+theorem peirce_of_luk_imp_em_kiteArg₁ (p q : Form) :
+    Ent (.imp (lukForm p q) (excludedMiddleForm (kiteArg₁ p q))) (peirceForm p q) :=
+  .impI (.orE (.impE .h₁ ((luk_of_imp_imp _ _).mp .h₀))  -- intro hc; cases k (luk_of_imp_imp hc)
+    (.impE (.andE₁ .h₀) .h₁)             -- | inl hs => hs.1 hc
+    (.impE .h₁ (.impI (.flsE (.impE .h₁  -- | inr hns => hc (fun ha => absurd ⟨_, _⟩ hns)
+      (.andI (.impI .h₁) (.orI₁ (.impI (.impI .h₂)))))))))
+
+/-- **The first kite, at `π ∧ (λ ∨ (a → b)), λ`**: `(U → PL) → PL`.  Its
+premise: Peirce at the arguments gives `U`, so `PL`, which with `U` is
+`π ∧ (λ ∨ (a → b))` or `λ`.  Then `λ` is `PL`, and `λ → s ∨ ¬ s` gives `π`. -/
+theorem kite1_step (p q : Form) :
+    Ent (noKiteUp1x2Form (kiteArg₁ p q) (lukForm p q))
+      (.imp (.imp (stepU p q) (pierce₁₂OrLuk₁₂Form p q)) (pierce₁₂OrLuk₁₂Form p q)) :=
+  .impI                                -- intro hW
+    (.orE (.impE .h₁ (.impI            -- cases hK (fun hQ => …)
+      (.cut (p := stepU p q) ((stepU_of_peirce_kiteArg₁ _ _).mp .h₀)  -- have hU := … hQ
+        (.orE (.impE .h₂ .h₀)          -- cases hW hU
+          (.orI₁ (.andI .h₀ (.impE .h₁ (.orI₁ .h₀))))  -- | inl hπ => Or.inl ⟨hπ, hU (Or.inl hπ)⟩
+          (.orI₂ .h₀)))))              -- | inr hl => Or.inr hl
+      (.orI₂ .h₀)                      -- | inl hl => Or.inr hl
+      (.orI₁ ((peirce_of_luk_imp_em_kiteArg₁ _ _).mp .h₀)))  -- | inr k => Or.inl (…)
+
+/-! ### The four instances together -/
+
+/-- The four instances together give `π ∨ λ`: the first kite reduces it to
+`U → π ∨ λ`, the second kite to `κ → π ∨ λ` under `U`, the hair to `V → π ∨ λ`,
+and the fork proves that. -/
+theorem four_ent (p q : Form) :
+    [noKiteUp1x2Form (kiteArg₁ p q) (lukForm p q), noKiteUp1x2Form (kiteArg₂ p q) (impEm p q),
+      noDiamondHairForm (notAndNot p q) (lukForm p q),
+      noForkUp2x2Form (notAndNot p q) (excludedMiddleForm p)] ⊢
+      pierce₁₂OrLuk₁₂Form p q :=
+  .impE ((kite1_step _ _).mp .h₀)       -- apply kite1_step; intro hU
+    (.impI (.impE (.impE ((kite2_step _ _).mp .h₂) .h₀)  -- apply kite2_step hU; intro hk
+      (.impI (.impE (.impE ((hair_step _ _).mp .h₄) .h₁)  -- apply hair_step hU; intro hV
+        (.impI (.impE (.impE (.impE ((fork_step _ _).mp (.nth 6 rfl)) .h₂) .h₁) .h₀))))))
+                                        -- fork_step hU hk hV
+
+end PierceLukOfThree
+
+open PierceLukOfThree in
+/-- **The three principles derive `pierce₁₂OrLuk₁₂Form`**, from two instances of
+`noKiteUp1x2Form` and one each of the other two.  By
+`DerivesFromSchemas.iff_conj`, so does their conjunction as a single schema. -/
+theorem derives_pierce₁₂OrLuk₁₂_of_three :
+    DerivesFromSchemas
+      [noForkUp2x2Form (.var 0) (.var 1), noKiteUp1x2Form (.var 0) (.var 1),
+        noDiamondHairForm (.var 0) (.var 1)]
+      (pierce₁₂OrLuk₁₂Form (.var 0) (.var 1)) := by
+  refine ⟨_, ?_, four_ent (.var 0) (.var 1)⟩
+  intro r hr
+  simp only [List.mem_cons, List.mem_nil_iff, or_false] at hr
+  rcases hr with rfl | rfl | rfl | rfl
+  · exact ⟨_, List.mem_cons_of_mem _ (List.mem_cons_self ..),
+      Form.args [kiteArg₁ (.var 0) (.var 1), lukForm (.var 0) (.var 1)], rfl⟩
+  · exact ⟨_, List.mem_cons_of_mem _ (List.mem_cons_self ..),
+      Form.args [kiteArg₂ (.var 0) (.var 1), impEm (.var 0) (.var 1)], rfl⟩
+  · exact ⟨_, List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self ..)),
+      Form.args [notAndNot (.var 0) (.var 1), lukForm (.var 0) (.var 1)], rfl⟩
+  · exact ⟨_, List.mem_cons_self ..,
+      Form.args [notAndNot (.var 0) (.var 1), excludedMiddleForm (.var 0)], rfl⟩

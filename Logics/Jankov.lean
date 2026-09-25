@@ -52,16 +52,12 @@ open PartialOrder Lattice BoundedLattice HeytingAlgebra
 
 /-! ## Finite conjunctions and biconditionals
 
-The diagram is a conjunction of a list of formulas, one batch per pair of
-elements, so the language needs a fold and the two facts bounding its value:
-each conjunct is above it, and anything below all of them is below it. -/
+The diagram is a conjunction of a list of formulas (`Form.conj`), one batch per
+pair of elements, so it needs the two facts bounding the value of such a
+conjunction: each conjunct is above it, and anything below all of them is below
+it. -/
 
 namespace Form
-
-/-- The conjunction of a list of formulas, `⊤` when the list is empty. -/
-def conj : List Form → Form
-  | [] => Form.tru
-  | p :: ps => .and p (conj ps)
 
 theorem conj_eval_le {α : Type u} [HeytingAlgebra α] (v : Nat → α) :
     ∀ (ps : List Form) {p : Form}, p ∈ ps → (conj ps).eval v ⊑ p.eval v := by
