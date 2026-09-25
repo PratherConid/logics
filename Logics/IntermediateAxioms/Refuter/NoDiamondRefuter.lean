@@ -51,7 +51,7 @@ theorem noDiamond_kite_ge_coatom : ∀ a b : KiteUp 1 1,
       = KiteUp.tails 0 0 := by decide
 
 theorem noDiamondForm_eval_ge (v : Nat → KiteUp 1 1) :
-    (KiteUp.tails 0 0 : KiteUp 1 1) ⊑ noDiamondForm.eval v :=
+    (KiteUp.tails 0 0 : KiteUp 1 1) ⊑ (noDiamondForm (.var 0) (.var 1)).eval v :=
   inf_eq_left_iff.mp (noDiamond_kite_ge_coatom (v 0) (v 1))
 
 /-- A failing pair generates the whole diamond: every value is one of the
@@ -62,7 +62,7 @@ theorem noDiamond_kite_fail : ∀ a b : KiteUp 1 1,
         z = ⊥ ∨ z = ⊤ ∨ z = a ∨ z = b ∨ z = a ⊓ b ∨ z = a ⊔ b := by decide
 
 /-- **Nothing below the diamond refutes `noDiamondForm`.** -/
-theorem refuterLB_kite_noDiamond : RefuterLB (KiteUp 1 1) noDiamondForm :=
+theorem refuterLB_kite_noDiamond : RefuterLB (KiteUp 1 1) (noDiamondForm (.var 0) (.var 1)) :=
   refuterLB_of_coatom kite_coatom' noDiamondForm_eval_ge fun _ _ h _ v hv z => by
     have hfail := noDiamond_kite_fail _ _ hv
     rcases hfail z with hz | hz | hz | hz | hz | hz
@@ -126,7 +126,8 @@ open NoDiamondWitness in
 The axiom's own value is the join of the two disjuncts, so the refutation is
 exactly the hypothesis the embedding needs. -/
 theorem sh_kite_of_refutes_noDiamond (α : Type) (iα : HeytingAlgebra α)
-    (h : ¬ ∀ v : Nat → α, noDiamondForm.eval v = ⊤) : @SH (KiteUp 1 1) α _ iα := by
+    (h : ¬ ∀ v : Nat → α, (noDiamondForm (.var 0) (.var 1)).eval v = ⊤) :
+    @SH (KiteUp 1 1) α _ iα := by
   obtain ⟨v, hv⟩ := @exists_ne_top α iα _ h
   exact @sh_kite α iα (left (v 0) (v 1)) (right (v 0) (v 1))
     (left_himp_right (v 0) (v 1)) (right_himp_left (v 0) (v 1))
@@ -135,7 +136,8 @@ theorem sh_kite_of_refutes_noDiamond (α : Type) (iα : HeytingAlgebra α)
 /-- **The criterion.**  A schema derives `noDiamondForm` exactly when it misses
 the top value in the diamond. -/
 theorem derivesFromSchema_noDiamond_iff (X : Form) :
-    DerivesFromSchema X noDiamondForm ↔ ¬ ∀ w : Nat → KiteUp 1 1, X.eval w = ⊤ := by
+    DerivesFromSchema X (noDiamondForm (.var 0) (.var 1)) ↔
+      ¬ ∀ w : Nat → KiteUp 1 1, X.eval w = ⊤ := by
   constructor
   · intro h hv
     exact noDiamondForm_nvalid_diamond (DerivesFromSchema.valid hv h _)

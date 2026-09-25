@@ -77,7 +77,7 @@ def P : Form :=
     (.or (.var 0) (.var 1))
 
 /-- The formula's conclusion, bounded depth two. -/
-def C : Form := bd2Form
+def C : Form := bd2Form (.var 0) (.var 1)
 
 /-- `u`'s formula, `¬ a → a`. -/
 def Tu : Form := .imp (Form.neg (.var 0)) (.var 0)
@@ -230,7 +230,7 @@ theorem con : [Form.disj [Tu, Tv, Tz, Tm], P] ⊢ C :=
 /-! ## The embedding -/
 
 theorem sh_of_refutes_pair {α : Type} [HeytingAlgebra α] (v : Nat → α)
-    (hv : noDiamondHairForm.eval v ≠ ⊤) : SH DiamondHair α :=
+    (hv : (noDiamondHairForm (.var 0) (.var 1)).eval v ≠ ⊤) : SH DiamondHair α :=
   PointEmbed.sh_of_refutes points T (P := P) (C := C) Derives.tru
     (fun j hj k hk h₁ h₂ h₃ => by
       simp only [points, List.mem_cons, List.not_mem_nil, or_false] at hj hk
@@ -263,7 +263,8 @@ def terms : List Form :=
   ([.top, pt 0 0, pt 0 1, pt 1 0, pt 1 1, pt 1 2, pt 2 0, pt 2 1, pt 2 2] : List DiamondHair).map
     fun w => Form.disj ((below points.J w).map T)
 
-theorem nvalid : ¬ ∀ a b : DiamondHair, noDiamondHairForm.eval (valPair a b) = ⊤ := by decide
+theorem nvalid :
+    ¬ ∀ a b : DiamondHair, (noDiamondHairForm (.var 0) (.var 1)).eval (valPair a b) = ⊤ := by decide
 
 end NoDiamondHairWitness
 
@@ -272,21 +273,24 @@ open NoDiamondHairWitness
 set_option synthInstance.maxSize 1024 in
 set_option synthInstance.maxHeartbeats 400000 in
 /-- **Nothing below the diamond with a hair refutes `noDiamondHairForm`.** -/
-theorem refuterLB_diamondHair_noDiamondHair : RefuterLB DiamondHair noDiamondHairForm :=
+theorem refuterLB_diamondHair_noDiamondHair :
+    RefuterLB DiamondHair (noDiamondHairForm (.var 0) (.var 1)) :=
   refuterLB_of_generates (c := pt 2 2) terms (by decide) (by decide) (by decide)
     (by decide) (by decide)
 
 /-- **Every algebra refuting `noDiamondHairForm` carries the diamond with a hair
 below it.** -/
 theorem sh_diamondHair_of_refutes_noDiamondHair (α : Type) (iα : HeytingAlgebra α)
-    (h : ¬ ∀ v : Nat → α, noDiamondHairForm.eval v = ⊤) : @SH DiamondHair α _ iα := by
+    (h : ¬ ∀ v : Nat → α, (noDiamondHairForm (.var 0) (.var 1)).eval v = ⊤) :
+    @SH DiamondHair α _ iα := by
   obtain ⟨v, hv⟩ := @exists_ne_top α iα _ h
   exact @sh_of_refutes_pair α iα v hv
 
 /-- **The criterion.**  A schema derives `noDiamondHairForm` exactly when it
 misses the top value in the diamond with a hair. -/
 theorem derivesFromSchema_noDiamondHair_iff (X : Form) :
-    DerivesFromSchema X noDiamondHairForm ↔ ¬ ∀ w : Nat → DiamondHair, X.eval w = ⊤ := by
+    DerivesFromSchema X (noDiamondHairForm (.var 0) (.var 1)) ↔
+      ¬ ∀ w : Nat → DiamondHair, X.eval w = ⊤ := by
   constructor
   · intro h hv
     exact nvalid fun _ _ => DerivesFromSchema.valid hv h _

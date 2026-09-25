@@ -32,7 +32,7 @@ theorem weakEm_fork_ge_coatom : ∀ a : ForkUp 1 1,
   decide
 
 theorem weakEmForm_eval_ge (v : Nat → ForkUp 1 1) :
-    (ForkUp.tails 0 0 : ForkUp 1 1) ⊑ weakEmForm.eval v :=
+    (ForkUp.tails 0 0 : ForkUp 1 1) ⊑ (weakEmForm (.var 0)).eval v :=
   inf_eq_left_iff.mp (weakEm_fork_ge_coatom (v 0))
 
 open HeytingAlgebra in
@@ -42,7 +42,7 @@ theorem weakEm_fork_fail : ∀ a : ForkUp 1 1, (neg a ⊔ neg (neg a)) ≠ ⊤ �
       z = neg a ⊔ neg (neg a) := by decide
 
 /-- **Nothing below the fork refutes `weakEmForm`.** -/
-theorem refuterLB_fork_weakEm : RefuterLB (ForkUp 1 1) weakEmForm :=
+theorem refuterLB_fork_weakEm : RefuterLB (ForkUp 1 1) (weakEmForm (.var 0)) :=
   refuterLB_of_coatom fork_coatom' weakEmForm_eval_ge fun _ _ h _ v hv z => by
     have hfail := weakEm_fork_fail _ hv
     rcases hfail z with hz | hz | hz | hz | hz
@@ -59,14 +59,14 @@ theorem refuterLB_fork_weakEm : RefuterLB (ForkUp 1 1) weakEmForm :=
 `forkUp_embeds` read through the axiom: a valuation refuting the schema is an
 element at which weak excluded middle fails. -/
 theorem sh_forkUp_of_refutes_weakEm (α : Type) (iα : HeytingAlgebra α)
-    (h : ¬ ∀ v : Nat → α, weakEmForm.eval v = ⊤) : @SH (ForkUp 1 1) α _ iα := by
+    (h : ¬ ∀ v : Nat → α, (weakEmForm (.var 0)).eval v = ⊤) : @SH (ForkUp 1 1) α _ iα := by
   obtain ⟨v, hv⟩ := @exists_ne_top α iα _ h
   exact @sh_forkUp α iα (v 0) hv
 
 /-- **The criterion.**  A schema derives `weakEmForm` exactly when it misses the
 top value in the fork. -/
 theorem derivesFromSchema_weakEm_iff (X : Form) :
-    DerivesFromSchema X weakEmForm ↔ ¬ ∀ w : Nat → ForkUp 1 1, X.eval w = ⊤ := by
+    DerivesFromSchema X (weakEmForm (.var 0)) ↔ ¬ ∀ w : Nat → ForkUp 1 1, X.eval w = ⊤ := by
   constructor
   · intro h hv
     exact weakEmForm_nvalid_fork (DerivesFromSchema.valid hv h _)

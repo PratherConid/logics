@@ -283,7 +283,8 @@ variable {n : Nat}
 
 /-- The axiom's value always contains the coatom, every point but the root. -/
 theorem coatom_le_kp (v : Nat → Upset (LPt n)) :
-    Upset.coatom .root (fun _ h => eq_root_of_le_root h) ⊑ kreiselPutnamForm.eval v :=
+    Upset.coatom .root (fun _ h => eq_root_of_le_root h) ⊑
+      (kreiselPutnamForm (.var 0) (.var 1) (.var 2)).eval v :=
   fun _ hx => kp_mem_ne_root hx (v 0) (v 1) (v 2)
 
 /-! ### Step B: a subalgebra refuting the axiom is everything -/
@@ -480,7 +481,7 @@ theorem img_uv_of_fail {a b c : Upset (LPt n)} (ha : e.InImg a) (hb : e.InImg b)
 refutation is at the root, which puts the sets above `u` and `v` in the image,
 and from those every upward closed set is built. -/
 theorem surjective_of_refutes {v : Nat → γ}
-    (hv : kreiselPutnamForm.eval (fun k => e.toFun (v k)) ≠ ⊤) :
+    (hv : (kreiselPutnamForm (.var 0) (.var 1) (.var 2)).eval (fun k => e.toFun (v k)) ≠ ⊤) :
     Function.Surjective e.toFun := by
   have hroot : ¬ (kpAt (e.toFun (v 0)) (e.toFun (v 1)) (e.toFun (v 2))).mem
       (.root : LPt n) := fun h =>
@@ -500,7 +501,7 @@ end Generate
 /-- **Nothing smaller below refutes the axiom.**  A homomorphic image that merges
 anything validates the axiom, since the axiom's value always contains every
 point but the root; and an embedding of an algebra refuting it is onto. -/
-theorem refuterLB : RefuterLB (Upset (LPt n)) kreiselPutnamForm :=
+theorem refuterLB : RefuterLB (Upset (LPt n)) (kreiselPutnamForm (.var 0) (.var 1) (.var 2)) :=
   refuterLB_of_coatom (Upset.le_coatom root_le fun _ h => eq_root_of_le_root h) coatom_le_kp
     fun _ _ _ _ _ hv => surjective_of_refutes hv
 

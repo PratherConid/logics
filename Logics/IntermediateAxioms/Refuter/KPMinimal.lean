@@ -136,7 +136,7 @@ end Merger
 structure InKPMin (M : Type) [Frame M] : Prop where
   list : InKPList M
   antisymm : Frame.Antisymm M
-  minimal : RefuterLB (Upset M) kreiselPutnamForm
+  minimal : RefuterLB (Upset M) (kreiselPutnamForm (.var 0) (.var 1) (.var 2))
 
 namespace InKPMin
 

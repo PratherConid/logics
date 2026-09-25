@@ -1276,6 +1276,11 @@ instance : PartialOrder (ForkUp m n) where
   le_trans := le_trans'
   le_antisymm := le_antisymm'
 
+instance decLe : ∀ a b : ForkUp m n, Decidable (a ⊑ b)
+  | .all, .all | .tails _ _, .all => isTrue True.intro
+  | .all, .tails _ _ => isFalse id
+  | .tails i j, .tails i' j' => inferInstanceAs (Decidable (i'.val ≤ i.val ∧ j'.val ≤ j.val))
+
 instance : Lattice (ForkUp m n) where
   inf := inf
   sup := sup

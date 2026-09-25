@@ -74,10 +74,10 @@ end Core
 it.**  If weak excluded middle fails, the fork; otherwise, if `noDiamondForm`
 fails, the diamond; and if neither fails, linearity held after all. -/
 theorem sh_fork_or_kite_of_refutes_linearity (α : Type) (iα : HeytingAlgebra α)
-    (h : ¬ ∀ v : Nat → α, linearityForm.eval v = ⊤) :
+    (h : ¬ ∀ v : Nat → α, (linearityForm (.var 0) (.var 1)).eval v = ⊤) :
     @SH (ForkUp 1 1) α _ iα ∨ @SH (KiteUp 1 1) α _ iα := by
-  by_cases hkc : ∀ w : Nat → α, weakEmForm.eval w = ⊤
-  · by_cases hnd : ∀ w : Nat → α, noDiamondForm.eval w = ⊤
+  by_cases hkc : ∀ w : Nat → α, (weakEmForm (.var 0)).eval w = ⊤
+  · by_cases hnd : ∀ w : Nat → α, (noDiamondForm (.var 0) (.var 1)).eval w = ⊤
     · refine absurd (fun v => ?_) h
       exact @linearity_of_weakEm_noDiamond α iα (fun x => hkc (fun _ => x))
         (fun x y => hnd (fun n => if n = 0 then x else y)) (v 0) (v 1)
@@ -87,7 +87,7 @@ theorem sh_fork_or_kite_of_refutes_linearity (α : Type) (iα : HeytingAlgebra �
 /-- **The criterion.**  A schema derives linearity exactly when it misses the
 top value in both the fork and the diamond. -/
 theorem derivesFromSchema_linearity_iff (X : Form) :
-    DerivesFromSchema X linearityForm ↔
+    DerivesFromSchema X (linearityForm (.var 0) (.var 1)) ↔
       (¬ ∀ w : Nat → ForkUp 1 1, X.eval w = ⊤) ∧
         (¬ ∀ w : Nat → KiteUp 1 1, X.eval w = ⊤) := by
   constructor
@@ -106,14 +106,14 @@ theorem linearity_fork_ge_coatom : ∀ a b : ForkUp 1 1,
   decide
 
 theorem linearityForm_fork_eval_ge (v : Nat → ForkUp 1 1) :
-    (ForkUp.tails 0 0 : ForkUp 1 1) ⊑ linearityForm.eval v :=
+    (ForkUp.tails 0 0 : ForkUp 1 1) ⊑ (linearityForm (.var 0) (.var 1)).eval v :=
   inf_eq_left_iff.mp (linearity_fork_ge_coatom (v 0) (v 1))
 
 theorem linearity_fork_fail : ∀ a b : ForkUp 1 1, ((a ⇨ b) ⊔ (b ⇨ a)) ≠ ⊤ →
     ∀ z : ForkUp 1 1, z = ⊥ ∨ z = ⊤ ∨ z = a ∨ z = b ∨ z = a ⊔ b := by decide
 
 /-- **Nothing below the fork refutes linearity.** -/
-theorem refuterLB_fork_linearity : RefuterLB (ForkUp 1 1) linearityForm :=
+theorem refuterLB_fork_linearity : RefuterLB (ForkUp 1 1) (linearityForm (.var 0) (.var 1)) :=
   refuterLB_of_coatom fork_coatom' linearityForm_fork_eval_ge fun _ _ h _ v hv z => by
     have hfail := linearity_fork_fail _ _ hv
     rcases hfail z with hz | hz | hz | hz | hz
@@ -128,7 +128,7 @@ theorem linearity_kite_ge_coatom : ∀ a b : KiteUp 1 1,
   decide
 
 theorem linearityForm_kite_eval_ge (v : Nat → KiteUp 1 1) :
-    (KiteUp.tails 0 0 : KiteUp 1 1) ⊑ linearityForm.eval v :=
+    (KiteUp.tails 0 0 : KiteUp 1 1) ⊑ (linearityForm (.var 0) (.var 1)).eval v :=
   inf_eq_left_iff.mp (linearity_kite_ge_coatom (v 0) (v 1))
 
 theorem linearity_kite_fail : ∀ a b : KiteUp 1 1, ((a ⇨ b) ⊔ (b ⇨ a)) ≠ ⊤ →
@@ -136,7 +136,7 @@ theorem linearity_kite_fail : ∀ a b : KiteUp 1 1, ((a ⇨ b) ⊔ (b ⇨ a)) �
   decide
 
 /-- **Nothing below the diamond refutes linearity either.** -/
-theorem refuterLB_kite_linearity : RefuterLB (KiteUp 1 1) linearityForm :=
+theorem refuterLB_kite_linearity : RefuterLB (KiteUp 1 1) (linearityForm (.var 0) (.var 1)) :=
   refuterLB_of_coatom kite_coatom' linearityForm_kite_eval_ge fun _ _ h _ v hv z => by
     have hfail := linearity_kite_fail _ _ hv
     rcases hfail z with hz | hz | hz | hz | hz | hz

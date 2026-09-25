@@ -11,6 +11,7 @@ import Logics.IntermediateAxioms.Refuter.LCRefuter
 import Logics.IntermediateAxioms.Refuter.ScottRefuter
 import Logics.IntermediateAxioms.Refuter.NoKiteUp1x2Refuter
 import Logics.IntermediateAxioms.Refuter.NoDiamondHairRefuter
+import Logics.IntermediateAxioms.Refuter.NoForkUp2x2Refuter
 import Logics.IntermediateAxioms.Refuter.KPRefuter
 import Logics.IntermediateAxioms.Refuter.KPMinimal
 import Logics.IntermediateAxioms.Refuter.KPInfinite
@@ -47,6 +48,8 @@ infinite one.
   alone
 * `Refuter.NoDiamondHairRefuter` -- `noDiamondHairForm`, by `DiamondHair`, the
   diamond with a hair, alone
+* `Refuter.NoForkUp2x2Refuter` -- `noForkUp2x2Form`, by the tall fork `ForkUp 2 2`
+  alone
 * `Refuter.KPRefuter`        -- Kreisel and Putnam's axiom, by the infinite list
   of finite rooted frames with a region entered at two points: sound, and
   complete for every schema with the finite model property

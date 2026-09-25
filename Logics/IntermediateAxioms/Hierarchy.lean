@@ -176,15 +176,15 @@ namespace Node
 /-- The principle a node stands for. -/
 def form : Node → Form
   | em => excludedMiddleForm (.var 0)
-  | smetanich => smetanichForm
-  | bd2 => bd2Form
-  | linearity => linearityForm
-  | noDiamond => noDiamondForm
-  | weakEm => weakEmForm
-  | pierceLuk => pierce₁₂OrLuk₁₂Form
-  | piercePierce => pierce₁₂OrPierce₂₁Form
-  | scott => scottForm
-  | kreiselPutnam => kreiselPutnamForm
+  | smetanich => (smetanichForm (.var 0) (.var 1))
+  | bd2 => (bd2Form (.var 0) (.var 1))
+  | linearity => (linearityForm (.var 0) (.var 1))
+  | noDiamond => (noDiamondForm (.var 0) (.var 1))
+  | weakEm => (weakEmForm (.var 0))
+  | pierceLuk => (pierce₁₂OrLuk₁₂Form (.var 0) (.var 1))
+  | piercePierce => (pierce₁₂OrPierce₂₁Form (.var 0) (.var 1))
+  | scott => (scottForm (.var 0))
+  | kreiselPutnam => (kreiselPutnamForm (.var 0) (.var 1) (.var 2))
 
 def all : List Node :=
   [em, smetanich, bd2, linearity, noDiamond, weakEm, pierceLuk, piercePierce, scott,
@@ -235,20 +235,25 @@ def seps : List (Node × Node) :=
 are derived by it, the representative first. -/
 def members : Node → List Form
   | em => [excludedMiddleForm (.var 0), emAOrNotBForm (.var 0) (.var 1),
-      emAOrBForm (.var 0) (.var 1), pierce₁₂OrDeMorgan₁₂Form, demorgan₁₂OrImpOr₁₂Form,
-      impOr₁₂OrImpOr₂₁Form]
-  | smetanich => [smetanichForm, peirce₁₂OrImpOr₂₁Form, em₁OrPeirce₂₁Form,
-      emAOrNotB₁₂OrPeirce₁₂Form, emAOrNotB₁₂OrPeirce₂₁Form]
-  | bd2 => [bd2Form, demorgan₁₂OrLuk₁₂Form, impOr₁₂OrLuk₁₂Form, pierce₁₂OrLuk₂₁Form,
-      em₁OrLuk₂₁Form, notNot₁OrLuk₂₁Form, cm₁OrLuk₂₁Form, notNot₁OrPeirce₂₁Form,
-      cm₁OrPeirce₂₁Form, emAOrB₁₂OrLuk₁₂Form, emAOrB₁₂OrLuk₂₁Form, emAOrNotB₁₂OrLuk₂₁Form]
-  | linearity => [linearityForm]
-  | noDiamond => [noDiamondForm, notNotAndForm, impOr₁₂OrLuk₂₁Form, luk₁₂OrLuk₂₁Form]
-  | weakEm => [weakEmForm]
-  | pierceLuk => [pierce₁₂OrLuk₁₂Form, peirce₁₂OrImpOr₁₂Form]
-  | piercePierce => [pierce₁₂OrPierce₂₁Form]
-  | scott => [scottForm]
-  | kreiselPutnam => [kreiselPutnamForm]
+      emAOrBForm (.var 0) (.var 1), pierce₁₂OrDeMorgan₁₂Form (.var 0) (.var 1),
+      demorgan₁₂OrImpOr₁₂Form (.var 0) (.var 1), impOr₁₂OrImpOr₂₁Form (.var 0) (.var 1)]
+  | smetanich => [smetanichForm (.var 0) (.var 1), peirce₁₂OrImpOr₂₁Form (.var 0) (.var 1),
+      em₁OrPeirce₂₁Form (.var 0) (.var 1), emAOrNotB₁₂OrPeirce₁₂Form (.var 0) (.var 1),
+      emAOrNotB₁₂OrPeirce₂₁Form (.var 0) (.var 1)]
+  | bd2 => [bd2Form (.var 0) (.var 1), demorgan₁₂OrLuk₁₂Form (.var 0) (.var 1),
+      impOr₁₂OrLuk₁₂Form (.var 0) (.var 1), pierce₁₂OrLuk₂₁Form (.var 0) (.var 1),
+      em₁OrLuk₂₁Form (.var 0) (.var 1), notNot₁OrLuk₂₁Form (.var 0) (.var 1),
+      cm₁OrLuk₂₁Form (.var 0) (.var 1), notNot₁OrPeirce₂₁Form (.var 0) (.var 1),
+      cm₁OrPeirce₂₁Form (.var 0) (.var 1), emAOrB₁₂OrLuk₁₂Form (.var 0) (.var 1),
+      emAOrB₁₂OrLuk₂₁Form (.var 0) (.var 1), emAOrNotB₁₂OrLuk₂₁Form (.var 0) (.var 1)]
+  | linearity => [linearityForm (.var 0) (.var 1)]
+  | noDiamond => [noDiamondForm (.var 0) (.var 1), notNotAndForm (.var 0) (.var 1),
+      impOr₁₂OrLuk₂₁Form (.var 0) (.var 1), luk₁₂OrLuk₂₁Form (.var 0) (.var 1)]
+  | weakEm => [weakEmForm (.var 0)]
+  | pierceLuk => [pierce₁₂OrLuk₁₂Form (.var 0) (.var 1), peirce₁₂OrImpOr₁₂Form (.var 0) (.var 1)]
+  | piercePierce => [pierce₁₂OrPierce₂₁Form (.var 0) (.var 1)]
+  | scott => [scottForm (.var 0)]
+  | kreiselPutnam => [kreiselPutnamForm (.var 0) (.var 1) (.var 2)]
 
 /-- How far above the bottom a node sits; every edge goes down it. -/
 def height : Node → Nat

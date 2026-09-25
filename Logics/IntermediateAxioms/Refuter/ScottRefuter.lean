@@ -53,7 +53,7 @@ theorem scott_fork12_ge_coatom : ∀ a : ForkUp 1 2,
       = ForkUp.tails 0 0 := by decide
 
 theorem scottForm_fork12_eval_ge (v : Nat → ForkUp 1 2) :
-    (ForkUp.tails 0 0 : ForkUp 1 2) ⊑ scottForm.eval v :=
+    (ForkUp.tails 0 0 : ForkUp 1 2) ⊑ (scottForm (.var 0)).eval v :=
   inf_eq_left_iff.mp (scott_fork12_ge_coatom (v 0))
 
 open HeytingAlgebra in
@@ -64,7 +64,7 @@ theorem scott_fork12_fail : ∀ a : ForkUp 1 2,
         z = neg (neg a) ∨ z = neg a ⊔ neg (neg a) := by decide
 
 /-- **Nothing below the uneven fork refutes `scottForm`.** -/
-theorem refuterLB_fork12_scott : RefuterLB (ForkUp 1 2) scottForm :=
+theorem refuterLB_fork12_scott : RefuterLB (ForkUp 1 2) (scottForm (.var 0)) :=
   refuterLB_of_coatom fork12_coatom' scottForm_fork12_eval_ge fun _ _ h _ v hv z => by
     have hfail := scott_fork12_fail _ hv
     rcases hfail z with hz | hz | hz | hz | hz | hz | hz
@@ -102,14 +102,14 @@ theorem sh_fork12_of_scott_fails {α : Type} [HeytingAlgebra α] (t : α)
       (Filter.up_mem.mp ((FilterQuot.mk_eq_top_iff _ _).mp he)))
 
 theorem sh_fork12_of_refutes_scott (α : Type) (iα : HeytingAlgebra α)
-    (h : ¬ ∀ v : Nat → α, scottForm.eval v = ⊤) : @SH (ForkUp 1 2) α _ iα := by
+    (h : ¬ ∀ v : Nat → α, (scottForm (.var 0)).eval v = ⊤) : @SH (ForkUp 1 2) α _ iα := by
   obtain ⟨v, hv⟩ := @exists_ne_top α iα _ h
   exact @sh_fork12_of_scott_fails α iα (v 0) hv
 
 /-- **The criterion.**  A schema derives `scottForm` exactly when it misses the
 top value in the uneven fork. -/
 theorem derivesFromSchema_scott_iff (X : Form) :
-    DerivesFromSchema X scottForm ↔ ¬ ∀ w : Nat → ForkUp 1 2, X.eval w = ⊤ := by
+    DerivesFromSchema X (scottForm (.var 0)) ↔ ¬ ∀ w : Nat → ForkUp 1 2, X.eval w = ⊤ := by
   constructor
   · intro h hv
     exact scottForm_nvalid_fork12 (DerivesFromSchema.valid hv h _)

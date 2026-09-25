@@ -69,11 +69,11 @@ theorem smetanich_four_fail : ∀ a b : Fin 4,
     ((neg b ⇨ a) ⇨ (((a ⇨ b) ⇨ a) ⇨ a)) ≠ ⊤ → a = 2 ∧ b = 1 := by decide
 
 theorem smetanich_four_eval_ge (v : Nat → Fin 4) :
-    (2 : Fin 4) ⊑ smetanichForm.eval v :=
+    (2 : Fin 4) ⊑ (smetanichForm (.var 0) (.var 1)).eval v :=
   inf_eq_left_iff.mp (smetanich_four_ge_two (v 0) (v 1))
 
 /-- **No algebra strictly below `Fin 4` refutes `peirce₁₂OrImpOr₂₁Form`.** -/
-theorem refuterLB_four : RefuterLB (Fin 4) smetanichForm :=
+theorem refuterLB_four : RefuterLB (Fin 4) (smetanichForm (.var 0) (.var 1)) :=
   refuterLB_of_coatom four_coatom' smetanich_four_eval_ge fun _ _ h _ v hv y => by
     have hfail := smetanich_four_fail _ _ hv
     rcases four_cases y with rfl | rfl | rfl | rfl
@@ -102,12 +102,12 @@ theorem fork_neg_tails : neg (ForkUp.tails 0 1 : ForkUp 1 1) = ForkUp.tails 1 0 
     neg (ForkUp.tails 1 0 : ForkUp 1 1) = ForkUp.tails 0 1 := by decide
 
 theorem smetanich_fork_eval_ge (v : Nat → ForkUp 1 1) :
-    (ForkUp.tails 0 0 : ForkUp 1 1) ⊑ smetanichForm.eval v :=
+    (ForkUp.tails 0 0 : ForkUp 1 1) ⊑ (smetanichForm (.var 0) (.var 1)).eval v :=
   inf_eq_left_iff.mp (smetanich_fork_ge_coatom (v 0) (v 1))
 
 /-- **No algebra strictly below `ForkUp 1 1` refutes
 `peirce₁₂OrImpOr₂₁Form`.** -/
-theorem refuterLB_fork : RefuterLB (ForkUp 1 1) smetanichForm :=
+theorem refuterLB_fork : RefuterLB (ForkUp 1 1) (smetanichForm (.var 0) (.var 1)) :=
   refuterLB_of_coatom fork_coatom' smetanich_fork_eval_ge fun _ _ h _ v hv y => by
     have hfail := smetanich_fork_fail _ _ hv
     have h0 : h.toFun (v 0) = ForkUp.tails 0 0 := hfail.1
@@ -245,7 +245,7 @@ open ChainWitness in
 /-- **Every algebra refuting `peirce₁₂OrImpOr₂₁Form` carries `Fin 4` or
 `ForkUp 1 1` below it.**  Weak excluded middle at `b` decides which. -/
 theorem sh_four_or_fork_of_refutes (α : Type) (iα : HeytingAlgebra α)
-    (h : ¬ ∀ v : Nat → α, smetanichForm.eval v = ⊤) :
+    (h : ¬ ∀ v : Nat → α, (smetanichForm (.var 0) (.var 1)).eval v = ⊤) :
     @SH (Fin 4) α _ iα ∨ @SH (ForkUp 1 1) α _ iα := by
   obtain ⟨v, hv⟩ := @exists_ne_top α iα _ h
   by_cases hW : @HeytingAlgebra.neg α iα (v 1) ⊔ neg (neg (v 1)) = ⊤
@@ -264,7 +264,7 @@ algebra validating the schema and refuting the principle would carry one of the
 two algebras below it, and validity travels down, so the schema would hold
 there too, against assumption. -/
 theorem derivesFromSchema_smetanich_iff (X : Form) :
-    DerivesFromSchema X smetanichForm ↔
+    DerivesFromSchema X (smetanichForm (.var 0) (.var 1)) ↔
       (¬ ∀ w : Nat → Fin 4, X.eval w = ⊤) ∧
         (¬ ∀ w : Nat → ForkUp 1 1, X.eval w = ⊤) := by
   constructor

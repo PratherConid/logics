@@ -239,7 +239,7 @@ theorem con : [Form.disj [Tx, Ty1, Ty2, Tt], P] ⊢ C :=
 /-! ## The embedding -/
 
 theorem sh_of_refutes_pair {α : Type} [HeytingAlgebra α] (v : Nat → α)
-    (hv : noKiteUp1x2Form.eval v ≠ ⊤) : SH (KiteUp 1 2) α :=
+    (hv : (noKiteUp1x2Form (.var 0) (.var 1)).eval v ≠ ⊤) : SH (KiteUp 1 2) α :=
   PointEmbed.sh_of_refutes points T (P := P) (C := C) Derives.tru
     (fun j hj k hk h₁ h₂ h₃ => by
       simp only [points, List.mem_cons, List.not_mem_nil, or_false] at hj hk
@@ -271,28 +271,31 @@ def terms : List Form :=
   ([.empty, .all, .tails 0 0, .tails 0 1, .tails 0 2, .tails 1 0, .tails 1 1, .tails 1 2] :
       List (KiteUp 1 2)).map fun w => Form.disj ((below points.J w).map T)
 
-theorem nvalid : ¬ ∀ a b : KiteUp 1 2, noKiteUp1x2Form.eval (valPair a b) = ⊤ := by decide
+theorem nvalid :
+    ¬ ∀ a b : KiteUp 1 2, (noKiteUp1x2Form (.var 0) (.var 1)).eval (valPair a b) = ⊤ := by decide
 
 end NoKiteUp1x2Witness
 
 open NoKiteUp1x2Witness
 
 /-- **Nothing below the uneven kite refutes `noKiteUp1x2Form`.** -/
-theorem refuterLB_kite12_noKiteUp1x2 : RefuterLB (KiteUp 1 2) noKiteUp1x2Form :=
+theorem refuterLB_kite12_noKiteUp1x2 : RefuterLB (KiteUp 1 2) (noKiteUp1x2Form (.var 0) (.var 1)) :=
   refuterLB_of_generates (c := .tails 0 0) terms (by decide) (by decide) (by decide)
     (by decide) (by decide)
 
 /-- **Every algebra refuting `noKiteUp1x2Form` carries the uneven kite below
 it.** -/
 theorem sh_kite12_of_refutes_noKiteUp1x2 (α : Type) (iα : HeytingAlgebra α)
-    (h : ¬ ∀ v : Nat → α, noKiteUp1x2Form.eval v = ⊤) : @SH (KiteUp 1 2) α _ iα := by
+    (h : ¬ ∀ v : Nat → α, (noKiteUp1x2Form (.var 0) (.var 1)).eval v = ⊤) :
+    @SH (KiteUp 1 2) α _ iα := by
   obtain ⟨v, hv⟩ := @exists_ne_top α iα _ h
   exact @sh_of_refutes_pair α iα v hv
 
 /-- **The criterion.**  A schema derives `noKiteUp1x2Form` exactly when it misses
 the top value in the uneven kite. -/
 theorem derivesFromSchema_noKiteUp1x2_iff (X : Form) :
-    DerivesFromSchema X noKiteUp1x2Form ↔ ¬ ∀ w : Nat → KiteUp 1 2, X.eval w = ⊤ := by
+    DerivesFromSchema X (noKiteUp1x2Form (.var 0) (.var 1)) ↔
+      ¬ ∀ w : Nat → KiteUp 1 2, X.eval w = ⊤ := by
   constructor
   · intro h hv
     exact nvalid fun _ _ => DerivesFromSchema.valid hv h _

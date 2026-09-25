@@ -40,11 +40,11 @@ open HeytingAlgebra in
 theorem bd2_four_fail : ∀ a b : Fin 4,
     (a ⊔ (a ⇨ (b ⊔ neg b))) ≠ ⊤ → a = 2 ∧ b = 1 := by decide
 
-theorem bd2_four_eval_ge (v : Nat → Fin 4) : (2 : Fin 4) ⊑ bd2Form.eval v :=
+theorem bd2_four_eval_ge (v : Nat → Fin 4) : (2 : Fin 4) ⊑ (bd2Form (.var 0) (.var 1)).eval v :=
   inf_eq_left_iff.mp (bd2_four_ge_two (v 0) (v 1))
 
 /-- **Nothing below `Fin 4` refutes `bd2Form`.** -/
-theorem refuterLB_four_bd2 : RefuterLB (Fin 4) bd2Form :=
+theorem refuterLB_four_bd2 : RefuterLB (Fin 4) (bd2Form (.var 0) (.var 1)) :=
   refuterLB_of_coatom four_coatom' bd2_four_eval_ge fun _ _ h _ v hv y => by
     have hfail := bd2_four_fail _ _ hv
     rcases four_cases y with rfl | rfl | rfl | rfl
@@ -84,7 +84,7 @@ end BD2Witness
 open BD2Witness in
 /-- **Every algebra refuting `bd2Form` carries `Fin 4` below it.** -/
 theorem sh_four_of_refutes_bd2 (α : Type) (iα : HeytingAlgebra α)
-    (h : ¬ ∀ v : Nat → α, bd2Form.eval v = ⊤) : @SH (Fin 4) α _ iα := by
+    (h : ¬ ∀ v : Nat → α, (bd2Form (.var 0) (.var 1)).eval v = ⊤) : @SH (Fin 4) α _ iα := by
   obtain ⟨v, hv⟩ := @exists_ne_top α iα _ h
   refine @sh_of_embeds (Fin 4) α _ iα ?_
   have hT : @upper α iα (v 0) (v 1) ≠ ⊤ := hv
@@ -95,7 +95,7 @@ theorem sh_four_of_refutes_bd2 (α : Type) (iα : HeytingAlgebra α)
 /-- **The criterion.**  A schema derives `bd2Form` exactly when it misses the
 top value in `Fin 4` — one algebra, no conjunction. -/
 theorem derivesFromSchema_bd2_iff (X : Form) :
-    DerivesFromSchema X bd2Form ↔ ¬ ∀ w : Nat → Fin 4, X.eval w = ⊤ := by
+    DerivesFromSchema X (bd2Form (.var 0) (.var 1)) ↔ ¬ ∀ w : Nat → Fin 4, X.eval w = ⊤ := by
   constructor
   · intro h hv
     exact bd2Form_nvalid_four (DerivesFromSchema.valid hv h _)

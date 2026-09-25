@@ -83,7 +83,8 @@ abbrev kpAt {α : Type} [HeytingAlgebra α] (a b c : α) : α :=
 /-- The formula and the expression agree, the formula having three
 variables. -/
 theorem kreiselPutnamForm_valid_iff {α : Type} [HeytingAlgebra α] :
-    (∀ v : Nat → α, kreiselPutnamForm.eval v = ⊤) ↔ ∀ a b c : α, kpAt a b c = ⊤ :=
+    (∀ v : Nat → α, (kreiselPutnamForm (.var 0) (.var 1) (.var 2)).eval v = ⊤) ↔ ∀ a b c : α, kpAt a
+      b c = ⊤ :=
   ⟨fun h a b c => h (fun n => if n = 0 then a else if n = 1 then b else c),
    fun h v => h (v 0) (v 1) (v 2)⟩
 
@@ -219,7 +220,8 @@ structure InKPList (P : Type) [Frame P] : Prop where
 
 /-- **Soundness.**  A schema deriving the axiom fails on every frame of `𝓛`,
 since the split refutes the axiom there. -/
-theorem kpList_sound {X : Form} (h : DerivesFromSchema X kreiselPutnamForm)
+theorem kpList_sound {X : Form}
+    (h : DerivesFromSchema X (kreiselPutnamForm (.var 0) (.var 1) (.var 2)))
     {P : Type} [Frame P] (hP : InKPList P) :
     ¬ ∀ w : Nat → Upset P, X.eval w = ⊤ := fun hv => by
   obtain ⟨_, _, hs⟩ := hP.splits
@@ -234,7 +236,7 @@ theorem kpList_complete_finite {X : Form}
     (hX : ∀ (Q : Type) [Frame Q], InKPList Q → ¬ ∀ w : Nat → Upset Q, X.eval w = ⊤)
     {P : Type} [Frame P] (hfin : ∃ l : List P, ∀ p, p ∈ l)
     (hv : ∀ w : Nat → Upset P, X.eval w = ⊤) :
-    ∀ v : Nat → Upset P, kreiselPutnamForm.eval v = ⊤ := by
+    ∀ v : Nat → Upset P, (kreiselPutnamForm (.var 0) (.var 1) (.var 2)).eval v = ⊤ := by
   obtain ⟨l, hl⟩ := hfin
   refine kreiselPutnamForm_valid_iff.mpr (Classical.byContradiction fun hkp => ?_)
   obtain ⟨r, a, hs⟩ := (kp_ntop_iff_splits (hasMinimal_of_list l hl)).mp hkp
@@ -249,19 +251,19 @@ whose logic has the finite model property has it here. -/
 def HasFMPAtKP (X : Form) : Prop :=
   (∀ (P : Type) [Frame P], (∃ l : List P, ∀ p, p ∈ l) →
       (∀ w : Nat → Upset P, X.eval w = ⊤) →
-      ∀ v : Nat → Upset P, kreiselPutnamForm.eval v = ⊤) →
-    DerivesFromSchema X kreiselPutnamForm
+      ∀ v : Nat → Upset P, (kreiselPutnamForm (.var 0) (.var 1) (.var 2)).eval v = ⊤) →
+    DerivesFromSchema X (kreiselPutnamForm (.var 0) (.var 1) (.var 2))
 
 /-- **Completeness**, for a schema with the finite model property at the
 axiom. -/
 theorem kpList_complete {X : Form} (hfmp : HasFMPAtKP X)
     (hX : ∀ (Q : Type) [Frame Q], InKPList Q → ¬ ∀ w : Nat → Upset Q, X.eval w = ⊤) :
-    DerivesFromSchema X kreiselPutnamForm :=
+    DerivesFromSchema X (kreiselPutnamForm (.var 0) (.var 1) (.var 2)) :=
   hfmp fun P iP hfin hv => @kpList_complete_finite X hX P iP hfin hv
 
 /-- **The criterion.**  For a schema with the finite model property at the
 axiom, deriving the axiom is the same as failing on every frame of `𝓛`. -/
 theorem kpList_criterion {X : Form} (hfmp : HasFMPAtKP X) :
-    DerivesFromSchema X kreiselPutnamForm ↔
+    DerivesFromSchema X (kreiselPutnamForm (.var 0) (.var 1) (.var 2)) ↔
       ∀ (Q : Type) [Frame Q], InKPList Q → ¬ ∀ w : Nat → Upset Q, X.eval w = ⊤ :=
   ⟨fun h _ _ hQ => kpList_sound h hQ, kpList_complete hfmp⟩

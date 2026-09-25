@@ -92,7 +92,7 @@ Putnam's axiom, and has depth two, so bounded depth two holds there.
 fork with two long branches refutes it, so no derivation from no hypotheses
 exists.  Every level of the spine derives it, so none of them is one
 either. -/
-theorem pierce₁₂OrPierce₂₁_nderiv : ¬ ([] ⊢ pierce₁₂OrPierce₂₁Form) := by
+theorem pierce₁₂OrPierce₂₁_nderiv : ¬ ([] ⊢ pierce₁₂OrPierce₂₁Form (.var 0) (.var 1)) := by
   intro d
   exact pierce₁₂OrPierce₂₁Form_nvalid_tallFork
     (Derives.valid_of_derives d (ForkUp 2 2)
@@ -100,44 +100,48 @@ theorem pierce₁₂OrPierce₂₁_nderiv : ¬ ([] ⊢ pierce₁₂OrPierce₂�
 
 /-- Nor is `scottForm`, which the uneven fork refutes.  Bounded depth two and
 weak excluded middle derive it, and so everything above either of them. -/
-theorem scott_nderiv : ¬ ([] ⊢ scottForm) := fun d =>
+theorem scott_nderiv : ¬ ([] ⊢ scottForm (.var 0)) := fun d =>
   scottForm_nvalid_fork12 (Derives.valid_of_derives d (ForkUp 1 2) _)
 
 /-- Nor is `kreiselPutnamForm`, which the three branch fork refutes.  With the
 two above this covers every principle here, each deriving one of the three. -/
-theorem kreiselPutnam_nderiv : ¬ ([] ⊢ kreiselPutnamForm) := fun d =>
+theorem kreiselPutnam_nderiv : ¬ ([] ⊢ kreiselPutnamForm (.var 0) (.var 1) (.var 2)) := fun d =>
   kreiselPutnamForm_nvalid_fork3 (Derives.valid_of_derives d (ForkUp3 1 1 1) _)
 
 /-- Strictness below: no instantiation of `pierce₁₂OrLuk₁₂Form` derives
 `noDiamondForm`.  The diamond validates every instance of the former and
 refutes one of the latter. -/
 theorem pierce₁₂OrLuk₁₂_nderiv_noDiamond :
-    ¬ DerivesFromSchema pierce₁₂OrLuk₁₂Form noDiamondForm := fun h =>
+    ¬ DerivesFromSchema (pierce₁₂OrLuk₁₂Form (.var 0) (.var 1))
+      (noDiamondForm (.var 0) (.var 1)) := fun h =>
   noDiamondForm_nvalid_diamond (DerivesFromSchema.valid pierce₁₂OrLuk₁₂Form_valid h _)
 
 /-- Strictness above: no instantiation of `noDiamondForm` derives `bd2Form`.
 Every chain validates the former, and the four value chain refutes the
 latter. -/
-theorem noDiamond_nderiv_bd2 : ¬ DerivesFromSchema noDiamondForm bd2Form := fun h =>
+theorem noDiamond_nderiv_bd2 :
+    ¬ DerivesFromSchema (noDiamondForm (.var 0) (.var 1)) (bd2Form (.var 0) (.var 1)) := fun h =>
   bd2Form_nvalid_four (DerivesFromSchema.valid noDiamondForm_valid_chain h _)
 
 /-- Strong as it is, Smetanich's axiom still does not reach excluded middle: it
 holds throughout `Fin 3`, where excluded middle does not. -/
 theorem smetanich_nderiv_em :
-    ¬ DerivesFromSchema smetanichForm (excludedMiddleForm (.var 0)) := fun h =>
+    ¬ DerivesFromSchema (smetanichForm (.var 0) (.var 1)) (excludedMiddleForm (.var 0)) := fun h =>
   excludedMiddleForm_nvalid_three (DerivesFromSchema.valid smetanichForm_valid_three h _)
 
 /-- The step from `bd2Form` up to Smetanich's axiom is strict: no instantiation
 of the former derives the latter, since the fork validates every instance of the
 former and refutes one of the latter. -/
-theorem bd2_nderiv_smetanich : ¬ DerivesFromSchema bd2Form smetanichForm := fun h =>
+theorem bd2_nderiv_smetanich :
+    ¬ DerivesFromSchema (bd2Form (.var 0) (.var 1)) (smetanichForm (.var 0) (.var 1)) := fun h =>
   smetanichForm_nvalid_fork (DerivesFromSchema.valid bd2Form_valid_fork h _)
 
 /-- The bottom step is strict too: no instantiation of `pierce₁₂OrPierce₂₁Form`
 derives `pierce₁₂OrLuk₁₂Form`, since the kite validates every instance of the
 former and refutes one of the latter. -/
 theorem pierce₁₂OrPierce₂₁_nderiv_pierce₁₂OrLuk₁₂ :
-    ¬ DerivesFromSchema pierce₁₂OrPierce₂₁Form pierce₁₂OrLuk₁₂Form := fun h =>
+    ¬ DerivesFromSchema (pierce₁₂OrPierce₂₁Form (.var 0) (.var 1))
+      (pierce₁₂OrLuk₁₂Form (.var 0) (.var 1)) := fun h =>
   pierce₁₂OrLuk₁₂Form_nvalid_kite (DerivesFromSchema.valid pierce₁₂OrPierce₂₁Form_valid_kite h _)
 
 /-! ## Both algebras are needed at the `peirce₁₂OrImpOr₂₁Form` step
@@ -154,12 +158,12 @@ schema valid throughout either algebra shows it derives nothing at this
 level. -/
 
 theorem nvalid_four_of_derives_peirce₁₂OrImpOr₂₁ {X : Form}
-    (h : DerivesFromSchema X peirce₁₂OrImpOr₂₁Form) :
+    (h : DerivesFromSchema X (peirce₁₂OrImpOr₂₁Form (.var 0) (.var 1))) :
     ¬ ∀ w : Nat → Fin 4, X.eval w = ⊤ := fun hv =>
   peirce₁₂OrImpOr₂₁Form_nvalid_four (DerivesFromSchema.valid hv h _)
 
 theorem nvalid_fork_of_derives_peirce₁₂OrImpOr₂₁ {X : Form}
-    (h : DerivesFromSchema X peirce₁₂OrImpOr₂₁Form) :
+    (h : DerivesFromSchema X (peirce₁₂OrImpOr₂₁Form (.var 0) (.var 1))) :
     ¬ ∀ w : Nat → ForkUp 1 1, X.eval w = ⊤ := fun hv =>
   peirce₁₂OrImpOr₂₁Form_nvalid_fork (DerivesFromSchema.valid hv h _)
 
@@ -189,14 +193,16 @@ deduction derivation from substitution instances. -/
 /-- **Linearity does not reach bounded depth two**: every chain is linear,
 while the four value chain has depth three.  Smetanich's axiom derives bounded
 depth two, so linearity does not reach that either. -/
-theorem linearity_nderiv_bd2 : ¬ DerivesFromSchema linearityForm bd2Form := fun h =>
+theorem linearity_nderiv_bd2 :
+    ¬ DerivesFromSchema (linearityForm (.var 0) (.var 1)) (bd2Form (.var 0) (.var 1)) := fun h =>
   bd2Form_nvalid_four (DerivesFromSchema.valid (linearityForm_valid_chain (n := 3)) h _)
 
 /-- **Bounded depth two does not reach weak excluded middle**: the fork has
 depth two and is not directed.  Everything from `noDiamondForm` down is derived
 by bounded depth two, so none of those reach it either; and linearity derives
 it, so neither can anything that fails to reach linearity be reached from it. -/
-theorem bd2_nderiv_weakEm : ¬ DerivesFromSchema bd2Form weakEmForm := fun h =>
+theorem bd2_nderiv_weakEm :
+    ¬ DerivesFromSchema (bd2Form (.var 0) (.var 1)) (weakEmForm (.var 0)) := fun h =>
   weakEmForm_nvalid_fork (DerivesFromSchema.valid bd2Form_valid_fork h _)
 
 /-- **Weak excluded middle does not reach even the bottom level**: the even
@@ -204,7 +210,7 @@ kite is directed and refutes that level.  Every level of the chain derives the
 bottom one, so weak excluded middle reaches none of them, nor linearity above
 them. -/
 theorem weakEm_nderiv_pierce₁₂OrPierce₂₁ :
-    ¬ DerivesFromSchema weakEmForm pierce₁₂OrPierce₂₁Form := fun h =>
+    ¬ DerivesFromSchema (weakEmForm (.var 0)) (pierce₁₂OrPierce₂₁Form (.var 0) (.var 1)) := fun h =>
   pierce₁₂OrPierce₂₁Form_nvalid_kite22
     (DerivesFromSchema.valid weakEmForm_valid_kite22 h _)
 
@@ -217,19 +223,21 @@ it does not reach bounded depth two, nor weak excluded middle, nor the bottom
 level; and `noDiamondForm` does not reach it, so neither does anything
 `noDiamondForm` derives. -/
 
-theorem scott_nderiv_bd2 : ¬ DerivesFromSchema scottForm bd2Form := fun h =>
+theorem scott_nderiv_bd2 :
+    ¬ DerivesFromSchema (scottForm (.var 0)) (bd2Form (.var 0) (.var 1)) := fun h =>
   bd2Form_nvalid_four (DerivesFromSchema.valid scottForm_valid_four h _)
 
-theorem scott_nderiv_weakEm : ¬ DerivesFromSchema scottForm weakEmForm := fun h =>
+theorem scott_nderiv_weakEm :
+    ¬ DerivesFromSchema (scottForm (.var 0)) (weakEmForm (.var 0)) := fun h =>
   weakEmForm_nvalid_fork (DerivesFromSchema.valid scottForm_valid_fork h _)
 
 theorem scott_nderiv_pierce₁₂OrPierce₂₁ :
-    ¬ DerivesFromSchema scottForm pierce₁₂OrPierce₂₁Form := fun h =>
+    ¬ DerivesFromSchema (scottForm (.var 0)) (pierce₁₂OrPierce₂₁Form (.var 0) (.var 1)) := fun h =>
   pierce₁₂OrPierce₂₁Form_nvalid_kite22
     (DerivesFromSchema.valid scottForm_valid_kite22 h _)
 
 theorem noDiamond_nderiv_scott :
-    ¬ DerivesFromSchema noDiamondForm scottForm := fun h =>
+    ¬ DerivesFromSchema (noDiamondForm (.var 0) (.var 1)) (scottForm (.var 0)) := fun h =>
   scottForm_nvalid_fork12 (DerivesFromSchema.valid noDiamondForm_valid_fork12 h _)
 
 /-! ## Kreisel and Putnam's axiom
@@ -247,22 +255,27 @@ are not enough.  Every algebra above validates it, the uneven fork that refutes
 Scott's axiom included, and only the three branch fork refutes it. -/
 
 theorem kreiselPutnam_nderiv_bd2 :
-    ¬ DerivesFromSchema kreiselPutnamForm bd2Form := fun h =>
+    ¬ DerivesFromSchema (kreiselPutnamForm (.var 0) (.var 1) (.var 2))
+      (bd2Form (.var 0) (.var 1)) := fun h =>
   bd2Form_nvalid_four (DerivesFromSchema.valid kreiselPutnamForm_valid_four h _)
 
 theorem kreiselPutnam_nderiv_weakEm :
-    ¬ DerivesFromSchema kreiselPutnamForm weakEmForm := fun h =>
+    ¬ DerivesFromSchema (kreiselPutnamForm (.var 0) (.var 1) (.var 2))
+      (weakEmForm (.var 0)) := fun h =>
   weakEmForm_nvalid_fork (DerivesFromSchema.valid kreiselPutnamForm_valid_fork h _)
 
 theorem kreiselPutnam_nderiv_pierce₁₂OrPierce₂₁ :
-    ¬ DerivesFromSchema kreiselPutnamForm pierce₁₂OrPierce₂₁Form := fun h =>
+    ¬ DerivesFromSchema (kreiselPutnamForm (.var 0) (.var 1) (.var 2))
+      (pierce₁₂OrPierce₂₁Form (.var 0) (.var 1)) := fun h =>
   pierce₁₂OrPierce₂₁Form_nvalid_kite22
     (DerivesFromSchema.valid kreiselPutnamForm_valid_kite22 h _)
 
 theorem kreiselPutnam_nderiv_scott :
-    ¬ DerivesFromSchema kreiselPutnamForm scottForm := fun h =>
+    ¬ DerivesFromSchema (kreiselPutnamForm (.var 0) (.var 1) (.var 2))
+      (scottForm (.var 0)) := fun h =>
   scottForm_nvalid_fork12 (DerivesFromSchema.valid kreiselPutnamForm_valid_fork12 h _)
 
 theorem bd2_nderiv_kreiselPutnam :
-    ¬ DerivesFromSchema bd2Form kreiselPutnamForm := fun h =>
+    ¬ DerivesFromSchema (bd2Form (.var 0) (.var 1))
+      (kreiselPutnamForm (.var 0) (.var 1) (.var 2)) := fun h =>
   kreiselPutnamForm_nvalid_fork3 (DerivesFromSchema.valid bd2Form_valid_fork3 h _)
