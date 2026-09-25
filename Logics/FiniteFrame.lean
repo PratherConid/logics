@@ -6,13 +6,26 @@ import Logics.Homomorphism
 Two ways of turning a frame into a smaller one whose algebra sits below the
 original in the Jankov order, and the count that makes "smaller" bite.
 
-* **The points above a point** (`Above`) form a frame whose algebra is a
-  homomorphic image: restricting upward closed sets is onto.
+* **The points above a point** (`Above`), and more generally the points of an
+  upward closed set (`Within`), form a frame whose algebra is a homomorphic
+  image: restricting upward closed sets is onto.
 * **Merging points** (`Merger`) along a map that respects the order as a
   p-morphism must gives a frame whose algebra is a subalgebra: pulling upward
   closed sets back is one to one.  Collapsing a set onto one of its members
   (`Merger.collapse`) is the case that comes up, and an upward closed set can
   always be collapsed (`Merger.collapseUp`).
+* **Every complete subalgebra comes from a merge.**  What a merge pulls back is
+  closed under arbitrary unions and intersections (`Merger.range`), and every
+  subalgebra so closed is what some merge pulls back
+  (`CompleteSub.mem_iff_pull`).  On a finite frame every subalgebra is complete,
+  so there every subalgebra comes from a merge (`Merger.exists_of_hom`) and is
+  the algebra of the merged frame (`Merger.sh_iff_of_hom`).
+* **Every homomorphic image comes from an upward closed set.**  On a finite
+  frame a homomorphism identifies two upward closed sets exactly when they agree
+  on the least set it sends to the top (`Upset.map_eq_iff_ker`), so its image is
+  the algebra of the points of that set (`Within.sh_iff_of_onto`).  Together:
+  what lies below the algebra of a finite frame is the algebra of a merge of the
+  points of an upward closed set (`sh_iff_merge`).
 * **Counting** (`length_le_of_sh`).  A finite poset with `n` points has a chain
   of `n` strict steps down through its upward closed sets, removing one minimal
   point at a time, and a frame whose points a list of length `m` names has none
@@ -455,6 +468,83 @@ theorem sh (r : P) : SH (Upset (Above r)) (Upset P) :=
 
 end Above
 
+/-! ## The points of an upward closed set
+
+The same goes for the points of any upward closed set `U`: with a point they
+hold everything above it, so restricting upward closed sets to them is onto.
+Two sets restrict to the same one exactly when they agree on `U`. -/
+
+/-- The points of an upward closed set `U`, as a frame of their own. -/
+structure Within {P : Type} [Frame P] (U : Upset P) where
+  pt : P
+  mem : U.mem pt
+
+namespace Within
+
+variable {P : Type} [Frame P] {U : Upset P}
+
+instance : Frame (Within U) where
+  le p q := p.pt ≼ q.pt
+  le_refl p := Frame.le_refl p.pt
+  le_trans h₁ h₂ := Frame.le_trans h₁ h₂
+
+open Classical in
+/-- The entries of `l` in `U`. -/
+noncomputable def cover (U : Upset P) (l : List P) : List (Within U) :=
+  l.filterMap fun p => if h : U.mem p then some ⟨p, h⟩ else none
+
+theorem mem_cover {l : List P} (hl : ∀ p, p ∈ l) (q : Within U) : q ∈ cover U l := by
+  unfold cover
+  rw [List.mem_filterMap]
+  refine ⟨q.pt, hl q.pt, ?_⟩
+  split
+  · rfl
+  · exact absurd q.mem ‹_›
+
+/-- A point outside `U` is lost, so fewer entries remain. -/
+theorem length_cover_lt {l : List P} {p : P} (hpl : p ∈ l) (hp : ¬ U.mem p) :
+    (cover U l).length < l.length :=
+  ListCount.length_filterMap_lt _ ⟨p, hpl, by simp [hp]⟩
+
+/-- Restricting an upward closed set to the points of `U`. -/
+def restrict (V : Upset P) : Upset (Within U) :=
+  ⟨fun q => V.mem q.pt, fun h hq => V.upward h hq⟩
+
+/-- Extending back: the points of `U` that `W` contains. -/
+def extend (W : Upset (Within U)) : Upset P :=
+  ⟨fun p => ∃ h : U.mem p, W.mem ⟨p, h⟩,
+   fun {_ _} hpp' ⟨h, hw⟩ => ⟨U.upward hpp' h, W.upward hpp' hw⟩⟩
+
+theorem restrict_extend (W : Upset (Within U)) : restrict (extend W) = W :=
+  Upset.ext fun q => ⟨fun ⟨_, hw⟩ => hw, fun hw => ⟨q.mem, hw⟩⟩
+
+/-- Two upward closed sets restrict to the same one exactly when they agree on
+`U`. -/
+theorem restrict_eq_iff {V W : Upset P} :
+    (restrict V : Upset (Within U)) = restrict W ↔ ∀ x, U.mem x → (V.mem x ↔ W.mem x) :=
+  ⟨fun h x hx => Iff.of_eq (congrArg (fun R : Upset (Within U) => R.mem ⟨x, hx⟩) h),
+   fun h => Upset.ext fun q => h q.pt q.mem⟩
+
+/-- Restriction is a homomorphism: everything above a point of `U` is in `U`,
+so the arrow looks at the same points either way. -/
+def restrictHom (U : Upset P) : Hom (Upset P) (Upset (Within U)) where
+  toFun := restrict
+  map_bot := Upset.ext fun _ => Iff.rfl
+  map_top := Upset.ext fun _ => Iff.rfl
+  map_inf _ _ := Upset.ext fun _ => Iff.rfl
+  map_sup _ _ := Upset.ext fun _ => Iff.rfl
+  map_himp _ _ := Upset.ext fun q =>
+    ⟨fun h q' hqq' hv => h q'.pt hqq' hv,
+     fun h p hqp hv => h ⟨p, U.upward hqp q.mem⟩ hqp hv⟩
+
+theorem onto (U : Upset P) : Onto (Upset (Within U)) (Upset P) :=
+  ⟨restrictHom U, fun W => ⟨extend W, restrict_extend W⟩⟩
+
+theorem sh (U : Upset P) : SH (Upset (Within U)) (Upset P) :=
+  ⟨Upset (Within U), inferInstance, onto U, embeds_refl _⟩
+
+end Within
+
 /-! ## Merging points
 
 Merging points along a map that respects the order the way a p-morphism must is
@@ -630,3 +720,444 @@ noncomputable abbrev collapseUp (N : P → Prop) (c : P) (hc : N c)
   collapse N c hc (fun hx _ hxy => Or.inl (hup hx hxy))
 
 end Merger
+
+/-! ## Every complete subalgebra comes from a merge
+
+Pulling back along a merge gives more than a subalgebra.  The upward closed sets
+it produces are those that never separate merged points, and they are closed
+under unions and intersections of arbitrary families: a *complete* subalgebra
+(`Merger.range`).  Conversely a complete subalgebra comes from a merge
+(`CompleteSub.mem_iff_pull`): merge two points when no member separates them.
+
+Completeness is what makes the converse work.  Each point `y` then has a least
+member containing it, `least y`, and a union of the members missing it,
+`missing y`, and the points no member separates from `y` are those in the first
+and not in the second.  So `least y ⇨ missing y`, a member, holds exactly where
+nothing above is merged with `y` (`mem_gap_iff`), which gives the condition a
+merge needs (`back`), and lets every upward closed set that never separates
+merged points be built as a union of `least`s.
+
+On a finite frame every subalgebra is complete, a union or an intersection of a
+family being that of finitely many of its members (`CompleteSub.ofHom`).  So
+there every subalgebra comes from a merge (`Merger.exists_of_hom`), and the
+algebra is that of the merged frame (`Merger.sh_iff_of_hom`).  Without
+finiteness this fails: the finite and cofinite sets of a discrete infinite frame
+form a subalgebra that is not complete. -/
+
+namespace Upset
+
+variable {P : Type} [Frame P]
+
+/-- The union of a family of upward closed sets. -/
+def sUnion (F : Upset P → Prop) : Upset P :=
+  ⟨fun x => ∃ U, F U ∧ U.mem x, fun h ⟨U, hU, hx⟩ => ⟨U, hU, U.upward h hx⟩⟩
+
+/-- The intersection of a family of upward closed sets. -/
+def sInter (F : Upset P → Prop) : Upset P :=
+  ⟨fun x => ∀ U, F U → U.mem x, fun h hx U hU => U.upward h (hx U hU)⟩
+
+/-- A point is in the meet of a list exactly when it is in all of its entries. -/
+theorem mem_infList : ∀ {L : List (Upset P)} {p : P},
+    (infList L).mem p ↔ ∀ U ∈ L, U.mem p
+  | [], _ => ⟨(fun _ _ h => nomatch h), fun _ => trivial⟩
+  | U :: t, p => by
+    show U.mem p ∧ (infList t).mem p ↔ _
+    rw [mem_infList]
+    constructor
+    · rintro ⟨h, ht⟩ V hV
+      rcases List.mem_cons.mp hV with rfl | hV
+      · exact h
+      · exact ht V hV
+    · intro h
+      exact ⟨h U (List.mem_cons_self ..), fun V hV => h V (List.mem_cons_of_mem _ hV)⟩
+
+/-- **On a finite frame a union is a finite join**, of one member of the family
+per point it contains. -/
+theorem exists_supList (l : List P) (hl : ∀ x, x ∈ l) (F : Upset P → Prop) :
+    ∃ L : List (Upset P), (∀ U ∈ L, F U) ∧ sUnion F = supList L := by
+  let pick : P → Upset P := fun x => @Classical.epsilon _ ⟨⊤⟩ fun U => F U ∧ U.mem x
+  have hpick : ∀ x, (∃ U, F U ∧ U.mem x) → F (pick x) ∧ (pick x).mem x :=
+    fun x => Classical.epsilon_spec (p := fun U => F U ∧ U.mem x)
+  have hmem : ∀ {y}, y ∈ l.filter (fun x => truth (∃ U, F U ∧ U.mem x)) →
+      F (pick y) ∧ (pick y).mem y :=
+    fun hy => hpick _ (truth_eq_true.mp (List.mem_filter.mp hy).2)
+  refine ⟨(l.filter fun x => truth (∃ U, F U ∧ U.mem x)).map pick, fun U hU => ?_,
+    ext fun x => ⟨fun hx => ?_, fun hx => ?_⟩⟩
+  · obtain ⟨y, hy, rfl⟩ := List.mem_map.mp hU
+    exact (hmem hy).1
+  · exact mem_supList.mpr ⟨pick x,
+      List.mem_map_of_mem (List.mem_filter.mpr ⟨hl x, truth_eq_true.mpr hx⟩), (hpick x hx).2⟩
+  · obtain ⟨U, hU, hxU⟩ := mem_supList.mp hx
+    obtain ⟨y, hy, rfl⟩ := List.mem_map.mp hU
+    exact ⟨pick y, (hmem hy).1, hxU⟩
+
+/-- **On a finite frame an intersection is a finite meet**, of one member of
+the family per point it misses. -/
+theorem exists_infList (l : List P) (hl : ∀ x, x ∈ l) (F : Upset P → Prop) :
+    ∃ L : List (Upset P), (∀ U ∈ L, F U) ∧ sInter F = infList L := by
+  let pick : P → Upset P := fun x => @Classical.epsilon _ ⟨⊤⟩ fun U => F U ∧ ¬ U.mem x
+  have hpick : ∀ x, (∃ U, F U ∧ ¬ U.mem x) → F (pick x) ∧ ¬ (pick x).mem x :=
+    fun x => Classical.epsilon_spec (p := fun U => F U ∧ ¬ U.mem x)
+  have hmem : ∀ {y}, y ∈ l.filter (fun x => truth (∃ U, F U ∧ ¬ U.mem x)) →
+      F (pick y) ∧ ¬ (pick y).mem y :=
+    fun hy => hpick _ (truth_eq_true.mp (List.mem_filter.mp hy).2)
+  refine ⟨(l.filter fun x => truth (∃ U, F U ∧ ¬ U.mem x)).map pick, fun U hU => ?_,
+    ext fun x => ⟨fun hx => ?_, fun hx => ?_⟩⟩
+  · obtain ⟨y, hy, rfl⟩ := List.mem_map.mp hU
+    exact (hmem hy).1
+  · refine mem_infList.mpr fun W hW => ?_
+    obtain ⟨y, hy, rfl⟩ := List.mem_map.mp hW
+    exact hx _ (hmem hy).1
+  · intro U hU
+    refine Classical.byContradiction fun hxU => ?_
+    have hex : ∃ U, F U ∧ ¬ U.mem x := ⟨U, hU, hxU⟩
+    exact (hpick x hex).2 (mem_infList.mp hx _
+      (List.mem_map_of_mem (List.mem_filter.mpr ⟨hl x, truth_eq_true.mpr hex⟩)))
+
+end Upset
+
+/-- A *complete* subalgebra of the upward closed sets: closed under the arrow,
+and under unions and intersections of arbitrary families, the empty ones giving
+`⊥` and `⊤`. -/
+structure CompleteSub (P : Type) [Frame P] where
+  mem : Upset P → Prop
+  himp : ∀ {U V : Upset P}, mem U → mem V → mem (U ⇨ V)
+  sUnion : ∀ F : Upset P → Prop, (∀ U, F U → mem U) → mem (Upset.sUnion F)
+  sInter : ∀ F : Upset P → Prop, (∀ U, F U → mem U) → mem (Upset.sInter F)
+
+namespace Merger
+
+variable {P : Type} [Frame P] (m : Merger P)
+
+/-- An upward closed set is pulled back along a merge exactly when it never
+separates merged points. -/
+theorem pulled_iff (U : Upset P) : (∃ V, m.pull V = U) ↔ ∀ x, U.mem x ↔ U.mem (m.g x) := by
+  constructor
+  · rintro ⟨V, rfl⟩ x
+    show V.mem (m.proj x) ↔ V.mem (m.proj (m.g x))
+    rw [show m.proj (m.g x) = m.proj x from Pt.ext m (m.idem x)]
+  · intro hU
+    exact ⟨m.lift U hU, m.pull_lift U hU⟩
+
+/-- **A merge gives a complete subalgebra**, the upward closed sets pulled back
+along it: never separating merged points survives any union and intersection,
+and the arrow is pulled back with the rest. -/
+def range : CompleteSub P where
+  mem U := ∃ V, m.pull V = U
+  himp := fun ⟨V, hV⟩ ⟨W, hW⟩ => ⟨V ⇨ W, by rw [← hV, ← hW]; exact m.pullHom.map_himp V W⟩
+  sUnion F hF := (m.pulled_iff _).mpr fun x =>
+    ⟨fun ⟨U, hU, hx⟩ => ⟨U, hU, ((m.pulled_iff U).mp (hF U hU) x).mp hx⟩,
+     fun ⟨U, hU, hx⟩ => ⟨U, hU, ((m.pulled_iff U).mp (hF U hU) x).mpr hx⟩⟩
+  sInter F hF := (m.pulled_iff _).mpr fun x =>
+    ⟨fun hx U hU => ((m.pulled_iff U).mp (hF U hU) x).mp (hx U hU),
+     fun hx U hU => ((m.pulled_iff U).mp (hF U hU) x).mpr (hx U hU)⟩
+
+end Merger
+
+namespace CompleteSub
+
+variable {P : Type} [Frame P] (S : CompleteSub P)
+
+/-- Two points that no member of `S` separates. -/
+def Equiv (x y : P) : Prop := ∀ U, S.mem U → (U.mem x ↔ U.mem y)
+
+theorem equiv_refl (x : P) : S.Equiv x x := fun _ _ => Iff.rfl
+
+theorem equiv_symm {x y : P} (h : S.Equiv x y) : S.Equiv y x := fun U hU => (h U hU).symm
+
+theorem equiv_trans {x y z : P} (h₁ : S.Equiv x y) (h₂ : S.Equiv y z) : S.Equiv x z :=
+  fun U hU => (h₁ U hU).trans (h₂ U hU)
+
+/-- The least member containing `y`. -/
+def least (y : P) : Upset P := Upset.sInter fun U => S.mem U ∧ U.mem y
+
+/-- The union of the members missing `y`. -/
+def missing (y : P) : Upset P := Upset.sUnion fun U => S.mem U ∧ ¬ U.mem y
+
+theorem least_mem (y : P) : S.mem (S.least y) := S.sInter _ fun _ h => h.1
+
+theorem missing_mem (y : P) : S.mem (S.missing y) := S.sUnion _ fun _ h => h.1
+
+theorem self_mem_least (y : P) : (S.least y).mem y := fun _ h => h.2
+
+theorem self_not_mem_missing (y : P) : ¬ (S.missing y).mem y := fun ⟨_, h, hy⟩ => h.2 hy
+
+/-- The points no member separates from `y` are those in `least y` and not in
+`missing y`. -/
+theorem equiv_iff (y z : P) : S.Equiv z y ↔ (S.least y).mem z ∧ ¬ (S.missing y).mem z := by
+  constructor
+  · intro h
+    exact ⟨fun U hU => (h U hU.1).mpr hU.2, fun ⟨U, hU, hz⟩ => hU.2 ((h U hU.1).mp hz)⟩
+  · rintro ⟨hl, hm⟩ U hU
+    rcases Classical.em (U.mem y) with hy | hy
+    · exact ⟨fun _ => hy, fun _ => hl U ⟨hU, hy⟩⟩
+    · exact ⟨fun hz => absurd ⟨U, ⟨hU, hy⟩, hz⟩ hm, fun h => absurd h hy⟩
+
+/-- **The gap of `y`**, the member `least y ⇨ missing y`, holds at a point
+exactly when nothing above it is merged with `y`. -/
+theorem mem_gap_iff (y x : P) :
+    (S.least y ⇨ S.missing y).mem x ↔ ∀ z, x ≼ z → ¬ S.Equiv z y := by
+  show (∀ z, x ≼ z → (S.least y).mem z → (S.missing y).mem z) ↔ _
+  constructor
+  · intro h z hxz hz
+    exact ((S.equiv_iff y z).mp hz).2 (h z hxz ((S.equiv_iff y z).mp hz).1)
+  · intro h z hxz hl
+    exact Classical.byContradiction fun hm => h z hxz ((S.equiv_iff y z).mpr ⟨hl, hm⟩)
+
+/-- **The condition a merge needs.**  If `x` and `x'` are not separated and `y`
+lies above `x`, something not separated from `y` lies above `x'`: otherwise the
+gap of `y` would hold at `x'` and not at `x`. -/
+theorem back {x x' y : P} (hxx' : S.Equiv x x') (hxy : x ≼ y) :
+    ∃ y', S.Equiv y' y ∧ x' ≼ y' := by
+  refine Classical.byContradiction fun hne => ?_
+  have hx' : (S.least y ⇨ S.missing y).mem x' :=
+    (S.mem_gap_iff y x').mpr fun z hz hzy => hne ⟨z, hzy, hz⟩
+  have hx : (S.least y ⇨ S.missing y).mem x :=
+    (hxx' _ (S.himp (S.least_mem y) (S.missing_mem y))).mpr hx'
+  exact (S.mem_gap_iff y x).mp hx y hxy (S.equiv_refl y)
+
+/-- `least x` holds at `z` exactly when something not separated from `z` lies
+above `x`: were there none, the gap of `z`, a member holding at `x`, would
+contain `least x` and so `z`. -/
+theorem mem_least_iff (x z : P) : (S.least x).mem z ↔ ∃ z', x ≼ z' ∧ S.Equiv z' z := by
+  constructor
+  · intro hz
+    refine Classical.byContradiction fun hne => ?_
+    have hgap : (S.least z ⇨ S.missing z).mem x :=
+      (S.mem_gap_iff z x).mpr fun z' hxz' hz' => hne ⟨z', hxz', hz'⟩
+    have hle : (S.least z ⇨ S.missing z).mem z :=
+      hz _ ⟨S.himp (S.least_mem z) (S.missing_mem z), hgap⟩
+    exact S.self_not_mem_missing z (hle z (Frame.le_refl z) (S.self_mem_least z))
+  · rintro ⟨z', hxz', hz'⟩
+    exact (hz' _ (S.least_mem x)).mp ((S.least x).upward hxz' (S.self_mem_least x))
+
+/-- A chosen point not separated from `x`, the same for all such points. -/
+noncomputable def rep (x : P) : P := @Classical.epsilon P ⟨x⟩ fun y => S.Equiv y x
+
+theorem rep_equiv (x : P) : S.Equiv (S.rep x) x :=
+  Classical.epsilon_spec (p := fun y => S.Equiv y x) ⟨x, S.equiv_refl x⟩
+
+theorem rep_eq {x x' : P} (h : S.Equiv x x') : S.rep x = S.rep x' := by
+  have : (fun y => S.Equiv y x) = (fun y => S.Equiv y x') :=
+    funext fun y => propext
+      ⟨fun h' => S.equiv_trans h' h, fun h' => S.equiv_trans h' (S.equiv_symm h)⟩
+  unfold rep
+  rw [this]
+
+/-- **The merge**: each point goes to the chosen point of its class. -/
+noncomputable def merger : Merger P where
+  g := S.rep
+  idem x := S.rep_eq (S.rep_equiv x)
+  bisim {x x' y} hxx' hxy := by
+    have h : S.Equiv x x' :=
+      S.equiv_trans (S.equiv_symm (S.rep_equiv x)) (hxx' ▸ S.rep_equiv x')
+    obtain ⟨y', hy', hxy'⟩ := S.back h hxy
+    exact ⟨y', S.rep_eq hy', hxy'⟩
+
+/-- **Every complete subalgebra comes from a merge**: its members are exactly
+the upward closed sets pulled back along `merger`.  A member never separates
+merged points by definition; and an upward closed set that never does is the
+union of the `least x` over its points `x`, a member. -/
+theorem mem_iff_pull (U : Upset P) : S.mem U ↔ ∃ V, S.merger.pull V = U := by
+  rw [S.merger.pulled_iff]
+  constructor
+  · intro hU x
+    exact (S.rep_equiv x U hU).symm
+  · intro hU
+    have hsat : ∀ {z z'}, S.Equiv z z' → U.mem z → U.mem z' := fun {z z'} h hz => by
+      have h₁ : U.mem (S.rep z) := (hU z).mp hz
+      rw [S.rep_eq h] at h₁
+      exact (hU z').mpr h₁
+    have : U = Upset.sUnion fun W => ∃ x, U.mem x ∧ W = S.least x := by
+      refine Upset.ext fun z => ⟨fun hz => ⟨_, ⟨z, hz, rfl⟩, S.self_mem_least z⟩, ?_⟩
+      rintro ⟨_, ⟨x, hx, rfl⟩, hz⟩
+      obtain ⟨z', hxz', hz'⟩ := (S.mem_least_iff x z).mp hz
+      exact hsat hz' (U.upward hxz' hx)
+    rw [this]
+    exact S.sUnion _ fun _ ⟨x, _, hW⟩ => hW ▸ S.least_mem x
+
+/-- **On a finite frame every subalgebra is complete.**  The image of a
+homomorphism into the upward closed sets of a frame whose points a list names:
+a union of members is the join of one member per point it contains, and an
+intersection the meet of one member per point it misses. -/
+noncomputable def ofHom {α : Type} [HeytingAlgebra α] (l : List P) (hl : ∀ x, x ∈ l)
+    (f : Hom α (Upset P)) : CompleteSub P where
+  mem U := f.InImg U
+  himp := Hom.img_himp
+  sUnion F hF := by
+    obtain ⟨L, hL, h⟩ := Upset.exists_supList l hl F
+    rw [h]
+    exact Hom.img_supList fun U hU => hF U (hL U hU)
+  sInter F hF := by
+    obtain ⟨L, hL, h⟩ := Upset.exists_infList l hl F
+    rw [h]
+    exact Hom.img_infList fun U hU => hF U (hL U hU)
+
+end CompleteSub
+
+namespace Merger
+
+variable {P : Type} [Frame P]
+
+/-- **On a finite frame every subalgebra comes from a merge**: the image of any
+homomorphism into the upward closed sets is exactly what is pulled back along
+some merge. -/
+theorem exists_of_hom {α : Type} [HeytingAlgebra α] (l : List P) (hl : ∀ x, x ∈ l)
+    (f : Hom α (Upset P)) : ∃ m : Merger P, ∀ U, f.InImg U ↔ ∃ V, m.pull V = U :=
+  ⟨(CompleteSub.ofHom l hl f).merger, (CompleteSub.ofHom l hl f).mem_iff_pull⟩
+
+/-- A map into the upward closed sets of a merged frame is a homomorphism when
+pulling it back gives one: pulling back is a one to one homomorphism, so every
+equation it satisfies after pulling back, it satisfies already. -/
+def homOfPull {α : Type} [HeytingAlgebra α] (m : Merger P) (f : Hom α (Upset P))
+    (e : α → Upset m.Pt) (he : ∀ a, m.pull (e a) = f.toFun a) : Hom α (Upset m.Pt) where
+  toFun := e
+  map_bot := m.pull_injective ((he _).trans (f.map_bot.trans m.pullHom.map_bot.symm))
+  map_top := m.pull_injective ((he _).trans (f.map_top.trans m.pullHom.map_top.symm))
+  map_inf a b := m.pull_injective ((he _).trans ((f.map_inf a b).trans
+    ((congr (congrArg (· ⊓ ·) (he a)) (he b)).symm.trans (m.pullHom.map_inf _ _).symm)))
+  map_sup a b := m.pull_injective ((he _).trans ((f.map_sup a b).trans
+    ((congr (congrArg (· ⊔ ·) (he a)) (he b)).symm.trans (m.pullHom.map_sup _ _).symm)))
+  map_himp a b := m.pull_injective ((he _).trans ((f.map_himp a b).trans
+    ((congr (congrArg (· ⇨ ·) (he a)) (he b)).symm.trans (m.pullHom.map_himp _ _).symm)))
+
+/-- **And the algebra is that of the merged frame.**  For an embedding `f`,
+sending `a` to `f a` read on the representatives of the merge of
+`exists_of_hom` is an isomorphism, since pulling back is one to one and has the
+same image as `f`. -/
+theorem exists_iso_of_hom {α : Type} [HeytingAlgebra α] (l : List P) (hl : ∀ x, x ∈ l)
+    (f : Hom α (Upset P)) (hf : Function.Injective f.toFun) :
+    ∃ m : Merger P, ∃ e : Hom α (Upset m.Pt),
+      Function.Injective e.toFun ∧ Function.Surjective e.toFun := by
+  obtain ⟨m, hm⟩ := exists_of_hom l hl f
+  have hsat : ∀ a x, (f.toFun a).mem x ↔ (f.toFun a).mem (m.g x) :=
+    fun a => (m.pulled_iff _).mp ((hm _).mp ⟨a, rfl⟩)
+  have hpull : ∀ a, m.pull (m.lift (f.toFun a) (hsat a)) = f.toFun a :=
+    fun a => m.pull_lift _ _
+  let e := m.homOfPull f _ hpull
+  have he_inj : Function.Injective e.toFun := fun a b h =>
+    hf (by rw [← hpull a, ← hpull b]; exact congrArg m.pull h)
+  have he_surj : Function.Surjective e.toFun := fun V => by
+    obtain ⟨a, ha⟩ := (hm (m.pull V)).mpr ⟨V, rfl⟩
+    exact ⟨a, m.pull_injective ((hpull a).trans ha)⟩
+  exact ⟨m, e, he_inj, he_surj⟩
+
+/-- So the merge of `exists_of_hom` puts `α` and the upward closed sets of the
+merged frame below each other. -/
+theorem sh_iff_of_hom {α : Type} [HeytingAlgebra α] (l : List P) (hl : ∀ x, x ∈ l)
+    (f : Hom α (Upset P)) (hf : Function.Injective f.toFun) :
+    ∃ m : Merger P, SH α (Upset m.Pt) ∧ SH (Upset m.Pt) α := by
+  obtain ⟨m, e, he⟩ := exists_iso_of_hom l hl f hf
+  exact ⟨m, sh_of_embeds ⟨e, he.1⟩, sh_of_bijective e he⟩
+
+end Merger
+
+/-! ## Every homomorphic image comes from an upward closed set
+
+Dually, a homomorphism `f` out of the upward closed sets identifies two of them
+exactly when it sends both arrows between them to the top.  On a finite frame
+the sets it sends to the top have a least one, `ker f`, their intersection
+being that of finitely many (`Upset.map_ker`), and an arrow between two sets
+contains `ker f` exactly when the two agree on it.  So `f` identifies two sets
+exactly when they agree on `ker f` (`Upset.map_eq_iff_ker`), which is when they
+restrict to the same upward closed set of its points.  The image of `f` is then
+the algebra of the points of `ker f` (`Within.exists_iso_of_onto`).  Without
+finiteness this fails: on an infinite discrete frame, of the sets whose
+complements are finite none is least.
+
+Combined with merges: what lies below the algebra of a finite frame is a
+subalgebra of a homomorphic image, so the algebra of a merge of the points of an
+upward closed set, and conversely (`sh_iff_merge`). -/
+
+namespace Upset
+
+variable {P : Type} [Frame P] {α : Type} [HeytingAlgebra α]
+
+/-- The intersection of the upward closed sets that `f` sends to the top. -/
+def ker (f : Hom (Upset P) α) : Upset P := sInter fun V => f.toFun V = ⊤
+
+/-- On a finite frame `f` sends `ker f` itself to the top: it is the
+intersection of finitely many sets that `f` sends there. -/
+theorem map_ker (l : List P) (hl : ∀ x, x ∈ l) (f : Hom (Upset P) α) :
+    f.toFun (ker f) = ⊤ := by
+  obtain ⟨L, hL, h⟩ := exists_infList l hl fun V => f.toFun V = ⊤
+  rw [ker, h, f.map_infList]
+  refine (BoundedLattice.eq_top_iff _).mpr (le_infList fun a ha => ?_)
+  obtain ⟨V, hV, rfl⟩ := List.mem_map.mp ha
+  have hV' : f.toFun V = ⊤ := hL V hV
+  rw [hV']
+  exact le_rfl
+
+/-- **`f` identifies two upward closed sets exactly when they agree on
+`ker f`**, on a finite frame.  If `f` identifies them it sends both arrows
+between them to the top, so both arrows contain `ker f`; if they agree on
+`ker f` their meets with it are equal, and `f` sends each set to the same value
+as its meet with `ker f`. -/
+theorem map_eq_iff_ker (l : List P) (hl : ∀ x, x ∈ l) (f : Hom (Upset P) α)
+    {V W : Upset P} : f.toFun V = f.toFun W ↔ ∀ x, (ker f).mem x → (V.mem x ↔ W.mem x) := by
+  constructor
+  · intro h x hx
+    have hVW : f.toFun (V ⇨ W) = ⊤ := by rw [f.map_himp, h]; exact himp_eq_top_of_le le_rfl
+    have hWV : f.toFun (W ⇨ V) = ⊤ := by rw [f.map_himp, h]; exact himp_eq_top_of_le le_rfl
+    exact ⟨hx _ hVW x (Frame.le_refl x), hx _ hWV x (Frame.le_refl x)⟩
+  · intro h
+    have hKV : ker f ⊓ V = ker f ⊓ W :=
+      ext fun x => ⟨fun hx => ⟨hx.1, (h x hx.1).mp hx.2⟩, fun hx => ⟨hx.1, (h x hx.1).mpr hx.2⟩⟩
+    rw [← top_inf (f.toFun V), ← top_inf (f.toFun W), ← map_ker l hl f, ← f.map_inf,
+      ← f.map_inf, hKV]
+
+/-- When `ker f` is everything, `f` identifies nothing. -/
+theorem injective_of_ker (l : List P) (hl : ∀ x, x ∈ l) (f : Hom (Upset P) α)
+    (h : ker f = ⊤) : Function.Injective f.toFun := fun _ _ hVW =>
+  ext fun x => (map_eq_iff_ker l hl f).mp hVW x (by rw [h]; trivial)
+
+end Upset
+
+namespace Within
+
+variable {P : Type} [Frame P] {α : Type} [HeytingAlgebra α]
+
+/-- **On a finite frame every homomorphic image is the algebra of the points of
+an upward closed set**, namely of `ker f`: restricting to it identifies the same
+upward closed sets as `f` does, so sending `f V` to the restriction of `V` is an
+isomorphism. -/
+theorem exists_iso_of_onto (l : List P) (hl : ∀ x, x ∈ l) (f : Hom (Upset P) α)
+    (hf : Function.Surjective f.toFun) :
+    ∃ e : Hom α (Upset (Within (Upset.ker f))),
+      Function.Injective e.toFun ∧ Function.Surjective e.toFun := by
+  have h : ∀ V W, f.toFun V = f.toFun W ↔
+      (restrictHom (Upset.ker f)).toFun V = (restrictHom (Upset.ker f)).toFun W :=
+    fun _ _ => (Upset.map_eq_iff_ker l hl f).trans restrict_eq_iff.symm
+  exact ⟨f.descend hf _ fun V W => (h V W).mp,
+    Hom.descend_injective fun V W => (h V W).mpr,
+    Hom.descend_surjective fun W => ⟨extend W, restrict_extend W⟩⟩
+
+/-- So the points of `ker f` put `α` and their upward closed sets below each
+other. -/
+theorem sh_iff_of_onto (l : List P) (hl : ∀ x, x ∈ l) (f : Hom (Upset P) α)
+    (hf : Function.Surjective f.toFun) :
+    ∃ U : Upset P, SH α (Upset (Within U)) ∧ SH (Upset (Within U)) α := by
+  obtain ⟨e, he⟩ := exists_iso_of_onto l hl f hf
+  exact ⟨_, sh_of_embeds ⟨e, he.1⟩, sh_of_bijective e he⟩
+
+end Within
+
+/-- **What lies below the algebra of a finite frame is the algebra of a merge of
+the points of an upward closed set.**  An algebra below is a subalgebra of a
+homomorphic image; the image is the algebra of the points of an upward closed
+set (`Within.exists_iso_of_onto`), and a subalgebra of that the algebra of one
+of its merges (`Merger.exists_iso_of_hom`).  Conversely the algebra of such a
+merge embeds in that of the points, a homomorphic image. -/
+theorem sh_iff_merge {P : Type} [Frame P] {α : Type} [HeytingAlgebra α] (l : List P)
+    (hl : ∀ x, x ∈ l) :
+    SH α (Upset P) ↔ ∃ (U : Upset P) (m : Merger (Within U)) (e : Hom α (Upset m.Pt)),
+      Function.Injective e.toFun ∧ Function.Surjective e.toFun := by
+  constructor
+  · rintro ⟨γ, iγ, ⟨f, hf⟩, ⟨g, hg⟩⟩
+    obtain ⟨e, he⟩ := Within.exists_iso_of_onto l hl f hf
+    obtain ⟨m, e', he'⟩ := Merger.exists_iso_of_hom (Within.cover _ l) (Within.mem_cover hl)
+      (e.comp g) fun _ _ h => hg (he.1 h)
+    exact ⟨_, m, e', he'⟩
+  · rintro ⟨U, m, e, he, -⟩
+    exact ⟨Upset (Within U), inferInstance, Within.onto U,
+      m.pullHom.comp e, fun _ _ h => he (m.pull_injective h)⟩

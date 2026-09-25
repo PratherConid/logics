@@ -147,6 +147,13 @@ theorem map_neg (f : Hom α β) (a : α) : f.toFun (neg a) = neg (f.toFun a) := 
   show f.toFun (a ⇨ ⊥) = f.toFun a ⇨ ⊥
   rw [f.map_himp, f.map_bot]
 
+/-- A homomorphism commutes with the meet of a list. -/
+theorem map_infList (f : Hom α β) : ∀ L : List α, f.toFun (infList L) = infList (L.map f.toFun)
+  | [] => f.map_top
+  | a :: L => by
+    show f.toFun (a ⊓ infList L) = f.toFun a ⊓ infList (L.map f.toFun)
+    rw [f.map_inf, map_infList f L]
+
 noncomputable def invFun (f : Hom α β) (hf : Function.Injective f.toFun ∧ Function.Surjective f.toFun) (b : β) : α :=
   Classical.choose (hf.2 b)
 
@@ -168,6 +175,55 @@ theorem inv_injective (f : Hom α β)
   intro x y hxy
   have h2 : f.toFun (f.invFun hf x) = f.toFun (f.invFun hf y) := congrArg f.toFun hxy
   rwa [f.invFun_spec, f.invFun_spec] at h2
+
+/-- **A homomorphism factors through a surjective one identifying no more.**
+When `f` is onto and `g` identifies whatever `f` does, sending `f b` to `g b`
+is well defined, and a homomorphism. -/
+noncomputable def descend (f : Hom α β) (hf : Function.Surjective f.toFun) (g : Hom α γ)
+    (hg : ∀ a b, f.toFun a = f.toFun b → g.toFun a = g.toFun b) : Hom β γ :=
+  have hf' : ∀ b, ∃ a, f.toFun a = b := hf
+  have spec : ∀ a, g.toFun (Classical.choose (hf' (f.toFun a))) = g.toFun a :=
+    fun a => hg _ _ (Classical.choose_spec (hf' (f.toFun a)))
+  { toFun := fun b => g.toFun (Classical.choose (hf' b))
+    map_bot := by rw [← f.map_bot, spec, g.map_bot]
+    map_top := by rw [← f.map_top, spec, g.map_top]
+    map_inf b c := by
+      obtain ⟨a, rfl⟩ := hf b
+      obtain ⟨a', rfl⟩ := hf c
+      rw [← f.map_inf, spec, spec, spec, g.map_inf]
+    map_sup b c := by
+      obtain ⟨a, rfl⟩ := hf b
+      obtain ⟨a', rfl⟩ := hf c
+      rw [← f.map_sup, spec, spec, spec, g.map_sup]
+    map_himp b c := by
+      obtain ⟨a, rfl⟩ := hf b
+      obtain ⟨a', rfl⟩ := hf c
+      rw [← f.map_himp, spec, spec, spec, g.map_himp] }
+
+section descend
+
+variable {f : Hom α β} {hf : Function.Surjective f.toFun} {g : Hom α γ}
+  {hg : ∀ a b, f.toFun a = f.toFun b → g.toFun a = g.toFun b}
+
+theorem descend_apply (a : α) : (f.descend hf g hg).toFun (f.toFun a) = g.toFun a :=
+  hg _ _ (Classical.choose_spec (hf (f.toFun a)))
+
+/-- One to one when `g` identifies no more than `f`. -/
+theorem descend_injective (h : ∀ a b, g.toFun a = g.toFun b → f.toFun a = f.toFun b) :
+    Function.Injective (f.descend hf g hg).toFun := by
+  intro b c hbc
+  obtain ⟨a, rfl⟩ := hf b
+  obtain ⟨a', rfl⟩ := hf c
+  rw [descend_apply, descend_apply] at hbc
+  exact h a a' hbc
+
+/-- Onto when `g` is. -/
+theorem descend_surjective (h : Function.Surjective g.toFun) :
+    Function.Surjective (f.descend hf g hg).toFun := fun c => by
+  obtain ⟨a, rfl⟩ := h c
+  exact ⟨f.toFun a, descend_apply a⟩
+
+end descend
 
 end Hom
 
@@ -204,6 +260,11 @@ theorem img_supList : ∀ {L : List β}, (∀ x ∈ L, f.InImg x) → f.InImg (s
   | [], _ => img_bot
   | x :: _, h => img_sup (h x (List.mem_cons.mpr (Or.inl rfl)))
       (img_supList fun y hy => h y (List.mem_cons_of_mem x hy))
+
+theorem img_infList : ∀ {L : List β}, (∀ x ∈ L, f.InImg x) → f.InImg (infList L)
+  | [], _ => img_top
+  | x :: _, h => img_inf (h x (List.mem_cons.mpr (Or.inl rfl)))
+      (img_infList fun y hy => h y (List.mem_cons_of_mem x hy))
 
 end Hom
 

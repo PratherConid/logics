@@ -1,4 +1,5 @@
 import Logics.IntermediateAxioms.Refuter.KPRefuter
+import Logics.Reduction
 
 /-!
 # The shape of the minimal refuters of Kreisel and Putnam's axiom
@@ -24,6 +25,11 @@ its members.  The axiom's failure survives a merge in one of two ways: the
 split itself survives, its entrances kept minimal and apart
 (`no_collapse_single`), or the failure at one entrance survives, the three sets
 witnessing it never separating merged points (`no_collapse_triple`).
+
+The two shrinkings are all there is.  A frame of `𝓛` is in `𝓜` exactly when the
+axiom fails only at points below everything and holds after merging any α- or
+β-pair (`inKPMin_iff`): a condition on finitely many smaller frames, and the one
+a machine search checks.
 
 ## The theorem
 
@@ -56,9 +62,9 @@ other, to the one point seeing neither, and to the root.
 
 ## What is not here
 
-The theorem constrains the members of `𝓜` and produces none.  That the three
-frames of the first regime are members is checked by machine but not
-formalised.
+The shape theorem constrains the members of `𝓜` and produces none.  That the
+three frames of the first regime pass the test of `inKPMin_iff` is checked by
+machine but not formalised.
 -/
 
 open PartialOrder Lattice BoundedLattice HeytingAlgebra
@@ -179,6 +185,67 @@ theorem root_of_splits (hM : InKPMin M) {x : M} {a : Upset M}
     (Above.sh x) (kp_ntop_of_splits (Above.splits hs))
 
 end InKPMin
+
+/-! ## Membership, read on frames
+
+What lies below the algebra of a finite poset is reached by passing to the
+points of an upward closed set and by merging, and a merge that does anything
+lies below a single α- or β-step (`refuterLB_iff_steps`).  For the axiom the
+first kind of step needs no separate check: a failure on the points of an upward
+closed set is a failure of the whole frame at one of those points
+(`Within.splits_pt`), so it is ruled out by the axiom failing only at points
+below everything. -/
+
+namespace Within
+
+variable {M : Type} [Frame M] {U : Upset M}
+
+/-- A point of `U` is in a region there exactly when it is in the region of the
+whole frame cut out by the extended set. -/
+theorem region_iff {r : Within U} (a : Upset (Within U)) (q : Within U) :
+    (kpRegion r a).mem q ↔ (kpRegion r.pt (extend a)).mem q.pt :=
+  ⟨fun ⟨hr, hn⟩ => ⟨hr, fun y hqy ⟨hy, hay⟩ => hn ⟨y, hy⟩ hqy hay⟩,
+   fun ⟨hr, hn⟩ => ⟨hr, fun q' hqq' haq' => hn q'.pt hqq' ⟨q'.mem, haq'⟩⟩⟩
+
+/-- A split on the points of `U` is a split of the whole frame, the region lying
+inside `U`. -/
+theorem splits_pt {r : Within U} {a : Upset (Within U)} (hs : (kpRegion r a).Splits) :
+    (kpRegion r.pt (extend a)).Splits := by
+  obtain ⟨m, m', ⟨hm, hmin⟩, ⟨hm', hmin'⟩, hmm', hm'm⟩ := hs
+  have hU : ∀ {z : M}, (kpRegion r.pt (extend a)).mem z → U.mem z :=
+    fun hz => U.upward hz.1 r.mem
+  exact ⟨m.pt, m'.pt,
+    ⟨(region_iff a m).mp hm, fun z hz hzm => hmin ⟨z, hU hz⟩ ((region_iff a _).mpr hz) hzm⟩,
+    ⟨(region_iff a m').mp hm', fun z hz hzm => hmin' ⟨z, hU hz⟩ ((region_iff a _).mpr hz) hzm⟩,
+    hmm', hm'm⟩
+
+end Within
+
+/-- **Membership in `𝓜`, read on frames.**  A frame of `𝓛` that is a poset is a
+minimal refuter exactly when the axiom fails only at points below everything and
+holds after merging any α- or β-pair.  The points of a proper upward closed set
+then validate the axiom, since a failure there would be a failure at a point
+of the set, which is not below everything. -/
+theorem inKPMin_iff {M : Type} [Frame M] :
+    InKPMin M ↔ InKPList M ∧ Frame.Antisymm M ∧
+      (∀ (r : M) (a : Upset M), (kpRegion r a).Splits → ∀ p, r ≼ p) ∧
+      ∀ (x y : M) (h : IsAlpha x y ∨ IsBeta x y),
+        ∀ a b c : Upset (Merger.pair x y h).Pt, kpAt a b c = ⊤ := by
+  constructor
+  · intro hM
+    obtain ⟨l, hl⟩ := hM.list.finite
+    exact ⟨hM.list, hM.antisymm, fun _ _ hs => hM.root_of_splits hs, fun x y h =>
+      kreiselPutnamForm_valid_iff.mp
+        (((refuterLB_iff_steps hM.antisymm l hl _).mp hM.minimal).2 x y h)⟩
+  · rintro ⟨hL, hA, hroot, hstep⟩
+    obtain ⟨l, hl⟩ := hL.finite
+    refine ⟨hL, hA, (refuterLB_iff_steps hA l hl _).mpr ⟨fun U hU => ?_, fun x y h =>
+      kreiselPutnamForm_valid_iff.mpr (hstep x y h)⟩⟩
+    refine kreiselPutnamForm_valid_iff.mpr (Classical.byContradiction fun hkp => hU ?_)
+    obtain ⟨r, a, hs⟩ :=
+      (kp_ntop_iff_splits (hasMinimal_of_list _ (Within.mem_cover hl))).mp hkp
+    have hr := hroot _ _ (Within.splits_pt hs)
+    exact Upset.ext fun p => ⟨fun _ => trivial, fun _ => U.upward (hr p) r.mem⟩
 
 /-- A split at the root: two unrelated minimal points of the region that `a`
 cuts out there. -/

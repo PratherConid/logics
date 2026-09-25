@@ -8,12 +8,14 @@ enumerates them; up to eight points that is 2451 frames.
 
 A frame ``F`` *reduces to* ``G`` when ``G`` is a p-morphic image of a generated
 subframe of ``F`` -- dually, when ``G``'s algebra lies below ``F``'s in the
-order ``SH`` of Logics/Homomorphism.lean -- and then everything refuted on ``G``
-is refuted on ``F``.  Every p-morphism between finite frames is a composition of
+order ``SH`` of Logics/Homomorphism.lean (``sh_iff_merge`` in
+Logics/FiniteFrame.lean) -- and then everything refuted on ``G`` is refuted on
+``F``.  Every p-morphism between finite frames is a composition of
 alpha-reductions (a point merged into its only immediate successor) and
-beta-reductions (two points with the same strict successors merged), so the
-frames one step below ``F`` are its proper generated subframes and its alpha
-and beta reductions (``one_step``), and ``reductions`` closes that set.
+beta-reductions (two points with the same strict successors merged) --
+``Merger.isChain`` in Logics/Reduction.lean -- so the frames one step below
+``F`` are its proper generated subframes and its alpha and beta reductions
+(``one_step``), and ``reductions`` closes that set.
 
 Frames whose points carry names, for input and output, are ``NamedFrame``s,
 read from covering pairs such as ``"r<x r<y x<t y<t"``.
