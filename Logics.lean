@@ -10,4 +10,5 @@ import Logics.ConcreteEmbed
 import Logics.Filter
 import Logics.Jankov
 import Logics.Adjoin
+import Logics.PointEmbed
 import Logics.IntermediateAxioms

@@ -154,3 +154,23 @@ def notNot₁OrLuk₂₁Form : Form :=
 
 def cm₁OrLuk₂₁Form : Form :=
   .or (consequentiaMirabilisForm (.var 0)) (lukForm (.var 1) (.var 0))
+
+/-! Two principles each refuted, among the finite frames, by a single smallest
+one.  Both are bounded depth two behind a premise concluding `a ∨ b`. -/
+
+/-- Bounded depth two at `b, a`, granted that `a ∨ b` follows from Peirce's law
+at `a` and `b ∨ ¬ b`.  The name records the smallest frame refuting it, the
+uneven kite: a root and a top joined by one path through a single point and
+another through two. -/
+def noKiteUp1x2Form : Form :=
+  .imp (.imp (peirceForm (.var 0) (excludedMiddleForm (.var 1))) (.or (.var 0) (.var 1)))
+    (.or (.var 1) (.imp (.var 1) (excludedMiddleForm (.var 0))))
+
+/-- Bounded depth two at `a, b`, granted that `a ∨ b` follows from
+`b → (¬ a ∨ (¬ a → a))`.  The name records the smallest frame refuting it, the
+diamond with a hair: the diamond with one more maximal point, above one of its
+two middle points only. -/
+def noDiamondHairForm : Form :=
+  .imp (.imp (.imp (.var 1) (.or (Form.neg (.var 0)) (.imp (Form.neg (.var 0)) (.var 0))))
+      (.or (.var 0) (.var 1)))
+    bd2Form

@@ -178,6 +178,27 @@ theorem le_supList : ∀ {L : List α} {x : α}, x ∈ L → x ⊑ supList L
     · exact le_sup_left _ _
     · exact le_trans (le_supList ht) (le_sup_right _ _)
 
+theorem supList_le {y : α} : ∀ {L : List α}, (∀ x ∈ L, x ⊑ y) → supList L ⊑ y
+  | [], _ => bot_le y
+  | _ :: _, h => sup_le (h _ (List.mem_cons_self ..))
+      (supList_le fun x hx => h x (List.mem_cons_of_mem _ hx))
+
+/-- The meet of a list, `⊤` for the empty one. -/
+def infList : List α → α
+  | [] => ⊤
+  | x :: t => x ⊓ infList t
+
+theorem infList_le : ∀ {L : List α} {x : α}, x ∈ L → infList L ⊑ x
+  | _ :: t, x, h => by
+    rcases List.mem_cons.mp h with rfl | ht
+    · exact inf_le_left _ _
+    · exact le_trans (inf_le_right _ _) (infList_le ht)
+
+theorem le_infList {y : α} : ∀ {L : List α}, (∀ x ∈ L, y ⊑ x) → y ⊑ infList L
+  | [], _ => le_top y
+  | _ :: _, h => le_inf (h _ (List.mem_cons_self ..))
+      (le_infList fun x hx => h x (List.mem_cons_of_mem _ hx))
+
 end BoundedLattice
 
 /-! ## Distributive lattices
@@ -190,6 +211,29 @@ over `Lattice`. -/
 /-- Meet distributes over join. -/
 class Distrib (α : Type u) [Lattice α] : Prop where
   inf_sup_le : ∀ a b c : α, a ⊓ (b ⊔ c) ⊑ (a ⊓ b) ⊔ (a ⊓ c)
+
+open BoundedLattice in
+/-- The meet with a join lies below anything above each of the meets with its
+members. -/
+theorem inf_supList_le {α : Type u} [BoundedLattice α] [Distrib α] {x z : α} :
+    ∀ {M : List α}, (∀ y ∈ M, x ⊓ y ⊑ z) → x ⊓ supList M ⊑ z
+  | [], _ => le_trans (inf_le_right _ _) (bot_le z)
+  | y :: _, h => le_trans (Distrib.inf_sup_le _ _ _)
+      (sup_le (h y (List.mem_cons_self ..))
+        (inf_supList_le fun y' hy' => h y' (List.mem_cons_of_mem _ hy')))
+
+open BoundedLattice in
+/-- The meet of two joins lies below anything above every meet of a member of
+one with a member of the other. -/
+theorem supList_inf_supList_le {α : Type u} [BoundedLattice α] [Distrib α] {z : α} :
+    ∀ {L M : List α}, (∀ x ∈ L, ∀ y ∈ M, x ⊓ y ⊑ z) → supList L ⊓ supList M ⊑ z
+  | [], _, _ => le_trans (inf_le_left _ _) (bot_le z)
+  | x :: _, _, h => by
+    rw [inf_comm]
+    refine le_trans (Distrib.inf_sup_le _ _ _) (sup_le ?_ ?_)
+    · rw [inf_comm]; exact inf_supList_le (h x (List.mem_cons_self ..))
+    · rw [inf_comm]
+      exact supList_inf_supList_le fun x' hx' y hy => h x' (List.mem_cons_of_mem _ hx') y hy
 
 /-! ## Products
 

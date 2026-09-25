@@ -150,6 +150,12 @@ theorem le_of_himp_eq_top {a b : α} (h : (a ⇨ b) = ⊤) : a ⊑ b := by
   rw [h, top_inf] at h1
   exact h1
 
+/-- Two elements are equal as soon as each implies the other. -/
+theorem eq_of_himp_inf_eq_top {a b : α} (h : ((a ⇨ b) ⊓ (b ⇨ a)) = ⊤) : a = b :=
+  le_antisymm
+    (le_of_himp_eq_top ((eq_top_iff _).mpr (h ▸ inf_le_left (a ⇨ b) (b ⇨ a))))
+    (le_of_himp_eq_top ((eq_top_iff _).mpr (h ▸ inf_le_right (a ⇨ b) (b ⇨ a))))
+
 /-! ### Negation
 
 The facts a pair of complementary regular elements needs.  In any Heyting
@@ -591,6 +597,9 @@ theorem h₂ : (p₀ :: p₁ :: p₂ :: Γ) ⊢ p₂ := .ax (by simp)
 theorem h₃ : (p₀ :: p₁ :: p₂ :: p₃ :: Γ) ⊢ p₃ := .ax (by simp)
 theorem h₄ : (p₀ :: p₁ :: p₂ :: p₃ :: p₄ :: Γ) ⊢ p₄ := .ax (by simp)
 theorem h₅ : (p₀ :: p₁ :: p₂ :: p₃ :: p₄ :: p₅ :: Γ) ⊢ p₅ := .ax (by simp)
+
+/-- A hypothesis further down, by its position. -/
+theorem nth (i : Nat) (h : Γ[i]? = some p₀) : Γ ⊢ p₀ := .ax (List.mem_of_getElem? h)
 
 end Position
 
@@ -1566,6 +1575,12 @@ instance : PartialOrder (KiteUp m n) where
   le_refl := le_refl'
   le_trans := le_trans'
   le_antisymm := le_antisymm'
+
+instance decLe : ∀ a b : KiteUp m n, Decidable (a ⊑ b)
+  | .all, .all | .empty, .all | .tails _ _, .all | .empty, .empty | .empty, .tails _ _ =>
+      isTrue True.intro
+  | .all, .empty | .all, .tails _ _ | .tails _ _, .empty => isFalse id
+  | .tails i j, .tails i' j' => inferInstanceAs (Decidable (i'.val ≤ i.val ∧ j'.val ≤ j.val))
 
 instance : Lattice (KiteUp m n) where
   inf := inf

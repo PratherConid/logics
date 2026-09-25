@@ -5,14 +5,145 @@ import Logics.IntermediateAxioms.Refuter.LCRefuter
 import Logics.IntermediateAxioms.Refuter.ScottRefuter
 
 /-!
-# The shape of the hierarchy
+# The hierarchy
 
-`Logics/IntermediateAxioms/StrictImply.lean` draws ten principles as a poset
-and proves the separations the drawing needs.  The edges are derivations from
-a schema, each a natural deduction derivation from substitution instances
-(`Logics/IntermediateAxioms/Derivation.lean`).  This file puts the two halves
-together.  `hierarchy` says, for every pair of the ten, that one derives the
-other exactly when the drawing puts it at or above the other.
+The principles of this development fall into the poset below.  Each node is one
+*representative*; an edge downwards means the upper derives the lower and the
+lower does not derive the upper; and nodes joined by no downward path are
+incomparable, neither deriving the other.
+
+Only the covering relations are drawn, since `DerivesFromSchema.trans` supplies
+the rest: a derivation along any downward path is the composite of its edges.
+The separations come back the same way, read contrapositively -- a derivation
+the diagram forbids would compose into one already refuted -- which is why
+seventeen separations (`Node.seps`) settle every pair (`Node.covered`).
+
+```
+                        excludedMiddleForm
+                                |
+                          smetanichForm
+                         /             \
+                  bd2Form               linearityForm
+                 /       \             /             \
+                /       noDiamondForm                weakEmForm
+               /              |                     /          \
+              |     pierce₁₂OrLuk₁₂Form            |   kreiselPutnamForm
+              |               |                    |
+              |     pierce₁₂OrPierce₂₁Form         |
+              |                                    |
+               \_____________ scottForm __________/
+```
+
+The spine, from `excludedMiddleForm` through `bd2Form` and `noDiamondForm` down
+to `pierce₁₂OrPierce₂₁Form`, is the chain the combined principles fall into:
+every disjunction of two basic principles studied here lands on one of its
+nodes.  The other four nodes are axioms that are not such disjunctions, and none
+of them lies on the spine.
+
+* `linearityForm` lies below `smetanichForm` and above `noDiamondForm`, and is
+  incomparable with `bd2Form` beside it.
+* `weakEmForm` lies below linearity, and is incomparable with every node of the
+  spine from `bd2Form` down.
+* `scottForm` lies below both `bd2Form` and `weakEmForm`, and is incomparable
+  with `noDiamondForm` and everything under it.
+* `kreiselPutnamForm` lies below `weakEmForm`, and is incomparable with
+  `bd2Form`, with everything under `noDiamondForm`, and with `scottForm`.
+
+Each node stands for a class of principles that derive one another:
+
+```
+excludedMiddleForm      ≡ emAOrNotBForm ≡ emAOrBForm ≡ pierce₁₂OrDeMorgan₁₂Form
+                        ≡ demorgan₁₂OrImpOr₁₂Form ≡ impOr₁₂OrImpOr₂₁Form
+smetanichForm           ≡ peirce₁₂OrImpOr₂₁Form ≡ em₁OrPeirce₂₁Form
+                        ≡ emAOrNotB₁₂OrPeirce₁₂Form ≡ emAOrNotB₁₂OrPeirce₂₁Form
+bd2Form                 ≡ demorgan₁₂OrLuk₁₂Form ≡ impOr₁₂OrLuk₁₂Form
+                        ≡ pierce₁₂OrLuk₂₁Form ≡ em₁OrLuk₂₁Form
+                        ≡ notNot₁OrLuk₂₁Form ≡ cm₁OrLuk₂₁Form
+                        ≡ notNot₁OrPeirce₂₁Form ≡ cm₁OrPeirce₂₁Form
+                        ≡ emAOrB₁₂OrLuk₁₂Form ≡ emAOrB₁₂OrLuk₂₁Form
+                        ≡ emAOrNotB₁₂OrLuk₂₁Form
+linearityForm           (alone)
+noDiamondForm           ≡ notNotAndForm ≡ impOr₁₂OrLuk₂₁Form ≡ luk₁₂OrLuk₂₁Form
+weakEmForm              (alone)
+pierce₁₂OrLuk₁₂Form     ≡ peirce₁₂OrImpOr₁₂Form
+pierce₁₂OrPierce₂₁Form  (alone)
+scottForm               (alone)
+kreiselPutnamForm       (alone)
+```
+
+Each `≡` is a pair of derivations at shifted instances, not an identity: the
+principles so related are different formulas that prove each other.  One `≡` is
+weaker than the rest: `smetanichForm` needs *two* instances of itself to recover
+`peirce₁₂OrImpOr₂₁Form`, and no single instantiation suffices.  Swapping
+Lukasiewicz's arguments in the Peirce principle lands inside a class; doing it
+in the `impOrForm` principle drops a level; swapping `impOrForm`'s own
+arguments in `peirce₁₂OrImpOr₁₂Form` climbs three.
+
+Six of the nodes carry names from the literature, writing `a`, `b`, `c` for
+the variables: `smetanichForm`, `(¬ b → a) → (((a → b) → a) → a)`, Smetanich's
+axiom; `bd2Form`, `a ∨ (a → (b ∨ ¬ b))`, bounded depth two; `linearityForm`,
+`(a → b) ∨ (b → a)`, the Godel--Dummett axiom; `weakEmForm`, `¬ a ∨ ¬ ¬ a`,
+Jankov's; `scottForm`, `((¬ ¬ a → a) → (a ∨ ¬ a)) → (¬ a ∨ ¬ ¬ a)`, Scott's; and
+`kreiselPutnamForm`, `(¬ a → b ∨ c) → ((¬ a → b) ∨ (¬ a → c))`, Kreisel and
+Putnam's.  Smetanich's axiom is linearity together with bounded depth two,
+which is what the branching under it records, and why it needs two separating
+algebras where `bd2Form` needs one.
+
+`noDiamondForm`, `(a → (b ∨ ¬ b)) ∨ (b → (a ∨ ¬ a))`, is shorter than either
+combined principle at its node.  It is `bd2Form` with the bare disjunct `a`
+replaced by the mirror image of the other disjunct, so the step down from
+`bd2Form` is that one substitution, and bounded depth two derives it at the
+plain arguments.  The name records what separates it from the node below: the
+diamond refutes it, while every chain, of whatever length, validates it.
+`notNotAndForm`, `¬ ¬ (a ∧ b) → ((a → b) ∨ (b → a))`, is the same level said
+differently, that the two arguments are comparable as soon as they are jointly
+consistent.
+
+Not every such disjunction is intermediate.  `pierce₁₂OrDeMorgan₁₂Form` and
+`demorgan₁₂OrImpOr₁₂Form` avoid Lukasiewicz, and both land back on excluded
+middle: at arguments built from `a ∨ ¬ a` each of their disjuncts collapses to
+it on its own.  Every principle that stays below the top has `peirceForm` or
+`lukForm` on at least one side, though that is not enough by itself, as
+`pierce₁₂OrDeMorgan₁₂Form` shows: De Morgan is classical in any company but
+Lukasiewicz's.
+
+`emAOrNotBForm` and `emAOrBForm` reach the top by a different route.  Neither
+of their disjuncts implies excluded middle; instead a substitution makes one of
+the three *refutable*, and the remaining two are excluded middle exactly.
+`emAOrNotBForm` needs its arguments aligned, at `b := a`, while `emAOrBForm`
+gives way to the constant `b := fls`.
+
+Paired with a two-argument axiom they need not stay at the top, since the
+substitution that collapses them need not be available.  Of the seventy two
+such pairings, twenty four are degenerate and thirty eight are classical; the
+five listed above are the rest, and every one lands on a level the hierarchy
+already had.  Pairing a split with Peirce reaches the `peirce₁₂OrImpOr₂₁Form`
+level, and pairing either with Lukasiewicz reaches the De Morgan level.
+
+Joining a one-argument axiom to a two-argument one adds nothing new, but it
+does not always collapse.  At the *same* argument it does: excluded middle,
+double negation and consequentia mirabilis at `a` each entail `peirceForm a b`,
+`impOrForm a b` and `lukForm a b`, so the disjunction is the two-argument
+principle again.  Crossed, at `(b, a)`, they do not, and the six `em₁`,
+`notNot₁` and `cm₁` principles above are the result.
+
+Two families never produce anything below the top.  A disjunction of two
+one-argument axioms is classical, since taking both arguments to be the same
+formula collapses it to a single one; and a *conjunction* of any of these
+is classical too, being at least as strong as each conjunct, every one of which
+is already excluded middle.  Only disjunction, and only with a two-argument
+axiom on at least one side, leaves room below.
+
+## How it is proved
+
+The edges, and the equivalences within each class, are derivations from a
+schema, each a natural deduction derivation from substitution instances
+(`Logics/IntermediateAxioms/Derivation.lean`).  The separations are
+countermodels (`Logics/IntermediateAxioms/StrictImply.lean`), each an algebra
+validating every instance of the weaker principle and refuting one instance of
+the stronger.  This file puts the two halves together.  `hierarchy` says, for
+every pair of the ten, that one derives the other exactly when the drawing puts
+it at or above the other.
 
 The drawing is recorded as data: the covering edges (`Node.edges`) and the
 order they generate (`Node.below`, what lies at or under each node).
@@ -29,9 +160,9 @@ order they generate (`Node.below`, what lies at or under each node).
 The combinatorial facts about the drawing are checked by evaluation, over all
 ten nodes at once.
 
-Each node also stands for a class (`Node.members`), and every member is
-equivalent to the representative by derivations both ways (`members_equiv`),
-so `hierarchy_members` extends the statement to all of them.
+The classes are recorded too (`Node.members`), and every member is equivalent
+to the representative by derivations both ways (`members_equiv`), so
+`hierarchy_members` extends the statement to all of them.
 -/
 
 /-- The ten representatives, one per node of the drawing. -/

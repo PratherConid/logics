@@ -262,12 +262,6 @@ def hom : Hom A (FilterQuot (J.filt v)) where
   map_sup a b := J.mk_eq_of_cond v (J.sup_cond_mem a b)
   map_himp a b := J.mk_eq_of_cond v (J.himp_cond_mem a b)
 
-/-- Two elements are equal as soon as each implies the other. -/
-theorem eq_of_himp_inf_eq_top {a b : A} (h : ((a ⇨ b) ⊓ (b ⇨ a)) = ⊤) : a = b :=
-  le_antisymm
-    (le_of_himp_eq_top ((eq_top_iff _).mpr (h ▸ inf_le_left (a ⇨ b) (b ⇨ a))))
-    (le_of_himp_eq_top ((eq_top_iff _).mpr (h ▸ inf_le_right (a ⇨ b) (b ⇨ a))))
-
 /-- **The map is injective.**  Identifying two elements would send their
 distance, and with it the coatom, to the top, which is to say that the diagram's
 value already reaches the coatom's variable — contradicting the refutation. -/

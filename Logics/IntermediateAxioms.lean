@@ -9,6 +9,8 @@ import Logics.IntermediateAxioms.Refuter.NoDiamondRefuter
 import Logics.IntermediateAxioms.Refuter.KCRefuter
 import Logics.IntermediateAxioms.Refuter.LCRefuter
 import Logics.IntermediateAxioms.Refuter.ScottRefuter
+import Logics.IntermediateAxioms.Refuter.NoKiteUp1x2Refuter
+import Logics.IntermediateAxioms.Refuter.NoDiamondHairRefuter
 import Logics.IntermediateAxioms.Refuter.KPRefuter
 import Logics.IntermediateAxioms.Refuter.KPMinimal
 import Logics.IntermediateAxioms.Refuter.KPInfinite
@@ -41,6 +43,10 @@ infinite one.
 * `Refuter.KCRefuter`        -- weak excluded middle, by `ForkUp 1 1` alone
 * `Refuter.LCRefuter`        -- linearity, by `ForkUp 1 1` and `KiteUp 1 1`
 * `Refuter.ScottRefuter`     -- Scott's axiom, by `ForkUp 1 2` alone
+* `Refuter.NoKiteUp1x2Refuter` -- `noKiteUp1x2Form`, by the uneven kite `KiteUp 1 2`
+  alone
+* `Refuter.NoDiamondHairRefuter` -- `noDiamondHairForm`, by `DiamondHair`, the
+  diamond with a hair, alone
 * `Refuter.KPRefuter`        -- Kreisel and Putnam's axiom, by the infinite list
   of finite rooted frames with a region entered at two points: sound, and
   complete for every schema with the finite model property
@@ -49,6 +55,7 @@ infinite one.
 * `Refuter.KPInfinite`       -- those minimal members are infinitely many: a
   ladder of frames, one of each size from seven points up
 
-`Hierarchy` puts the two halves together: for every principle in the classes
-of the hierarchy, it decides exactly which derives which.
+`Hierarchy` draws the hierarchy and its classes, and puts the two halves
+together: for every principle in the classes, it decides exactly which derives
+which.
 -/
