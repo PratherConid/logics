@@ -128,15 +128,8 @@ theorem Pt.antisymm (j k : Pt α) (h₁ : j ≼ k) (h₂ : k ≼ j) : j = k :=
   Pt.ext (le_antisymm h₂ h₁)
 
 /-- Finitely many points: the join irreducible entries of `l`. -/
-theorem Pt.finite {l : List α} (hl : ∀ a, a ∈ l) : ∃ l' : List (Pt α), ∀ j, j ∈ l' := by
-  classical
-  refine ⟨l.filterMap (fun x => if h : JoinIrred x then some ⟨x, h⟩ else none),
-    fun j => ?_⟩
-  rw [List.mem_filterMap]
-  refine ⟨j.val, hl j.val, ?_⟩
-  split
-  · rfl
-  · exact absurd j.irred ‹_›
+theorem Pt.finite {l : List α} (hl : ∀ a, a ∈ l) : ∃ l' : List (Pt α), ∀ j, j ∈ l' :=
+  ⟨ListCount.pick JoinIrred (fun x h => ⟨x, h⟩) l, fun j => ListCount.mem_pick (hl j.val) j.irred⟩
 
 /-- An element read as the upward closed set of points below it. -/
 def rep (a : α) : Upset (Pt α) := ⟨fun j => j.val ⊑ a, fun hjk hj => le_trans hjk hj⟩
@@ -267,12 +260,10 @@ theorem birkhoff_heyting {l : List H} (hl : ∀ a, a ∈ l) :
 
 /-- So each lies below the other in the Jankov order. -/
 theorem sh_upset {l : List H} (hl : ∀ a, a ∈ l) : SH (Upset (Pt H)) H :=
-  sh_of_bijective (repHom hl) ⟨rep_injective hl, rep_surjective hl⟩
+  (sh_of_iso (repHom hl) ⟨rep_injective hl, rep_surjective hl⟩).2
 
 theorem sh_of_upset {l : List H} (hl : ∀ a, a ∈ l) : SH H (Upset (Pt H)) :=
-  sh_of_bijective ((repHom hl).inv ⟨rep_injective hl, rep_surjective hl⟩)
-    ⟨Hom.inv_injective _ _, fun a => ⟨rep a, rep_injective hl
-      ((repHom hl).invFun_spec ⟨rep_injective hl, rep_surjective hl⟩ (rep a))⟩⟩
+  (sh_of_iso (repHom hl) ⟨rep_injective hl, rep_surjective hl⟩).1
 
 end Heyting
 

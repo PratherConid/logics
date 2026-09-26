@@ -36,15 +36,6 @@ namespace EntOf
 
 variable {X p p' q q' r : Form}
 
-theorem instances_append {Γ Δ : List Form}
-    (h₁ : ∀ s ∈ Γ, ∃ σ : Nat → Form, s = X.subst σ)
-    (h₂ : ∀ s ∈ Δ, ∃ σ : Nat → Form, s = X.subst σ) :
-    ∀ s ∈ Γ ++ Δ, ∃ σ : Nat → Form, s = X.subst σ := by
-  intro s hs
-  rcases List.mem_append.mp hs with h | h
-  · exact h₁ s h
-  · exact h₂ s h
-
 /-- Plain entailment is entailment over any schema: use no instances. -/
 theorem of_ent (h : Ent p q) : EntOf X p q := ⟨[], by simp, h⟩
 
@@ -60,50 +51,34 @@ theorem or_right (p q : Form) : EntOf X q (.or p q) := of_ent (Ent.or_right p q)
 theorem trans (h₁ : EntOf X p q) (h₂ : EntOf X q r) : EntOf X p r := by
   obtain ⟨Γ, hΓ, d₁⟩ := h₁
   obtain ⟨Δ, hΔ, d₂⟩ := h₂
-  refine ⟨Γ ++ Δ, instances_append hΓ hΔ, ?_⟩
-  refine Derives.cut (Derives.weaken d₁ _ ?_) (Derives.weaken d₂ _ ?_)
-  · intro s hs
-    simp only [List.mem_cons, List.mem_append] at hs ⊢
-    exact hs.imp id Or.inl
-  · intro s hs
-    simp only [List.mem_cons, List.mem_append] at hs ⊢
-    exact hs.imp id (fun h => Or.inr (Or.inr h))
+  refine ⟨Γ ++ Δ, List.forall_mem_append.mpr ⟨hΓ, hΔ⟩, ?_⟩
+  exact Derives.cut
+    (Derives.weaken d₁ _ (Derives.mem_cons_of (fun _ h => List.mem_append_left _ h) p))
+    (Derives.weaken d₂ _ (Derives.mem_cons_of
+      (fun _ h => List.mem_cons_of_mem _ (List.mem_append_right _ h)) q))
 
 theorem and_intro (h₁ : EntOf X r p) (h₂ : EntOf X r q) : EntOf X r (.and p q) := by
   obtain ⟨Γ, hΓ, d₁⟩ := h₁
   obtain ⟨Δ, hΔ, d₂⟩ := h₂
-  refine ⟨Γ ++ Δ, instances_append hΓ hΔ, Derives.andI ?_ ?_⟩
-  · refine Derives.weaken d₁ _ ?_
-    intro s hs
-    simp only [List.mem_cons, List.mem_append] at hs ⊢
-    exact hs.imp id Or.inl
-  · refine Derives.weaken d₂ _ ?_
-    intro s hs
-    simp only [List.mem_cons, List.mem_append] at hs ⊢
-    exact hs.imp id Or.inr
+  exact ⟨Γ ++ Δ, List.forall_mem_append.mpr ⟨hΓ, hΔ⟩, Derives.andI
+    (Derives.weaken d₁ _ (Derives.mem_cons_of (fun _ h => List.mem_append_left _ h) r))
+    (Derives.weaken d₂ _ (Derives.mem_cons_of (fun _ h => List.mem_append_right _ h) r))⟩
 
 theorem or_elim (h₁ : EntOf X p r) (h₂ : EntOf X q r) : EntOf X (.or p q) r := by
   obtain ⟨Γ, hΓ, d₁⟩ := h₁
   obtain ⟨Δ, hΔ, d₂⟩ := h₂
-  refine ⟨Γ ++ Δ, instances_append hΓ hΔ,
-    Derives.orE (p := p) (q := q) (Derives.ax (by simp)) ?_ ?_⟩
-  · refine Derives.weaken d₁ _ ?_
-    intro s hs
-    simp only [List.mem_cons, List.mem_append] at hs ⊢
-    exact hs.imp id (fun h => Or.inr (Or.inl h))
-  · refine Derives.weaken d₂ _ ?_
-    intro s hs
-    simp only [List.mem_cons, List.mem_append] at hs ⊢
-    exact hs.imp id (fun h => Or.inr (Or.inr h))
+  exact ⟨Γ ++ Δ, List.forall_mem_append.mpr ⟨hΓ, hΔ⟩,
+    Derives.orE (p := p) (q := q) (Derives.ax (by simp))
+      (Derives.weaken d₁ _ (Derives.mem_cons_of
+        (fun _ h => List.mem_cons_of_mem _ (List.mem_append_left _ h)) p))
+      (Derives.weaken d₂ _ (Derives.mem_cons_of
+        (fun _ h => List.mem_cons_of_mem _ (List.mem_append_right _ h)) q))⟩
 
 theorem curry (h : EntOf X (.and p q) r) : EntOf X p (.imp q r) := by
   obtain ⟨Γ, hΓ, d⟩ := h
   refine ⟨Γ, hΓ, Derives.impI ?_⟩
-  have hd : (Form.and p q :: q :: p :: Γ) ⊢ r := by
-    refine Derives.weaken d _ ?_
-    intro s hs
-    simp only [List.mem_cons] at hs ⊢
-    exact hs.imp id (fun h => Or.inr (Or.inr h))
+  have hd : (Form.and p q :: q :: p :: Γ) ⊢ r := Derives.weaken d _
+    (Derives.mem_cons_of (fun _ h => List.mem_cons_of_mem _ (List.mem_cons_of_mem _ h)) _)
   have hand : (q :: p :: Γ) ⊢ Form.and p q :=
     Derives.andI (Derives.ax (by simp)) (Derives.ax (by simp))
   exact Derives.cut hand hd
@@ -113,11 +88,8 @@ theorem uncurry (h : EntOf X p (.imp q r)) : EntOf X (.and p q) r := by
   refine ⟨Γ, hΓ, ?_⟩
   have hp : (Form.and p q :: Γ) ⊢ p := Derives.andE₁ (q := q) (Derives.ax (by simp))
   have hq : (Form.and p q :: Γ) ⊢ q := Derives.andE₂ (p := p) (Derives.ax (by simp))
-  have hd : (p :: Form.and p q :: Γ) ⊢ Form.imp q r := by
-    refine Derives.weaken d _ ?_
-    intro s hs
-    simp only [List.mem_cons] at hs ⊢
-    exact hs.imp id Or.inr
+  have hd : (p :: Form.and p q :: Γ) ⊢ Form.imp q r :=
+    Derives.weaken d _ (Derives.mem_cons_of (fun _ h => List.mem_cons_of_mem _ h) p)
   exact Derives.impE (Derives.cut hp hd) hq
 
 theorem and_cong (h₁ : EntOf X p p') (h₂ : EntOf X q q') :

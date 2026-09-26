@@ -1,3 +1,4 @@
+import Logics.IntermediateAxioms.Derivation
 import Logics.IntermediateAxioms.StrictImply
 
 /-!
@@ -67,14 +68,8 @@ theorem emRep_mono (a : Form) {x y : Fin 3} (h : x.val ≤ y.val) : Ent (emRep a
 
 /-- The one fact that makes the middle formula behave like the middle element:
 its negation is absurd, because `¬ (a ∨ ¬ a)` refutes both disjuncts. -/
-theorem neg_em_ent (a : Form) : Ent (.imp (excludedMiddleForm a) .fls) .fls := by
-  have hax : [Form.imp (excludedMiddleForm a) .fls] ⊢ .imp (excludedMiddleForm a) .fls :=
-    Derives.ax (by simp)
-  have hna : [Form.imp (excludedMiddleForm a) .fls] ⊢ Form.neg a :=
-    Derives.impI (Derives.impE
-      (Derives.weaken hax _ (by intro r hr; simp at hr; simp [hr]))
-      (Derives.orI₁ (Derives.ax (by simp))))
-  exact Derives.impE hax (Derives.orI₂ hna)
+theorem neg_em_ent (a : Form) : Ent (.imp (excludedMiddleForm a) .fls) .fls :=
+  .impE (nn_em a) .h₀
 
 /-! ## The three formulas name the chain
 
@@ -151,8 +146,7 @@ theorem derivesFromSchema_em_iff {X : Form} :
     refine Classical.byContradiction fun hne => ?_
     have hv : ∀ w : Nat → Fin 3, X.eval w = ⊤ := fun w =>
       Classical.byContradiction fun hw => hne ⟨w, hw⟩
-    exact excludedMiddleForm_nvalid_three
-      (DerivesFromSchema.valid hv h (fun _ => (1 : Fin 3)))
+    exact DerivesFromSchema.not_of_valid hv excludedMiddleForm_nvalid_three h
   · intro ⟨v, hv⟩
     exact ⟨[X.subst (emSub (.var 0) v)],
       by intro q hq; simp at hq; exact ⟨emSub (.var 0) v, hq⟩,
@@ -161,5 +155,5 @@ theorem derivesFromSchema_em_iff {X : Form} :
 /-- Contrapositive of the forward direction, in the form the separation
 arguments use: a schema holding throughout `Fin 3` proves nothing classical. -/
 theorem not_derivesFromSchema_em {X : Form} (hv : ∀ w : Nat → Fin 3, X.eval w = ⊤) :
-    ¬ DerivesFromSchema X (excludedMiddleForm (.var 0)) := fun h =>
-  excludedMiddleForm_nvalid_three (DerivesFromSchema.valid hv h (fun _ => (1 : Fin 3)))
+    ¬ DerivesFromSchema X (excludedMiddleForm (.var 0)) :=
+  DerivesFromSchema.not_of_valid hv excludedMiddleForm_nvalid_three

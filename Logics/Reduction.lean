@@ -82,10 +82,17 @@ theorem pair_merges {x y : P} (h : IsAlpha x y ∨ IsBeta x y) {a a' b : P}
 noncomputable def pair (x y : P) (h : IsAlpha x y ∨ IsBeta x y) : Merger P :=
   collapse (fun z => z = x ∨ z = y) y (Or.inr rfl) (pair_merges h)
 
+theorem pair_g_of_mem {x y : P} {h : IsAlpha x y ∨ IsBeta x y} {z : P} (hz : z = x ∨ z = y) :
+    (pair x y h).g z = y :=
+  collapse_mem (N := fun z => z = x ∨ z = y) hz
+
+theorem pair_g_of_not {x y : P} {h : IsAlpha x y ∨ IsBeta x y} {z : P}
+    (hz : ¬ (z = x ∨ z = y)) : (pair x y h).g z = z :=
+  collapse_not (N := fun z => z = x ∨ z = y) hz
+
 /-- The pair's merge moves `x`. -/
 theorem pair_g_ne {x y : P} (h : IsAlpha x y ∨ IsBeta x y) : (pair x y h).g x ≠ x := by
-  have hgx : (pair x y h).g x = y := collapse_mem (N := fun z => z = x ∨ z = y) (Or.inl rfl)
-  rw [hgx]
+  rw [pair_g_of_mem (Or.inl rfl)]
   rcases h with ⟨hne, _⟩ | ⟨hne, _⟩ <;> exact Ne.symm hne
 
 /-- The pair's merge identifies nothing but the pair. -/
@@ -107,17 +114,17 @@ theorem pair_refines {x y : P} {h : IsAlpha x y ∨ IsBeta x y} {m : Merger P}
   · rcases ha with rfl | rfl <;> rcases hb with rfl | rfl <;>
       first | rfl | exact hxy | exact hxy.symm
 
-/-- **Merging less puts the algebra higher.**  If `m` identifies whatever `s`
-does, what `m` pulls back `s` pulls back too, so `m`'s algebra embeds in
-`s`'s. -/
-theorem sh_of_refines (s m : Merger P) (h : ∀ a b, s.g a = s.g b → m.g a = m.g b) :
-    SH (Upset m.Pt) (Upset s.Pt) := by
-  have hsat : ∀ (V : Upset m.Pt) x, (m.pull V).mem x ↔ (m.pull V).mem (s.g x) := fun V x => by
-    show V.mem (m.proj x) ↔ V.mem (m.proj (s.g x))
-    rw [show m.proj (s.g x) = m.proj x from Pt.ext m (h _ _ (s.idem x))]
-  have hpull : ∀ V, s.pull (s.lift (m.pull V) (hsat V)) = m.pull V := fun V => s.pull_lift _ _
-  exact sh_of_embeds ⟨s.homOfPull m.pullHom _ hpull, fun V W hVW =>
-    m.pull_injective (by rw [← hpull V, ← hpull W]; exact congrArg s.pull hVW)⟩
+/-- A merge identifying the pair sees through the pair's merge. -/
+theorem g_pair_g {x y : P} {h : IsAlpha x y ∨ IsBeta x y} {m : Merger P}
+    (hxy : m.g x = m.g y) (a : P) : m.g ((pair x y h).g a) = m.g a :=
+  pair_refines hxy _ _ ((pair x y h).idem a)
+
+/-- And what it identifies after the pair's merge it identified before. -/
+theorem pair_refines_proj {x y : P} {h : IsAlpha x y ∨ IsBeta x y} {m : Merger P}
+    (hxy : m.g x = m.g y) {a b : P}
+    (e : (pair x y h).proj (m.g a) = (pair x y h).proj (m.g b)) : m.g a = m.g b := by
+  have := pair_refines (h := h) hxy _ _ (congrArg Pt.pt e)
+  rwa [m.idem, m.idem] at this
 
 /-- **A merge of a finite poset that identifies anything identifies an α- or a
 β-pair.**  See the module documentation for the choice of the pair. -/
@@ -186,13 +193,11 @@ theorem pair_antisymm (hA : Frame.Antisymm P) {x y : P} (h : IsAlpha x y ∨ IsB
   have key : ∀ {q r : (pair x y h).Pt}, q ≼ r → q.pt ≼ r.pt ∨ (r.pt = y ∧ q.pt ≼ x) := by
     rintro q r ⟨w, hw, hqw⟩
     rcases Classical.em (w = x ∨ w = y) with hN | hN
-    · have hwy : (pair x y h).g w = y := collapse_mem (N := fun z => z = x ∨ z = y) hN
-      have hry : r.pt = y := hw.symm.trans hwy
+    · have hry : r.pt = y := hw.symm.trans (pair_g_of_mem hN)
       rcases hN with hwx | hwy'
       · exact Or.inr ⟨hry, hwx ▸ hqw⟩
       · exact Or.inl ((hwy'.trans hry.symm) ▸ hqw)
-    · have hww : (pair x y h).g w = w := collapse_not (N := fun z => z = x ∨ z = y) hN
-      exact Or.inl (by rw [← hw, hww]; exact hqw)
+    · exact Or.inl (by rw [← hw, pair_g_of_not hN]; exact hqw)
   have hyx := not_le_of_pair hA h
   intro q r hqr hrq
   apply Pt.ext (pair x y h)
@@ -208,17 +213,14 @@ noncomputable def after (m : Merger P) {x y : P} (h : IsAlpha x y ∨ IsBeta x y
   g q := (pair x y h).proj (m.g q.pt)
   idem q := by
     show (pair x y h).proj (m.g ((pair x y h).g (m.g q.pt))) = (pair x y h).proj (m.g q.pt)
-    rw [pair_refines hxy _ _ ((pair x y h).idem _), m.idem]
+    rw [g_pair_g hxy, m.idem]
   bisim {q q₁ r} hqq hqr := by
-    have hm : m.g q.pt = m.g q₁.pt := by
-      have := pair_refines (h := h) hxy _ _ (congrArg Pt.pt hqq)
-      rwa [m.idem, m.idem] at this
+    have hm : m.g q.pt = m.g q₁.pt := pair_refines_proj hxy hqq
     obtain ⟨w, hw, hqw⟩ := hqr
     obtain ⟨w', hw', hqw'⟩ := m.bisim hm hqw
     refine ⟨(pair x y h).proj w', ?_, w', rfl, hqw'⟩
     show (pair x y h).proj (m.g ((pair x y h).g w')) = (pair x y h).proj (m.g r.pt)
-    rw [← hw, pair_refines hxy _ _ ((pair x y h).idem w'),
-      pair_refines hxy _ _ ((pair x y h).idem w), hw']
+    rw [← hw, g_pair_g hxy w', g_pair_g hxy w, hw']
 
 /-- `after` identifies exactly what `m` does. -/
 theorem after_classes (m : Merger P) {x y : P} (h : IsAlpha x y ∨ IsBeta x y)
@@ -227,10 +229,8 @@ theorem after_classes (m : Merger P) {x y : P} (h : IsAlpha x y ∨ IsBeta x y)
       (m.after h hxy).g ((pair x y h).proj a) = (m.after h hxy).g ((pair x y h).proj b) := by
   show m.g a = m.g b ↔ (pair x y h).proj (m.g ((pair x y h).g a)) =
     (pair x y h).proj (m.g ((pair x y h).g b))
-  rw [pair_refines hxy _ _ ((pair x y h).idem a), pair_refines hxy _ _ ((pair x y h).idem b)]
-  refine ⟨fun e => by rw [e], fun e => ?_⟩
-  have := pair_refines (h := h) hxy _ _ (congrArg Pt.pt e)
-  rwa [m.idem, m.idem] at this
+  rw [g_pair_g hxy a, g_pair_g hxy b]
+  exact ⟨fun e => by rw [e], pair_refines_proj hxy⟩
 
 /-- **A chain of α- and β-steps.**  A merge that identifies nothing; or one that
 merges an α- or β-pair first and then, on the result, merges by such a chain,
@@ -294,13 +294,9 @@ theorem refuterLB_iff_steps (hA : Frame.Antisymm P) (l : List P) (hl : ∀ x, x 
   constructor
   · -- a smaller frame refuting the formula would put the algebra below itself
     intro hLB
-    have small : ∀ {Q : Type} [Frame Q] {lQ : List Q}, (∀ q, q ∈ lQ) →
-        lQ.length < l'.length → SH (Upset Q) (Upset P) → ∀ v : Nat → Upset Q, p.eval v = ⊤ :=
-      fun hlQ hlt hsh => Classical.byContradiction fun hv => absurd
-        (length_le_of_sh hA hnd hl' hlQ (hLB _ inferInstance hsh hv)) (Nat.not_le.mpr hlt)
-    refine ⟨fun U hU => small (Within.mem_cover hl') ?_ (Within.sh U), fun x y h =>
-      small (Merger.mem_cover _ hl') (Merger.length_cover_lt _ (hl' x) (Merger.pair_g_ne h))
-        (Merger.pair x y h).sh⟩
+    refine ⟨fun U hU => hLB.valid_of_length_lt hA hnd hl' (Within.mem_cover hl') ?_ (Within.sh U),
+      fun x y h => hLB.valid_of_length_lt hA hnd hl' (Merger.mem_cover _ hl')
+        (Merger.length_cover_lt _ (hl' x) (Merger.pair_g_ne h)) (Merger.pair x y h).sh⟩
     obtain ⟨z, hz⟩ := Upset.exists_not_mem hU
     exact Within.length_cover_lt (hl' z) hz
   · rintro ⟨hU, hstep⟩ γ iγ ⟨δ, iδ, ⟨f, hf⟩, ⟨g, hg⟩⟩ hnv

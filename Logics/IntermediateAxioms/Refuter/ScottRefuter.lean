@@ -39,43 +39,12 @@ fork embeds in the quotient, and `SH` asks for no more than that.
 
 open PartialOrder Lattice BoundedLattice HeytingAlgebra
 
-/-- The uneven fork's largest value below the top. -/
-theorem fork12_coatom : ∀ x : ForkUp 1 2,
-    x ≠ ⊤ → x ⊓ (ForkUp.tails 0 0 : ForkUp 1 2) = x := by decide
-
-theorem fork12_coatom' (x : ForkUp 1 2) (h : x ≠ ⊤) :
-    x ⊑ (ForkUp.tails 0 0 : ForkUp 1 2) := inf_eq_left_iff.mp (fork12_coatom x h)
-
-open HeytingAlgebra in
-theorem scott_fork12_ge_coatom : ∀ a : ForkUp 1 2,
-    ((ForkUp.tails 0 0 : ForkUp 1 2) ⊓
-      (((neg (neg a) ⇨ a) ⇨ (a ⊔ neg a)) ⇨ (neg a ⊔ neg (neg a))))
-      = ForkUp.tails 0 0 := by decide
-
-theorem scottForm_fork12_eval_ge (v : Nat → ForkUp 1 2) :
-    (ForkUp.tails 0 0 : ForkUp 1 2) ⊑ (scottForm (.var 0)).eval v :=
-  inf_eq_left_iff.mp (scott_fork12_ge_coatom (v 0))
-
-open HeytingAlgebra in
-/-- A failing element generates the whole uneven fork. -/
-theorem scott_fork12_fail : ∀ a : ForkUp 1 2,
-    (((neg (neg a) ⇨ a) ⇨ (a ⊔ neg a)) ⇨ (neg a ⊔ neg (neg a))) ≠ ⊤ →
-      ∀ z : ForkUp 1 2, z = ⊥ ∨ z = ⊤ ∨ z = neg a ∨ z = a ∨ z = a ⊔ neg a ∨
-        z = neg (neg a) ∨ z = neg a ⊔ neg (neg a) := by decide
-
 /-- **Nothing below the uneven fork refutes `scottForm`.** -/
 theorem refuterLB_fork12_scott : RefuterLB (ForkUp 1 2) (scottForm (.var 0)) :=
-  refuterLB_of_coatom fork12_coatom' scottForm_fork12_eval_ge fun _ _ h _ v hv z => by
-    have hfail := scott_fork12_fail _ hv
-    rcases hfail z with hz | hz | hz | hz | hz | hz | hz
-    · exact ⟨⊥, by rw [h.map_bot, hz]⟩
-    · exact ⟨⊤, by rw [h.map_top, hz]⟩
-    · exact ⟨neg (v 0), by rw [h.map_neg]; exact hz.symm⟩
-    · exact ⟨v 0, hz.symm⟩
-    · exact ⟨v 0 ⊔ neg (v 0), by rw [h.map_sup, h.map_neg]; exact hz.symm⟩
-    · exact ⟨neg (neg (v 0)), by rw [h.map_neg, h.map_neg]; exact hz.symm⟩
-    · exact ⟨neg (v 0) ⊔ neg (neg (v 0)),
-        by rw [h.map_sup, h.map_neg, h.map_neg, h.map_neg]; exact hz.symm⟩
+  PointEmbed.refuterLB_of_generates (c := .tails 0 0)
+    [.fls, Form.tru, Form.neg (.var 0), .var 0, .or (.var 0) (Form.neg (.var 0)),
+      Form.neg (Form.neg (.var 0)), .or (Form.neg (.var 0)) (Form.neg (Form.neg (.var 0)))]
+    (by decide) (by decide) fork12_coatom' (by decide) (by decide)
 
 /-! # Part two: which schemas derive the axiom -/
 

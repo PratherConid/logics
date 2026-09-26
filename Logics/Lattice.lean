@@ -169,6 +169,22 @@ theorem sup_top : a ⊔ ⊤ = ⊤ := (eq_top_iff _).mpr (le_sup_right a ⊤)
 
 theorem top_sup : (⊤ : α) ⊔ a = ⊤ := by rw [sup_comm]; exact sup_top a
 
+/-- Above the top there is only the top. -/
+theorem eq_top_of_le {a b : α} (ha : a = ⊤) (h : a ⊑ b) : b = ⊤ :=
+  (eq_top_iff b).mpr (ha ▸ h)
+
+/-- Below something short of the top, nothing reaches it. -/
+theorem ne_top_of_le {a b : α} (h : a ⊑ b) (hb : b ≠ ⊤) : a ≠ ⊤ :=
+  fun ha => hb (eq_top_of_le ha h)
+
+/-- Above something other than the bottom, nothing is the bottom. -/
+theorem ne_bot_of_le {a b : α} (h : a ⊑ b) (ha : a ≠ ⊥) : b ≠ ⊥ :=
+  fun hb => ha ((eq_bot_iff a).mpr (hb ▸ h))
+
+/-- An element below one it meets in `⊥` is `⊥` itself. -/
+theorem eq_bot_of_le_of_inf_eq_bot {a b : α} (h : a ⊑ b) (hab : a ⊓ b = ⊥) : a = ⊥ :=
+  (inf_eq_left_iff.mpr h).symm.trans hab
+
 /-- The join of a list, `⊥` for the empty one. -/
 def supList : List α → α
   | [] => ⊥

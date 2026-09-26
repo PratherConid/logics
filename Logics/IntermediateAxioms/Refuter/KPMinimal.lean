@@ -227,10 +227,8 @@ theorem no_smaller (hM : InKPMin M) {lM : List M} (hnd : lM.Nodup) (hlM : ∀ p,
     {Q : Type} [Frame Q] {lQ : List Q} (hlQ : ∀ q, q ∈ lQ) (hlt : lQ.length < lM.length)
     (hsh : SH (Upset Q) (Upset M)) (hkp : ¬ ∀ a b c : Upset Q, kpAt a b c = ⊤) :
     False :=
-  absurd (length_le_of_sh hM.antisymm hnd hlM hlQ
-      (hM.minimal (Upset Q) inferInstance hsh
-        (fun hv => hkp (kreiselPutnamForm_valid_iff.mp hv))))
-    (Nat.not_le.mpr hlt)
+  hkp (kreiselPutnamForm_valid_iff.mp
+    (hM.minimal.valid_of_length_lt hM.antisymm hnd hlM hlQ hlt hsh))
 
 /-- No merge that really merges keeps the axiom refuted. -/
 theorem no_merge (hM : InKPMin M) (m : Merger M) {x : M} (hx : m.g x ≠ x)
@@ -245,8 +243,9 @@ theorem root_of_splits (hM : InKPMin M) {x : M} {a : Upset M}
   intro p
   refine Classical.byContradiction fun hxp => ?_
   obtain ⟨l, hnd, hl⟩ := hM.exists_nodup
-  exact hM.no_smaller hnd hl (Above.mem_cover hl) (Above.length_cover_lt (hl p) hxp)
-    (Above.sh x) (kp_ntop_of_splits (Above.splits hs))
+  exact hM.no_smaller hnd hl (Within.mem_cover hl)
+    (Within.length_cover_lt (U := Upset.up x) (hl p) hxp) (Within.sh _)
+    (kp_ntop_of_splits ((Within.splits_iff (Above.root x) a).mpr hs))
 
 end InKPMin
 
@@ -257,33 +256,8 @@ points of an upward closed set and by merging, and a merge that does anything
 lies below a single α- or β-step (`refuterLB_iff_steps`).  For the axiom the
 first kind of step needs no separate check: a failure on the points of an upward
 closed set is a failure of the whole frame at one of those points
-(`Within.splits_pt`), so it is ruled out by the axiom failing only at points
+(`Within.splits_iff`), so it is ruled out by the axiom failing only at points
 below everything. -/
-
-namespace Within
-
-variable {M : Type} [Frame M] {U : Upset M}
-
-/-- A point of `U` is in a region there exactly when it is in the region of the
-whole frame cut out by the extended set. -/
-theorem region_iff {r : Within U} (a : Upset (Within U)) (q : Within U) :
-    (kpRegion r a).mem q ↔ (kpRegion r.pt (extend a)).mem q.pt :=
-  ⟨fun ⟨hr, hn⟩ => ⟨hr, fun y hqy ⟨hy, hay⟩ => hn ⟨y, hy⟩ hqy hay⟩,
-   fun ⟨hr, hn⟩ => ⟨hr, fun q' hqq' haq' => hn q'.pt hqq' ⟨q'.mem, haq'⟩⟩⟩
-
-/-- A split on the points of `U` is a split of the whole frame, the region lying
-inside `U`. -/
-theorem splits_pt {r : Within U} {a : Upset (Within U)} (hs : (kpRegion r a).Splits) :
-    (kpRegion r.pt (extend a)).Splits := by
-  obtain ⟨m, m', ⟨hm, hmin⟩, ⟨hm', hmin'⟩, hmm', hm'm⟩ := hs
-  have hU : ∀ {z : M}, (kpRegion r.pt (extend a)).mem z → U.mem z :=
-    fun hz => U.upward hz.1 r.mem
-  exact ⟨m.pt, m'.pt,
-    ⟨(region_iff a m).mp hm, fun z hz hzm => hmin ⟨z, hU hz⟩ ((region_iff a _).mpr hz) hzm⟩,
-    ⟨(region_iff a m').mp hm', fun z hz hzm => hmin' ⟨z, hU hz⟩ ((region_iff a _).mpr hz) hzm⟩,
-    hmm', hm'm⟩
-
-end Within
 
 /-- **Membership in `𝓜`, read on frames.**  A frame of `𝓛` that is a poset is a
 minimal refuter exactly when the axiom fails only at points below everything and
@@ -308,7 +282,8 @@ theorem inKPMin_iff {M : Type} [Frame M] :
     refine kreiselPutnamForm_valid_iff.mpr (Classical.byContradiction fun hkp => hU ?_)
     obtain ⟨r, a, hs⟩ :=
       (kp_ntop_iff_splits (hasMinimal_of_list _ (Within.mem_cover hl))).mp hkp
-    have hr := hroot _ _ (Within.splits_pt hs)
+    have hr := hroot _ _ ((Within.splits_iff r (Within.extend a)).mp
+      (by rw [Within.restrict_extend]; exact hs))
     exact Upset.eq_top_of_mem fun p => U.upward (hr p) r.mem
 
 /-- A split at the root: two unrelated minimal points of the region that `a`

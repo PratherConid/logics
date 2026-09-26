@@ -92,11 +92,6 @@ def T (j : KiteUp 1 2) : Form :=
 
 /-! ### What Peirce's law and the premise give -/
 
-/-- Peirce's law holds once its left argument implies its right one:
-`fun h => h hpq`. -/
-private theorem imp_ent_peirce (p q : Form) : Ent (.imp p q) (peirceForm p q) :=
-  .impI (.impE .h₀ .h₁)
-
 /-- **Under `P`, an arrow from `a` into `b ∨ ¬ b` gives `a ∨ b`**, since it gives
 `P`'s antecedent: `fun h => hP (imp_ent_peirce h)`. -/
 theorem p_ent_or : Ent P (.imp (.imp (.var 0) Tx) (.or (.var 0) (.var 1))) :=
@@ -184,16 +179,13 @@ above `x` and `y₁`, and the formula for `y₂` gives the one for `y₁`. -/
 theorem meet_x_y1 : [.and Tx Ty1, P] ⊢ Form.disj [Tt] :=
   .orI₁ (txTy1_ent_tt.mp .h₀)           -- Or.inl (txTy1_ent_tt h)
 
-theorem meet_y1_x : [.and Ty1 Tx, P] ⊢ Form.disj [Tt] :=
-  .orI₁ (txTy1_ent_tt.mp (.andI (.andE₂ .h₀) (.andE₁ .h₀)))  -- Or.inl (txTy1_ent_tt ⟨h.2, h.1⟩)
+theorem meet_y1_x : [.and Ty1 Tx, P] ⊢ Form.disj [Tt] := Derives.and_swap meet_x_y1
 
 theorem meet_x_y2 : [.and Tx Ty2, P] ⊢ Form.disj [Tt] :=
   .orI₁ (txTy1_ent_tt.mp (.andI (.andE₁ .h₀) (.impI (.andE₂ .h₁))))
                                         -- Or.inl (txTy1_ent_tt ⟨h.1, fun _ => h.2⟩)
 
-theorem meet_y2_x : [.and Ty2 Tx, P] ⊢ Form.disj [Tt] :=
-  .orI₁ (txTy1_ent_tt.mp (.andI (.andE₂ .h₀) (.impI (.andE₁ .h₁))))
-                                        -- Or.inl (txTy1_ent_tt ⟨h.2, fun _ => h.1⟩)
+theorem meet_y2_x : [.and Ty2 Tx, P] ⊢ Form.disj [Tt] := Derives.and_swap meet_x_y2
 
 /-- Under `b`, `b ∨ ¬ b` holds and `k` gives the join, which gives
 `b → a ∨ ¬ a` (`disj_ent_ty1`) and so `a ∨ ¬ a` at that `b`. -/

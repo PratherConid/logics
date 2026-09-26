@@ -115,9 +115,18 @@ theorem embeds_refl (α : Type u) [HeytingAlgebra α] : Embeds α α :=
 theorem onto_refl (α : Type u) [HeytingAlgebra α] : Onto α α :=
   ⟨Hom.id α, fun b => ⟨b, rfl⟩⟩
 
+/-- An embedding already puts an algebra below: take the identity quotient. -/
+theorem sh_of_embeds {A α : Type} [HeytingAlgebra A] [HeytingAlgebra α]
+    (h : Embeds A α) : SH A α :=
+  ⟨α, inferInstance, onto_refl α, h⟩
+
+/-- So does a homomorphism onto it: take the whole image. -/
+theorem sh_of_onto {A α : Type} [HeytingAlgebra A] [HeytingAlgebra α]
+    (h : Onto A α) : SH A α :=
+  ⟨A, inferInstance, h, embeds_refl A⟩
+
 /-- Every algebra is trivially above itself. -/
-theorem sh_refl (α : Type) [HeytingAlgebra α] : SH α α :=
-  ⟨α, inferInstance, onto_refl α, embeds_refl α⟩
+theorem sh_refl (α : Type) [HeytingAlgebra α] : SH α α := sh_of_embeds (embeds_refl α)
 
 
 /-! ## Composition, monotonicity and inverses -/
@@ -139,6 +148,20 @@ def comp (g : Hom β γ) (f : Hom α β) : Hom α γ where
   map_inf a b := by rw [f.map_inf, g.map_inf]
   map_sup a b := by rw [f.map_sup, g.map_sup]
   map_himp a b := by rw [f.map_himp, g.map_himp]
+
+/-- Two elements a homomorphism identifies have their arrow sent to the top. -/
+theorem map_himp_eq_top (f : Hom α β) {a b : α} (h : f.toFun a = f.toFun b) :
+    f.toFun (a ⇨ b) = ⊤ := by
+  rw [f.map_himp, h]; exact himp_self _
+
+/-- **Identifying two elements sends the coatom to the top**: their distance
+`(a ⇨ b) ⊓ (b ⇨ a)` goes to the top, and, not being the top itself, lies below
+the coatom. -/
+theorem map_eq_top_of_collapse (f : Hom α β) {a b : α} (hab : f.toFun a = f.toFun b)
+    (hne : a ≠ b) {c : α} (hc : ∀ x : α, x ≠ ⊤ → x ⊑ c) : f.toFun c = ⊤ := by
+  have hx : f.toFun ((a ⇨ b) ⊓ (b ⇨ a)) = ⊤ := by
+    rw [f.map_inf, f.map_himp_eq_top hab, f.map_himp_eq_top hab.symm, inf_top]
+  exact eq_top_of_le hx (f.mono (hc _ fun h => hne (eq_of_himp_inf_eq_top h)))
 
 /-- A homomorphism commutes with negation. -/
 theorem map_neg (f : Hom α β) (a : α) : f.toFun (neg a) = neg (f.toFun a) := by
@@ -269,28 +292,13 @@ end Hom
 /-- An isomorphism puts each algebra below the other. -/
 theorem sh_of_bijective {α β : Type} [HeytingAlgebra α] [HeytingAlgebra β]
     (f : Hom α β) (hf : Function.Injective f.toFun ∧ Function.Surjective f.toFun) : SH β α :=
-  ⟨β, inferInstance, ⟨f, hf.2⟩, embeds_refl β⟩
+  sh_of_onto ⟨f, hf.2⟩
 
 /-- An isomorphism puts the two algebras below each other. -/
 theorem sh_of_iso {α β : Type} [HeytingAlgebra α] [HeytingAlgebra β]
     (f : Hom α β) (hf : Function.Injective f.toFun ∧ Function.Surjective f.toFun) :
     SH α β ∧ SH β α :=
-  ⟨⟨β, inferInstance, onto_refl β, ⟨f, hf.1⟩⟩, sh_of_bijective f hf⟩
-
-/-- Validity need only be checked on the image of an embedding. -/
-theorem valid_of_embeds_of_valid_on {α β : Type u} [HeytingAlgebra α] [HeytingAlgebra β]
-    (f : Hom α β) (hf : Function.Injective f.toFun) {p : Form}
-    (h : ∀ v : Nat → α, p.eval (fun n => f.toFun (v n)) = ⊤) :
-    ∀ v : Nat → α, p.eval v = ⊤ := by
-  intro v
-  refine hf ?_
-  rw [f.map_top, ← f.eval v p]
-  exact h v
-
-/-- An embedding already puts an algebra below: take the identity quotient. -/
-theorem sh_of_embeds {A α : Type} [HeytingAlgebra A] [HeytingAlgebra α]
-    (h : Embeds A α) : SH A α :=
-  ⟨α, inferInstance, onto_refl α, h⟩
+  ⟨sh_of_embeds ⟨f, hf.1⟩, sh_of_bijective f hf⟩
 
 /-- A map that is not injective identifies two distinct elements. -/
 theorem exists_collapse {α β : Type u} [HeytingAlgebra α] [HeytingAlgebra β]
@@ -326,19 +334,11 @@ theorem valid_of_collapse {α β : Type u} [HeytingAlgebra α] [HeytingAlgebra �
     {c : α} (hc : ∀ x : α, x ≠ ⊤ → x ⊑ c)
     {p : Form} (hp : ∀ v : Nat → α, c ⊑ p.eval v) :
     ∀ w : Nat → β, p.eval w = ⊤ := by
-  have hx : f.toFun ((a ⇨ b) ⊓ (b ⇨ a)) = ⊤ := by
-    rw [f.map_inf, f.map_himp, f.map_himp, hab, himp_eq_top_of_le le_rfl, inf_top]
-  have hxne : (a ⇨ b) ⊓ (b ⇨ a) ≠ ⊤ := by
-    intro h
-    have h1 : (a ⇨ b) = ⊤ := (eq_top_iff _).mpr (h ▸ inf_le_left (a ⇨ b) (b ⇨ a))
-    have h2 : (b ⇨ a) = ⊤ := (eq_top_iff _).mpr (h ▸ inf_le_right (a ⇨ b) (b ⇨ a))
-    exact hne (le_antisymm (le_of_himp_eq_top h1) (le_of_himp_eq_top h2))
-  have hfc : f.toFun c = ⊤ :=
-    (eq_top_iff _).mpr (le_trans (le_of_eq hx.symm) (f.mono (hc _ hxne)))
+  have hfc : f.toFun c = ⊤ := f.map_eq_top_of_collapse hab hne hc
   intro w
   obtain ⟨v, rfl⟩ := exists_lift_valuation hsurj w
   rw [f.eval]
-  exact (eq_top_iff _).mpr (le_trans (le_of_eq hfc.symm) (f.mono (hp _)))
+  exact eq_top_of_le hfc (f.mono (hp _))
 
 /-! ## Lower bounds among refuters
 

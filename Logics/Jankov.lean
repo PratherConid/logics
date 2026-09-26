@@ -54,35 +54,10 @@ open PartialOrder Lattice BoundedLattice HeytingAlgebra
 
 The diagram is a conjunction of a list of formulas (`Form.conj`), one batch per
 pair of elements, so it needs the two facts bounding the value of such a
-conjunction: each conjunct is above it, and anything below all of them is below
-it. -/
+conjunction (`Form.conj_eval_le`, `Form.le_conj_eval` in `Logics/Heyting.lean`):
+each conjunct is above it, and anything below all of them is below it. -/
 
 namespace Form
-
-theorem conj_eval_le {α : Type u} [HeytingAlgebra α] (v : Nat → α) :
-    ∀ (ps : List Form) {p : Form}, p ∈ ps → (conj ps).eval v ⊑ p.eval v := by
-  intro ps
-  induction ps with
-  | nil => intro p hp; exact absurd hp (by simp)
-  | cons q ps ih =>
-    intro p hp
-    show q.eval v ⊓ (conj ps).eval v ⊑ p.eval v
-    rcases List.mem_cons.mp hp with rfl | hp'
-    · exact inf_le_left _ _
-    · exact le_trans (inf_le_right _ _) (ih hp')
-
-theorem le_conj_eval {α : Type u} [HeytingAlgebra α] (v : Nat → α) {x : α} :
-    ∀ ps : List Form, (∀ p ∈ ps, x ⊑ p.eval v) → x ⊑ (conj ps).eval v := by
-  intro ps
-  induction ps with
-  | nil =>
-    intro _
-    show x ⊑ ((⊥ : α) ⇨ ⊥)
-    exact le_trans (le_top x) (le_of_eq (himp_eq_top_of_le le_rfl).symm)
-  | cons q ps ih =>
-    intro h
-    exact le_inf (h q (List.mem_cons.mpr (Or.inl rfl)))
-      (ih (fun p hp => h p (List.mem_cons.mpr (Or.inr hp))))
 
 /-- `p ↔ q`, spelled out as a pair of implications. -/
 def iff (p q : Form) : Form := .and (.imp p q) (.imp q p)
@@ -91,7 +66,7 @@ def iff (p q : Form) : Form := .and (.imp p q) (.imp q p)
 theorem iff_eval_eq_top {α : Type u} [HeytingAlgebra α] (v : Nat → α) {p q : Form}
     (h : p.eval v = q.eval v) : (Form.iff p q).eval v = ⊤ := by
   show ((p.eval v ⇨ q.eval v) ⊓ (q.eval v ⇨ p.eval v)) = ⊤
-  rw [h, himp_eq_top_of_le le_rfl, inf_top]
+  rw [h, himp_self _, inf_top]
 
 end Form
 
@@ -183,7 +158,7 @@ theorem diagram_eval_self : J.diagram.eval J.elt = ⊤ := by
   · exact le_of_eq (J.eval_var ⊤).symm
   rcases List.mem_cons.mp hp with rfl | hp
   · show (⊤ : A) ⊑ ((J.var ⊥).eval J.elt ⇨ ⊥)
-    rw [J.eval_var ⊥, himp_eq_top_of_le le_rfl]
+    rw [J.eval_var ⊥, himp_self _]
     exact le_rfl
   obtain ⟨a, _, hp⟩ := List.mem_flatMap.mp hp
   obtain ⟨b, _, hp⟩ := List.mem_flatMap.mp hp
@@ -265,12 +240,8 @@ theorem hom_injective (hv : J.char.eval v ≠ ⊤) :
     Function.Injective (J.hom v).toFun := by
   intro a b hab
   refine Classical.byContradiction fun hne => hv ?_
-  have hd : ((a ⇨ b) ⊓ (b ⇨ a)) ≠ ⊤ := fun h => hne (eq_of_himp_inf_eq_top h)
-  have htop : (J.hom v).toFun ((a ⇨ b) ⊓ (b ⇨ a)) = ⊤ := by
-    rw [(J.hom v).map_inf, (J.hom v).map_himp, (J.hom v).map_himp, hab,
-      himp_eq_top_of_le le_rfl, inf_top]
   have hc : (J.hom v).toFun J.coatom = ⊤ :=
-    (eq_top_iff _).mpr (le_trans (le_of_eq htop.symm) ((J.hom v).mono (J.le_coatom _ hd)))
+    (J.hom v).map_eq_top_of_collapse hab hne J.le_coatom
   show (J.diagram.eval v ⇨ (J.var J.coatom).eval v) = ⊤
   exact himp_eq_top_of_le (Filter.up_mem.mp ((FilterQuot.mk_eq_top_iff _ _).mp hc))
 

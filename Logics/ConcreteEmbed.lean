@@ -44,6 +44,21 @@ theorem fork_coatom' (x : ForkUp 1 1) (h : x ≠ ⊤) :
 theorem fork_cases : ∀ y : ForkUp 1 1, y = ⊤ ∨ y = ForkUp.tails 0 0 ∨
     y = ForkUp.tails 0 1 ∨ y = ForkUp.tails 1 0 ∨ y = ⊥ := by decide
 
+/-! The diamond's largest value below the top is the join of its two
+incomparable middles, and the uneven fork's is the join of its branch tails. -/
+
+theorem kite_coatom : ∀ z : KiteUp 1 1,
+    z ≠ ⊤ → z ⊓ (KiteUp.tails 0 0 : KiteUp 1 1) = z := by decide
+
+theorem kite_coatom' (z : KiteUp 1 1) (h : z ≠ ⊤) :
+    z ⊑ (KiteUp.tails 0 0 : KiteUp 1 1) := inf_eq_left_iff.mp (kite_coatom z h)
+
+theorem fork12_coatom : ∀ x : ForkUp 1 2,
+    x ≠ ⊤ → x ⊓ (ForkUp.tails 0 0 : ForkUp 1 2) = x := by decide
+
+theorem fork12_coatom' (x : ForkUp 1 2) (h : x ≠ ⊤) :
+    x ⊑ (ForkUp.tails 0 0 : ForkUp 1 2) := inf_eq_left_iff.mp (fork12_coatom x h)
+
 /-! ## The three element chain sits inside every non-classical algebra
 
 Given an element `a` at which excluded middle fails, the three elements `⊥`,
@@ -76,20 +91,6 @@ theorem mono {i j : Fin 3} (h : i.val ≤ j.val) : map a i ⊑ map a j := by
   rw [map_one a (by omega : i.val = 1), map_one a (by omega : j.val = 1)]
   exact le_rfl
 
-theorem map_inf' (i j : Fin 3) : map a (i ⊓ j) = map a i ⊓ map a j := by
-  by_cases h : i.val ≤ j.val
-  · rw [Chain.inf_eq_left h]
-    exact (inf_eq_left_iff.mpr (mono a h)).symm
-  · rw [Chain.inf_eq_right h, inf_comm]
-    exact (inf_eq_left_iff.mpr (mono a (by omega))).symm
-
-theorem map_sup' (i j : Fin 3) : map a (i ⊔ j) = map a i ⊔ map a j := by
-  by_cases h : i.val ≤ j.val
-  · rw [Chain.sup_eq_right h]
-    exact (sup_eq_right_iff.mpr (mono a h)).symm
-  · rw [Chain.sup_eq_left h, sup_comm]
-    exact (sup_eq_right_iff.mpr (mono a (by omega))).symm
-
 theorem map_himp' (i j : Fin 3) : map a (i ⇨ j) = map a i ⇨ map a j := by
   by_cases h : i.val ≤ j.val
   · rw [(Chain.himp_eq_top_iff i j).mpr h, map_two a (by decide),
@@ -106,9 +107,7 @@ theorem val_cases (i : Fin 3) : i.val = 0 ∨ i.val = 1 ∨ i.val = 2 := by
 
 /-- The three values are distinct exactly when excluded middle fails at `a`. -/
 theorem injective (h : a ⊔ neg a ≠ ⊤) : Function.Injective (map a) := by
-  have hbot : (⊥ : α) ≠ ⊤ := by
-    intro hb
-    exact h (le_antisymm (le_top _) (hb ▸ bot_le _))
+  have hbot : (⊥ : α) ≠ ⊤ := ne_top_of_le (bot_le _) h
   have hmid : a ⊔ neg a ≠ ⊥ := by
     intro hc
     have ha : a = ⊥ := (eq_bot_iff a).mpr (hc ▸ le_sup_left a (neg a))
@@ -138,15 +137,15 @@ theorem three_embeds {α : Type} [HeytingAlgebra α] {a : α} (h : a ⊔ neg a �
   ⟨{ toFun := ThreeEmbed.map a
      map_bot := ThreeEmbed.map_zero a (by decide)
      map_top := ThreeEmbed.map_two a (by decide)
-     map_inf := ThreeEmbed.map_inf' a
-     map_sup := ThreeEmbed.map_sup' a
+     map_inf := Chain.map_inf_of_mono (ThreeEmbed.mono a)
+     map_sup := Chain.map_sup_of_mono (ThreeEmbed.mono a)
      map_himp := ThreeEmbed.map_himp' a },
    ThreeEmbed.injective a h⟩
 
 /-- Hence `Fin 3` is below every non-classical algebra in the Jankov order. -/
 theorem sh_three {α : Type} [HeytingAlgebra α] {a : α} (h : a ⊔ neg a ≠ ⊤) :
     SH (Fin 3) α :=
-  ⟨α, inferInstance, onto_refl α, three_embeds h⟩
+  sh_of_embeds (three_embeds h)
 
 /-- **A schema failing in `Fin 3` is valid only in Boolean algebras.**
 
@@ -201,15 +200,6 @@ theorem right_inf_left : neg (neg t) ⊓ neg t = ⊥ := by
 theorem left_le_join : neg t ⊑ neg t ⊔ neg (neg t) := le_sup_left _ _
 theorem right_le_join : neg (neg t) ⊑ neg t ⊔ neg (neg t) := le_sup_right _ _
 
-theorem neg_join : neg (neg t ⊔ neg (neg t)) = ⊥ := by
-  refine (eq_bot_iff _).mpr ?_
-  have h1 : neg (neg t ⊔ neg (neg t)) ⊓ neg t ⊑ ⊥ :=
-    le_trans (inf_le_inf le_rfl (left_le_join t)) (himp_inf_le _ ⊥)
-  have h2 : neg (neg t ⊔ neg (neg t)) ⊑ neg (neg t) := le_himp_of_inf_le h1
-  have h3 : neg (neg t ⊔ neg (neg t)) ⊓ neg (neg t) ⊑ ⊥ :=
-    le_trans (inf_le_inf le_rfl (right_le_join t)) (himp_inf_le _ ⊥)
-  exact le_trans (le_inf le_rfl h2) h3
-
 theorem neg_left : neg (neg t) = neg (neg t) := rfl
 theorem neg_right : neg (neg (neg t)) = neg t := neg_neg_neg t
 
@@ -237,12 +227,10 @@ theorem join_sup_right : (neg t ⊔ neg (neg t)) ⊔ neg (neg t) = neg t ⊔ neg
 
 @[simp] theorem map_top' : map t (⊤ : ForkUp 1 1) = ⊤ := rfl
 @[simp] theorem map_bot'' : map t (⊥ : ForkUp 1 1) = ⊥ := rfl
-@[simp] theorem himp_top_gen (a : α) : (a ⇨ (⊤ : α)) = ⊤ := himp_eq_top_of_le (le_top a)
-@[simp] theorem self_himp (a : α) : (a ⇨ a) = ⊤ := himp_eq_top_of_le le_rfl
-@[simp] theorem bot_himp_gen (a : α) : ((⊥ : α) ⇨ a) = ⊤ := himp_eq_top_of_le (bot_le a)
 @[simp] theorem left_himp_bot : (neg t ⇨ (⊥ : α)) = neg (neg t) := rfl
 @[simp] theorem right_himp_bot : (neg (neg t) ⇨ (⊥ : α)) = neg t := neg_neg_neg t
-@[simp] theorem join_himp_bot : ((neg t ⊔ neg (neg t)) ⇨ (⊥ : α)) = ⊥ := neg_join t
+@[simp] theorem join_himp_bot : ((neg t ⊔ neg (neg t)) ⇨ (⊥ : α)) = ⊥ :=
+  neg_sup_neg_eq_bot (neg t)
 @[simp] theorem left_himp_join : (neg t ⇨ (neg t ⊔ neg (neg t))) = ⊤ :=
   himp_eq_top_of_le (left_le_join t)
 @[simp] theorem right_himp_join : (neg (neg t) ⇨ (neg t ⊔ neg (neg t))) = ⊤ :=
@@ -264,8 +252,8 @@ theorem map_sup' (x y : ForkUp 1 1) : map t (x ⊔ y) = map t x ⊔ map t y := b
 theorem map_himp' (x y : ForkUp 1 1) : map t (x ⇨ y) = map t x ⇨ map t y := by
   rcases forkUp_cases x with rfl|rfl|rfl|rfl|rfl <;>
     rcases forkUp_cases y with rfl|rfl|rfl|rfl|rfl <;>
-    simp [ForkUp.himp_def, himp_top_left, neg_neg_neg, neg_himp_neg_neg,
-      neg_neg_himp_neg, sup_neg_himp_left, sup_neg_himp_right]
+    simp [ForkUp.himp_def, himp_top_left, himp_top, himp_self, bot_himp, neg_neg_neg,
+      neg_himp_neg_neg, neg_neg_himp_neg, sup_neg_himp_left, sup_neg_himp_right]
 
 /-- The five values are distinct exactly when weak excluded middle fails. -/
 theorem injective (h : neg t ⊔ neg (neg t) ≠ ⊤) : Function.Injective (map t) := by
@@ -276,38 +264,18 @@ theorem injective (h : neg t ⊔ neg (neg t) ≠ ⊤) : Function.Injective (map 
     apply h
     have hnt : neg t = ⊤ := by rw [← neg_neg_neg t, hb, neg_bot]
     rw [hnt, top_sup]
-  have huv : neg t ≠ neg (neg t) := by
-    intro he
-    apply hu
-    have hii := left_inf_right t
-    rw [← he, inf_idem] at hii
-    exact hii
-  have hwb : neg t ⊔ neg (neg t) ≠ ⊥ := by
-    intro hb
-    exact hu ((eq_bot_iff _).mpr (hb ▸ left_le_join t))
-  have hut : neg t ≠ ⊤ := by
-    intro he
-    exact h ((eq_top_iff _).mpr (le_trans (le_of_eq he.symm) (left_le_join t)))
-  have hvt : neg (neg t) ≠ ⊤ := by
-    intro he
-    exact h ((eq_top_iff _).mpr (le_trans (le_of_eq he.symm) (right_le_join t)))
-  have hbt : (⊥ : α) ≠ ⊤ := by
-    intro he
-    exact h ((eq_top_iff _).mpr (le_trans (le_of_eq he.symm) (bot_le _)))
-  have huw : neg t ≠ neg t ⊔ neg (neg t) := by
-    intro he
-    apply hv
-    have h1 : neg (neg t) ⊑ neg t := le_trans (right_le_join t) (le_of_eq he.symm)
-    have h2 : neg (neg t) ⊓ neg t = neg (neg t) := inf_eq_left_iff.mpr h1
-    rw [right_inf_left] at h2
-    exact h2.symm
-  have hvw : neg (neg t) ≠ neg t ⊔ neg (neg t) := by
-    intro he
-    apply hu
-    have h1 : neg t ⊑ neg (neg t) := le_trans (left_le_join t) (le_of_eq he.symm)
-    have h2 : neg t ⊓ neg (neg t) = neg t := inf_eq_left_iff.mpr h1
-    rw [left_inf_right] at h2
-    exact h2.symm
+  have huv : neg t ≠ neg (neg t) := fun he =>
+    hu (eq_bot_of_le_of_inf_eq_bot (le_of_eq he) (left_inf_right t))
+  have hwb : neg t ⊔ neg (neg t) ≠ ⊥ := ne_bot_of_le (left_le_join t) hu
+  have hut : neg t ≠ ⊤ := ne_top_of_le (left_le_join t) h
+  have hvt : neg (neg t) ≠ ⊤ := ne_top_of_le (right_le_join t) h
+  have hbt : (⊥ : α) ≠ ⊤ := ne_top_of_le (bot_le _) h
+  have huw : neg t ≠ neg t ⊔ neg (neg t) := fun he =>
+    hv (eq_bot_of_le_of_inf_eq_bot (le_trans (right_le_join t) (le_of_eq he.symm))
+      (right_inf_left t))
+  have hvw : neg (neg t) ≠ neg t ⊔ neg (neg t) := fun he =>
+    hu (eq_bot_of_le_of_inf_eq_bot (le_trans (left_le_join t) (le_of_eq he.symm))
+      (left_inf_right t))
   intro x y hxy
   rcases forkUp_cases x with rfl|rfl|rfl|rfl|rfl <;>
     rcases forkUp_cases y with rfl|rfl|rfl|rfl|rfl <;>
@@ -332,7 +300,7 @@ theorem forkUp_embeds {α : Type} [HeytingAlgebra α] {t : α}
 /-- Hence the fork lies below any such algebra in the order. -/
 theorem sh_forkUp {α : Type} [HeytingAlgebra α] {t : α}
     (h : neg t ⊔ neg (neg t) ≠ ⊤) : SH (ForkUp 1 1) α :=
-  ⟨α, inferInstance, onto_refl α, forkUp_embeds h⟩
+  sh_of_embeds (forkUp_embeds h)
 
 /-! ## A four element chain inside an algebra
 
@@ -361,10 +329,6 @@ theorem map_one {i : Fin 4} (h : i.val = 1) : map x y i = x := by simp [map, h]
 theorem map_two {i : Fin 4} (h : i.val = 2) : map x y i = y := by simp [map, h]
 theorem map_three {i : Fin 4} (h : i.val = 3) : map x y i = ⊤ := by simp [map, h]
 
-theorem neg_y (hxy : x ⊑ y) (hnx : neg x = ⊥) : neg y = ⊥ :=
-  (eq_bot_iff _).mpr (le_trans (le_himp_of_inf_le
-    (le_trans (inf_le_inf le_rfl hxy) (himp_inf_le y ⊥))) (le_of_eq hnx))
-
 theorem mono (hxy : x ⊑ y) {i j : Fin 4} (h : i.val ≤ j.val) :
     map x y i ⊑ map x y j := by
   have hi := i.isLt
@@ -380,20 +344,6 @@ theorem mono (hxy : x ⊑ y) {i j : Fin 4} (h : i.val ≤ j.val) :
   · rw [map_two x y (by omega : i.val = 2), map_two x y (by omega : j.val = 2)]
     exact le_rfl
 
-theorem map_inf' (hxy : x ⊑ y) (i j : Fin 4) : map x y (i ⊓ j) = map x y i ⊓ map x y j := by
-  by_cases h : i.val ≤ j.val
-  · rw [Chain.inf_eq_left h]
-    exact (inf_eq_left_iff.mpr (mono x y hxy h)).symm
-  · rw [Chain.inf_eq_right h, inf_comm]
-    exact (inf_eq_left_iff.mpr (mono x y hxy (by omega))).symm
-
-theorem map_sup' (hxy : x ⊑ y) (i j : Fin 4) : map x y (i ⊔ j) = map x y i ⊔ map x y j := by
-  by_cases h : i.val ≤ j.val
-  · rw [Chain.sup_eq_right h]
-    exact (sup_eq_right_iff.mpr (mono x y hxy h)).symm
-  · rw [Chain.sup_eq_left h, sup_comm]
-    exact (sup_eq_right_iff.mpr (mono x y hxy (by omega))).symm
-
 theorem map_himp' (hxy : x ⊑ y) (hnx : neg x = ⊥) (hyx : (y ⇨ x) = x) (i j : Fin 4) : map x y (i ⇨ j) = map x y i ⇨ map x y j := by
   by_cases h : i.val ≤ j.val
   · rw [(Chain.himp_eq_top_iff i j).mpr h, map_three x y (by decide),
@@ -405,7 +355,7 @@ theorem map_himp' (hxy : x ⊑ y) (hnx : neg x = ⊥) (hyx : (y ⇨ x) = x) (i j
     by_cases h2 : i.val = 2
     · by_cases hj : j.val = 0
       · rw [map_two x y h2, map_zero x y hj]
-        exact (neg_y x y hxy hnx).symm
+        exact (neg_eq_bot_of_le hxy hnx).symm
       · rw [map_two x y h2, map_one x y (by omega)]
         exact hyx.symm
     · rw [map_one x y (by omega : i.val = 1), map_zero x y (by omega : j.val = 0)]
@@ -413,11 +363,9 @@ theorem map_himp' (hxy : x ⊑ y) (hnx : neg x = ⊥) (hyx : (y ⇨ x) = x) (i j
 
 theorem injective (hxy : x ⊑ y) (hxb : x ≠ ⊥) (hxy' : x ≠ y) (hyt : y ≠ ⊤) :
     Function.Injective (map x y) := by
-  have hbt : (⊥ : α) ≠ ⊤ := fun he =>
-    hyt (le_antisymm (le_top _) (le_trans (le_of_eq he.symm) (bot_le _)))
-  have hxt : x ≠ ⊤ := fun he =>
-    hyt (le_antisymm (le_top _) (le_trans (le_of_eq he.symm) hxy))
-  have hyb : y ≠ ⊥ := fun he => hxb ((eq_bot_iff _).mpr (le_trans hxy (le_of_eq he)))
+  have hbt : (⊥ : α) ≠ ⊤ := ne_top_of_le (bot_le _) hyt
+  have hxt : x ≠ ⊤ := ne_top_of_le hxy hyt
+  have hyb : y ≠ ⊥ := ne_bot_of_le hxy hxb
   intro i j hij
   refine Fin.ext ?_
   rcases four_val_cases i with h1|h1|h1|h1 <;> rcases four_val_cases j with h2|h2|h2|h2
@@ -457,12 +405,12 @@ theorem four_embeds {α : Type} [HeytingAlgebra α] {x y : α}
     apply hyt
     rw [← he] at hyx ⊢
     rw [← hyx]
-    exact himp_eq_top_of_le le_rfl
+    exact himp_self _
   exact ⟨{ toFun := FourEmbed.map x y
            map_bot := FourEmbed.map_zero x y (by decide)
            map_top := FourEmbed.map_three x y (by decide)
-           map_inf := FourEmbed.map_inf' x y hxy
-           map_sup := FourEmbed.map_sup' x y hxy
+           map_inf := Chain.map_inf_of_mono (FourEmbed.mono x y hxy)
+           map_sup := Chain.map_sup_of_mono (FourEmbed.mono x y hxy)
            map_himp := FourEmbed.map_himp' x y hxy hnx hyx },
     FourEmbed.injective x y hxy hxb hxy' hyt⟩
 
@@ -544,19 +492,12 @@ theorem meet_sup_join : (x ⊓ y) ⊔ (x ⊔ y) = x ⊔ y := sup_eq_right_iff.mp
 
 The five the order forces, and then the ones that carry content. -/
 
-@[simp] theorem himp_top_gen (a : α) : (a ⇨ (⊤ : α)) = ⊤ := himp_eq_top_of_le (le_top a)
-@[simp] theorem self_himp (a : α) : (a ⇨ a) = ⊤ := himp_eq_top_of_le le_rfl
-@[simp] theorem bot_himp_gen (a : α) : ((⊥ : α) ⇨ a) = ⊤ := himp_eq_top_of_le (bot_le a)
 @[simp] theorem meet_himp_left : ((x ⊓ y) ⇨ x) = ⊤ := himp_eq_top_of_le (meet_le_left x y)
 @[simp] theorem meet_himp_right : ((x ⊓ y) ⇨ y) = ⊤ := himp_eq_top_of_le (meet_le_right x y)
 @[simp] theorem meet_himp_join : ((x ⊓ y) ⇨ (x ⊔ y)) = ⊤ :=
   himp_eq_top_of_le (meet_le_join x y)
 @[simp] theorem left_himp_join : (x ⇨ (x ⊔ y)) = ⊤ := himp_eq_top_of_le (left_le_join x y)
 @[simp] theorem right_himp_join : (y ⇨ (x ⊔ y)) = ⊤ := himp_eq_top_of_le (right_le_join x y)
-
-/-- The join of two dense elements is dense. -/
-theorem neg_join (hnx : neg x = ⊥) : neg (x ⊔ y) = ⊥ :=
-  (eq_bot_iff _).mpr (le_trans (neg_antitone (left_le_join x y)) (le_of_eq hnx))
 
 /-- So is their meet: anything absurd with both of them is absurd with each. -/
 theorem neg_meet (hnx : neg x = ⊥) (hny : neg y = ⊥) : neg (x ⊓ y) = ⊥ := by
@@ -612,7 +553,8 @@ theorem left_himp_bot (hnx : neg x = ⊥) : (x ⇨ (⊥ : α)) = ⊥ := hnx
 theorem right_himp_bot (hny : neg y = ⊥) : (y ⇨ (⊥ : α)) = ⊥ := hny
 theorem meet_himp_bot (hnx : neg x = ⊥) (hny : neg y = ⊥) :
     ((x ⊓ y) ⇨ (⊥ : α)) = ⊥ := neg_meet x y hnx hny
-theorem join_himp_bot (hnx : neg x = ⊥) : ((x ⊔ y) ⇨ (⊥ : α)) = ⊥ := neg_join x y hnx
+theorem join_himp_bot (hnx : neg x = ⊥) : ((x ⊔ y) ⇨ (⊥ : α)) = ⊥ :=
+  neg_eq_bot_of_le (left_le_join x y) hnx
 
 theorem map_inf' (u v : KiteUp 1 1) : map x y (u ⊓ v) = map x y u ⊓ map x y v := by
   rcases kite_cases u with rfl|rfl|rfl|rfl|rfl|rfl <;>
@@ -633,7 +575,7 @@ theorem map_himp' (hxy : (x ⇨ y) = y) (hyx : (y ⇨ x) = x)
     map x y (u ⇨ v) = map x y u ⇨ map x y v := by
   rcases kite_cases u with rfl|rfl|rfl|rfl|rfl|rfl <;>
     rcases kite_cases v with rfl|rfl|rfl|rfl|rfl|rfl <;>
-    simp [KiteUp.himp_def, himp_top_left, hxy, hyx,
+    simp [KiteUp.himp_def, himp_top_left, himp_top, himp_self, bot_himp, hxy, hyx,
       join_himp_left x y hyx, join_himp_right x y hxy, left_himp_meet x y hxy,
       right_himp_meet x y hyx, join_himp_meet x y hxy hyx,
       left_himp_bot x hnx, right_himp_bot y hny, meet_himp_bot x y hnx hny,
@@ -645,8 +587,7 @@ that element to `⊤`, and every other coincidence reduces to one of those two. 
 theorem injective (hxy : (x ⇨ y) = y) (hyx : (y ⇨ x) = x)
     (hnx : neg x = ⊥) (hny : neg y = ⊥) (hT : x ⊔ y ≠ ⊤) :
     Function.Injective (map x y) := by
-  have hbt : (⊥ : α) ≠ ⊤ := fun he =>
-    hT (le_antisymm (le_top _) (le_trans (le_of_eq he.symm) (bot_le _)))
+  have hbt : (⊥ : α) ≠ ⊤ := ne_top_of_le (bot_le _) hT
   have hnl : ¬ (x ⊑ y) := by
     intro hle
     apply hT
@@ -708,7 +649,7 @@ theorem kite_embeds {α : Type} [HeytingAlgebra α] {x y : α}
 theorem sh_kite {α : Type} [HeytingAlgebra α] {x y : α}
     (hxy : (x ⇨ y) = y) (hyx : (y ⇨ x) = x)
     (hnx : neg x = ⊥) (hny : neg y = ⊥) (hT : x ⊔ y ≠ ⊤) : SH (KiteUp 1 1) α :=
-  ⟨α, inferInstance, onto_refl α, kite_embeds hxy hyx hnx hny hT⟩
+  sh_of_embeds (kite_embeds hxy hyx hnx hny hT)
 
 
 /-! ## The seven element uneven fork inside an algebra
@@ -796,15 +737,11 @@ theorem nn_sup_tn : neg (neg s) ⊔ (neg s ⊔ s) = neg s ⊔ neg (neg s) := by
 
 Everything the order forces, and then the ones with content. -/
 
-@[simp] theorem himp_top_gen (a : α) : (a ⇨ (⊤ : α)) = ⊤ := himp_eq_top_of_le (le_top a)
-@[simp] theorem self_himp (a : α) : (a ⇨ a) = ⊤ := himp_eq_top_of_le le_rfl
-@[simp] theorem bot_himp_gen (a : α) : ((⊥ : α) ⇨ a) = ⊤ := himp_eq_top_of_le (bot_le a)
 @[simp] theorem s_himp_bot : (s ⇨ (⊥ : α)) = neg s := rfl
-@[simp] theorem neg_top_gen : neg (⊤ : α) = ⊥ := himp_top_left ⊥
 @[simp] theorem neg_tn : neg (neg s ⊔ s) = ⊥ := by
   show ((neg s ⊔ s) ⇨ (⊥ : α)) = ⊥
   rw [sup_comm]; exact neg_sup_neg_eq_bot s
-@[simp] theorem neg_c : neg (neg s ⊔ neg (neg s)) = ⊥ := ForkEmbed.neg_join s
+@[simp] theorem neg_c : neg (neg s ⊔ neg (neg s)) = ⊥ := neg_sup_neg_eq_bot (neg s)
 @[simp] theorem s_himp_nn : (s ⇨ neg (neg s)) = ⊤ := himp_eq_top_of_le (s_le_nn s)
 @[simp] theorem s_himp_tn : (s ⇨ (neg s ⊔ s)) = ⊤ := himp_eq_top_of_le (s_le_tn s)
 @[simp] theorem s_himp_c : (s ⇨ (neg s ⊔ neg (neg s))) = ⊤ := himp_eq_top_of_le (s_le_c s)
@@ -839,13 +776,6 @@ theorem tn_himp_s : ((neg s ⊔ s) ⇨ s) = neg (neg s) := by
 theorem tn_himp_nn : ((neg s ⊔ s) ⇨ neg (neg s)) = neg (neg s) := by
   refine le_antisymm ?_ (le_himp_self _ _)
   exact le_trans (himp_le_himp_left (neg_le_tn s)) (le_of_eq (neg_himp_neg_neg s))
-
-theorem tn_himp_bot : ((neg s ⊔ s) ⇨ (⊥ : α)) = ⊥ := by
-  show neg (neg s ⊔ s) = ⊥
-  rw [sup_comm]
-  exact neg_sup_neg_eq_bot s
-
-theorem c_himp_bot : ((neg s ⊔ neg (neg s)) ⇨ (⊥ : α)) = ⊥ := ForkEmbed.neg_join s
 
 /-! ### Every composite of two of the seven values, from the order alone -/
 
@@ -906,8 +836,6 @@ theorem c_himp_bot : ((neg s ⊔ neg (neg s)) ⇨ (⊥ : α)) = ⊥ := ForkEmbed
 @[simp] theorem sup_c_tn : (neg s ⊔ neg (neg s)) ⊔ (neg s ⊔ s) = (neg s ⊔ neg (neg s)) := by
   rw [sup_comm]; exact sup_tn_c s
 
-@[simp] theorem inf_bot_gen (a : α) : (⊥ : α) ⊓ a = ⊥ := by rw [inf_comm]; exact inf_bot a
-
 /-! ### The arrows that need the hypothesis
 
 `neg (neg s) ⇨ s` coming back to `s ⊔ neg s` is what splits the long branch;
@@ -933,7 +861,7 @@ theorem map_inf' (u v : ForkUp 1 2) : map s (u ⊓ v) = map s u ⊓ map s v := b
   rcases fork12_cases u with rfl|rfl|rfl|rfl|rfl|rfl|rfl <;>
     rcases fork12_cases v with rfl|rfl|rfl|rfl|rfl|rfl|rfl <;>
     simp [ForkUp.inf_def, ForkUp.mx, neg_inf_s, s_inf_neg, tn_inf_nn,
-      nn_inf_tn, inf_idem, inf_top, top_inf, inf_bot]
+      nn_inf_tn, inf_idem, inf_top, top_inf, inf_bot, bot_inf]
 
 theorem map_sup' (u v : ForkUp 1 2) : map s (u ⊔ v) = map s u ⊔ map s v := by
   rcases fork12_cases u with rfl|rfl|rfl|rfl|rfl|rfl|rfl <;>
@@ -946,7 +874,7 @@ theorem map_himp' (hs : (neg (neg s) ⇨ s) = neg s ⊔ s) (u v : ForkUp 1 2) :
     map s (u ⇨ v) = map s u ⇨ map s v := by
   rcases fork12_cases u with rfl|rfl|rfl|rfl|rfl|rfl|rfl <;>
     rcases fork12_cases v with rfl|rfl|rfl|rfl|rfl|rfl|rfl <;>
-    simp [ForkUp.himp_def, himp_top_left, hs, neg_himp_s,
+    simp [ForkUp.himp_def, himp_top_left, himp_top, himp_self, bot_himp, neg_top, hs, neg_himp_s,
       s_himp_neg, tn_himp_neg, tn_himp_s, tn_himp_nn, nn_himp_tn s hs,
       c_himp_s s hs, c_himp_tn s hs, sup_neg_himp_left, sup_neg_himp_right,
       neg_neg_neg]
@@ -954,8 +882,7 @@ theorem map_himp' (hs : (neg (neg s) ⇨ s) = neg s ⊔ s) (u v : ForkUp 1 2) :
 /-- The seven values are distinct exactly when weak excluded middle fails. -/
 theorem injective (hs : (neg (neg s) ⇨ s) = neg s ⊔ s)
     (hT : neg s ⊔ neg (neg s) ≠ ⊤) : Function.Injective (map s) := by
-  have hbt : (⊥ : α) ≠ ⊤ := fun he =>
-    hT (le_antisymm (le_top _) (le_trans (le_of_eq he.symm) (bot_le _)))
+  have hbt : (⊥ : α) ≠ ⊤ := ne_top_of_le (bot_le _) hT
   have hnb : neg s ≠ ⊥ := by
     intro he; apply hT
     have h : neg (neg s) = ⊤ := by rw [he]; exact neg_bot
@@ -964,73 +891,43 @@ theorem injective (hs : (neg (neg s) ⇨ s) = neg s ⊔ s)
     intro he; apply hT
     have h : neg s = ⊤ := by rw [he]; exact neg_bot
     rw [h, top_sup]
-  have hnnb : neg (neg s) ≠ ⊥ := fun he =>
-    hsb ((eq_bot_iff _).mpr (le_trans (s_le_nn s) (le_of_eq he)))
+  have hnnb : neg (neg s) ≠ ⊥ := ne_bot_of_le (s_le_nn s) hsb
   have hsnn : s ≠ neg (neg s) := by
     intro he; apply hT
-    have h1 : (neg (neg s) ⇨ s) = ⊤ := by rw [← he]; exact himp_eq_top_of_le le_rfl
+    have h1 : (neg (neg s) ⇨ s) = ⊤ := by rw [← he]; exact himp_self _
     rw [hs] at h1
     rw [← he]; exact h1
   have htnt : (neg s ⊔ s) ≠ ⊤ := by
     intro he; apply hsnn
     have h1 : (neg (neg s) ⇨ s) = ⊤ := by rw [hs, he]
     exact le_antisymm (s_le_nn s) (le_of_himp_eq_top h1)
-  have hnnn : neg s ≠ neg (neg s) := by
-    intro he; apply hnb
-    have h := neg_inf_nn s
-    rw [← he, inf_idem] at h
-    exact h
-  have hns : neg s ≠ s := by
-    intro he; apply hsb
-    have h := neg_inf_s s
-    rw [he, inf_idem] at h
-    exact h
-  have hntn : neg s ≠ neg s ⊔ s := by
-    intro he; apply hsb
-    have h := inf_eq_left_iff.mpr (le_trans (s_le_tn s) (le_of_eq he.symm))
-    rw [s_inf_neg] at h
-    exact h.symm
-  have hnc : neg s ≠ neg s ⊔ neg (neg s) := by
-    intro he; apply hnnb
-    have h := inf_eq_left_iff.mpr (le_trans (nn_le_c s) (le_of_eq he.symm))
-    rw [nn_inf_neg] at h
-    exact h.symm
-  have hstn : s ≠ neg s ⊔ s := by
-    intro he; apply hnb
-    have h := inf_eq_left_iff.mpr (le_trans (neg_le_tn s) (le_of_eq he.symm))
-    rw [neg_inf_s] at h
-    exact h.symm
-  have hsc : s ≠ neg s ⊔ neg (neg s) := by
-    intro he; apply hnb
-    have h := inf_eq_left_iff.mpr (le_trans (neg_le_c s) (le_of_eq he.symm))
-    rw [neg_inf_s] at h
-    exact h.symm
-  have htnnn : (neg s ⊔ s) ≠ neg (neg s) := by
-    intro he; apply hnb
-    have h := inf_eq_left_iff.mpr (le_trans (neg_le_tn s) (le_of_eq he))
-    rw [neg_inf_nn] at h
-    exact h.symm
-  have hnnc : neg (neg s) ≠ neg s ⊔ neg (neg s) := by
-    intro he; apply hnb
-    have h := inf_eq_left_iff.mpr (le_trans (neg_le_c s) (le_of_eq he.symm))
-    rw [neg_inf_nn] at h
-    exact h.symm
+  have hnnn : neg s ≠ neg (neg s) := fun he =>
+    hnb (eq_bot_of_le_of_inf_eq_bot (le_of_eq he) (neg_inf_nn s))
+  have hns : neg s ≠ s := fun he =>
+    hsb (eq_bot_of_le_of_inf_eq_bot (le_of_eq he.symm) (s_inf_neg s))
+  have hntn : neg s ≠ neg s ⊔ s := fun he =>
+    hsb (eq_bot_of_le_of_inf_eq_bot (le_trans (s_le_tn s) (le_of_eq he.symm)) (s_inf_neg s))
+  have hnc : neg s ≠ neg s ⊔ neg (neg s) := fun he =>
+    hnnb (eq_bot_of_le_of_inf_eq_bot (le_trans (nn_le_c s) (le_of_eq he.symm)) (nn_inf_neg s))
+  have hstn : s ≠ neg s ⊔ s := fun he =>
+    hnb (eq_bot_of_le_of_inf_eq_bot (le_trans (neg_le_tn s) (le_of_eq he.symm)) (neg_inf_s s))
+  have hsc : s ≠ neg s ⊔ neg (neg s) := fun he =>
+    hnb (eq_bot_of_le_of_inf_eq_bot (le_trans (neg_le_c s) (le_of_eq he.symm)) (neg_inf_s s))
+  have htnnn : (neg s ⊔ s) ≠ neg (neg s) := fun he =>
+    hnb (eq_bot_of_le_of_inf_eq_bot (le_trans (neg_le_tn s) (le_of_eq he)) (neg_inf_nn s))
+  have hnnc : neg (neg s) ≠ neg s ⊔ neg (neg s) := fun he =>
+    hnb (eq_bot_of_le_of_inf_eq_bot (le_trans (neg_le_c s) (le_of_eq he.symm)) (neg_inf_nn s))
   have htnc : (neg s ⊔ s) ≠ neg s ⊔ neg (neg s) := by
     intro he; apply hsnn
     have h : neg (neg s) ⊓ (neg s ⊔ s) = neg (neg s) :=
       inf_eq_left_iff.mpr (le_trans (nn_le_c s) (le_of_eq he.symm))
     rw [nn_inf_tn] at h
     exact h
-  have hnt : neg s ≠ ⊤ := fun he =>
-    hT (le_antisymm (le_top _) (le_trans (le_of_eq he.symm) (neg_le_c s)))
-  have hst : s ≠ ⊤ := fun he =>
-    htnt (le_antisymm (le_top _) (le_trans (le_of_eq he.symm) (s_le_tn s)))
-  have hnnt : neg (neg s) ≠ ⊤ := fun he =>
-    hT (le_antisymm (le_top _) (le_trans (le_of_eq he.symm) (nn_le_c s)))
-  have htnb : (neg s ⊔ s) ≠ ⊥ := fun he =>
-    hnb ((eq_bot_iff _).mpr (le_trans (neg_le_tn s) (le_of_eq he)))
-  have hcb : (neg s ⊔ neg (neg s)) ≠ ⊥ := fun he =>
-    hnb ((eq_bot_iff _).mpr (le_trans (neg_le_c s) (le_of_eq he)))
+  have hnt : neg s ≠ ⊤ := ne_top_of_le (neg_le_c s) hT
+  have hst : s ≠ ⊤ := ne_top_of_le (s_le_tn s) htnt
+  have hnnt : neg (neg s) ≠ ⊤ := ne_top_of_le (nn_le_c s) hT
+  have htnb : (neg s ⊔ s) ≠ ⊥ := ne_bot_of_le (neg_le_tn s) hnb
+  have hcb : (neg s ⊔ neg (neg s)) ≠ ⊥ := ne_bot_of_le (neg_le_c s) hnb
   intro u v huv
   rcases fork12_cases u with rfl|rfl|rfl|rfl|rfl|rfl|rfl <;>
     rcases fork12_cases v with rfl|rfl|rfl|rfl|rfl|rfl|rfl <;>
@@ -1057,4 +954,4 @@ theorem fork12_embeds {α : Type} [HeytingAlgebra α] {s : α}
 theorem sh_fork12 {α : Type} [HeytingAlgebra α] {s : α}
     (hs : (neg (neg s) ⇨ s) = neg s ⊔ s) (hT : neg s ⊔ neg (neg s) ≠ ⊤) :
     SH (ForkUp 1 2) α :=
-  ⟨α, inferInstance, onto_refl α, fork12_embeds hs hT⟩
+  sh_of_embeds (fork12_embeds hs hT)

@@ -32,26 +32,11 @@ open PartialOrder Lattice BoundedLattice HeytingAlgebra
 
 /-! # Part one: `Fin 4` cannot be shrunk -/
 
-open HeytingAlgebra in
-theorem bd2_four_ge_two : ∀ a b : Fin 4,
-    ((2 : Fin 4) ⊓ (a ⊔ (a ⇨ (b ⊔ neg b)))) = 2 := by decide
-
-open HeytingAlgebra in
-theorem bd2_four_fail : ∀ a b : Fin 4,
-    (a ⊔ (a ⇨ (b ⊔ neg b))) ≠ ⊤ → a = 2 ∧ b = 1 := by decide
-
-theorem bd2_four_eval_ge (v : Nat → Fin 4) : (2 : Fin 4) ⊑ (bd2Form (.var 0) (.var 1)).eval v :=
-  inf_eq_left_iff.mp (bd2_four_ge_two (v 0) (v 1))
-
 /-- **Nothing below `Fin 4` refutes `bd2Form`.** -/
 theorem refuterLB_four_bd2 : RefuterLB (Fin 4) (bd2Form (.var 0) (.var 1)) :=
-  refuterLB_of_coatom four_coatom' bd2_four_eval_ge fun _ _ h _ v hv y => by
-    have hfail := bd2_four_fail _ _ hv
-    rcases four_cases y with rfl | rfl | rfl | rfl
-    · exact ⟨⊥, h.map_bot⟩
-    · exact ⟨v 1, hfail.2⟩
-    · exact ⟨v 0, hfail.1⟩
-    · exact ⟨⊤, h.map_top⟩
+  PointEmbed.refuterLB_of_generates (c := 2)
+    [.fls, Form.tru, .var 0, .var 1]
+    (by decide) (by decide) four_coatom' (by decide) (by decide)
 
 /-! # Part two: which schemas derive the axiom -/
 

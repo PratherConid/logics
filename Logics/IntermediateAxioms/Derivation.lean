@@ -104,6 +104,27 @@ theorem peirce_ent_cm (p : Form) :
 Each of these is a stretch of argument that two or more of the proofs below
 would otherwise spell out separately. -/
 
+/-- Peirce's law holds once its left argument implies its right one:
+`fun h => h hpq`. -/
+theorem imp_ent_peirce (p q : Form) : Ent (.imp p q) (peirceForm p q) :=
+  .impI (.impE .h₀ .h₁)
+
+/-- So it holds once its right argument does. -/
+theorem peirce_of_right (p q : Form) : Ent q (peirceForm p q) :=
+  (Ent.imp_weak p q).trans (imp_ent_peirce p q)
+
+/-- `(a → b) → a` gives Łukasiewicz's law `(¬ a → ¬ b) → (b → a)`:
+`fun _ hb => hc (fun _ => hb)`. -/
+theorem luk_of_imp_imp (p q : Form) : Ent (.imp (.imp p q) p) (lukForm p q) :=
+  .impI (.impI (.impE .h₂ (.impI .h₁)))
+
+/-- The negation of Łukasiewicz's law is absurd: it refutes `a`, which gives
+the law, and `¬ a` gives the law too. -/
+theorem neg_luk_ent_fls (p q : Form) : Ent (Form.neg (lukForm p q)) .fls :=
+  .impE .h₀ (.impI (.impI              -- apply hnl; intro hi hb
+    (.flsE (.impE (.impE .h₁           -- absurd hb (hi (fun ha => hnl (fun _ _ => ha)))
+      (.impI (.impE .h₃ (.impI (.impI .h₂))))) .h₀))))
+
 /-- Excluded middle gives Peirce's law, through consequentia mirabilis.  In
 every proof from excluded middle to a principle with Peirce as a disjunct. -/
 theorem em_ent_peirce (p q : Form) : Ent (excludedMiddleForm p) (peirceForm p q) :=
@@ -120,6 +141,15 @@ theorem imp_em_ent (p q : Form) : Ent (.imp (excludedMiddleForm p) q) (.imp p q)
 theorem nn_em (p : Form) {Γ : List Form} :
     Γ ⊢ Form.neg (Form.neg (excludedMiddleForm p)) :=
   .impI (.impE .h₀ (.orI₂ (.impI (.impE .h₁ (.orI₁ .h₀)))))
+
+/-- `¬ (a ∨ ¬ a)` gives anything, being refuted: `fun hn => absurd hn nn_em`. -/
+theorem neg_em_imp (p r : Form) {Γ : List Form} :
+    Γ ⊢ .imp (Form.neg (excludedMiddleForm p)) r :=
+  .impI (.flsE (.impE (nn_em p) .h₀))
+
+/-- `¬ (a → b ∨ ¬ b)` is absurd, `b ∨ ¬ b` being irrefutable. -/
+theorem neg_imp_em_ent_fls (p q : Form) : Ent (Form.neg (.imp p (excludedMiddleForm q))) .fls :=
+  .impE (nn_em q) (.impI (.impE .h₁ (.impI .h₁)))  -- nn_em (fun he => hn (fun _ => he))
 
 /-- **An arrow into an excluded middle gives the converse of contraposition**:
 from `a → b ∨ ¬ b`, `¬ b → ¬ a` yields `a → b`.  Both halves of
@@ -177,7 +207,7 @@ theorem demorgan₁₂OrLuk₁₂_himp_ent (p q : Form) :
 `luk₁₂OrLuk₂₁_ent_noDiamond`. -/
 theorem luk_em_ent (p q : Form) :
     Ent (lukForm (excludedMiddleForm p) (excludedMiddleForm q)) (.imp q (excludedMiddleForm p)) :=
-  .impI (.impE (.impE .h₁ (.impI (.flsE (.impE (nn_em p) .h₀)))) (.orI₁ .h₀))
+  .impI (.impE (.impE .h₁ (neg_em_imp p _)) (.orI₁ .h₀))
 
 /-- `impOrForm` at `a` and `a ∧ b` gives Łukasiewicz at `a` and `b`.  In
 `peirce₁₂OrImpOr₁₂_ent_pierce₁₂OrLuk₁₂` and
@@ -202,7 +232,7 @@ hypothesis being free.  In `luk₁₂OrLuk₂₁_ent_impOr₁₂OrLuk₂₁` and
 theorem luk_em_ent_impOr (p q : Form) :
     Ent (lukForm (excludedMiddleForm p) (.imp p q)) (impOrForm p q) :=
   .impI (.orE                           -- intro hab; cases hL (fun hn => absurd hn hnn) hab
-    (.impE (.impE .h₁ (.impI (.flsE (.impE (nn_em p) .h₀)))) .h₀)
+    (.impE (.impE .h₁ (neg_em_imp p _)) .h₀)
     (.orI₂ (.impE .h₁ .h₀))             -- | inl ha => Or.inr (hab ha)
     (.orI₁ .h₀))                        -- | inr hna => Or.inl hna
 
@@ -438,7 +468,7 @@ theorem peirce₁₂OrImpOr₂₁_ent_emAOrNotB₁₂OrPeirce₂₁ :
     (.impI (.orE .h₀                    --   intro hA; cases hA
       (.orI₁ (.orI₁ .h₀))               --   | inl ha => Or.inl (Or.inl ha)
       (.orE .h₀ (.orI₂ (.impI .h₁))     --   | inr h2 => cases h2; | inl hb => Or.inr (fun _ => hb)
-        (.orI₂ (.impI (.impE .h₀ .h₁)))))) --   | inr hba => Or.inr (fun hi => hi hba)
+        (.orI₂ ((imp_ent_peirce _ _).mp .h₀))))) --   | inr hba => Or.inr (fun hi => hi hba)
     (.orE .h₁                           -- cases h
       (.impE .h₁ (.impE .h₀ (.impI (.orI₂ (.orI₂ (.impI
         (.impE (.impE .h₁ (.orI₂ (.orI₁ .h₀))) .h₀)))))))
@@ -521,7 +551,7 @@ theorem em₁OrLuk₂₁_ent_bd2 :
   .orE .h₀                              -- cases h
     (.orE .h₀ (.orI₁ .h₀)               -- | inl hem => cases hem; | inl ha => Or.inl ha
       (.orI₂ (.impI (.flsE (.impE .h₁ .h₀)))))  -- | inr na => Or.inr (fun ha => absurd ha na)
-    (.orI₂ (.impE .h₀ (.impI (.flsE (.impE (nn_em _) .h₀)))))  -- | inr k => Or.inr (k (fun hn => …))
+    (.orI₂ (.impE .h₀ (neg_em_imp _ _)))  -- | inr k => Or.inr (k (fun hn => …))
 
 /-- `demorgan₁₂OrLuk₁₂Form` at `a` and `¬ a ∨ b` gives `impOr₁₂OrLuk₁₂Form`. -/
 theorem demorgan₁₂OrLuk₁₂_ent_impOr₁₂OrLuk₁₂ :
@@ -612,7 +642,7 @@ theorem demorgan₁₂OrLuk₁₂_ent_cm₁OrPeirce₂₁ :
         (.orI₁ (.impI .h₁))             --   | inl ha => Or.inl (fun _ => ha)
         (.orE .h₀                       --   | inr hB => cases hB
           (.orI₂ (.impI .h₁))           --     | inl hb => Or.inr (fun _ => hb)
-          (.orI₂ (.impI (.impE .h₀ .h₁)))))  -- | inr hba => Or.inr (fun hi => hi hba)
+          (.orI₂ ((imp_ent_peirce _ _).mp .h₀))))  -- | inr hba => Or.inr (fun hi => hi hba)
       (.orI₁ (.impI                     -- | inr hLuk => Or.inl; intro hcm
         (.cut (p := Form.neg (Form.neg (.var 0)))  -- have hnn := fun hna => hna (hcm hna)
           (.impI (.impE .h₀ (.impE .h₁ .h₀)))
@@ -1283,7 +1313,7 @@ theorem pierce₁₂OrLuk₁₂_ent_noKiteUp1x2 :
           (.impE .h₁ (.impI (.flsE (.impE .h₁ .h₀)))))))  -- | inr hna => j (absurd · hna)
       (.orI₂ (.impI (.orI₁ .h₁)))       --   | inl ha => Or.inr (fun _ => Or.inl ha)
       (.orI₁ .h₀))                      --   | inr hb => Or.inl hb
-    (.orI₂ (.impE .h₀ (.impI (.flsE (.impE (nn_em _) .h₀))))))
+    (.orI₂ (.impE .h₀ (neg_em_imp _ _))))
                                         -- | inr lk => Or.inr (lk (fun hn => absurd hn (nn_em _)))
 
 /-- At `b, a`, `¬ ¬ b` grants Łukasiewicz's premise `¬ b → ¬ a`, leaving
@@ -1486,27 +1516,9 @@ abbrev stepV (p q : Form) : Form := .imp (lukForm p q) (excludedMiddleForm (notA
 
 /-! ### Small steps -/
 
-/-- `(a → b) → a` gives `λ`: `fun _ hb => hc (fun _ => hb)`. -/
-theorem luk_of_imp_imp (p q : Form) : Ent (.imp (.imp p q) p) (lukForm p q) :=
-  .impI (.impI (.impE .h₂ (.impI .h₁)))
-
-/-- `b` gives `π`: `fun hc => hc (fun _ => hb)`. -/
-theorem peirce_of_right (p q : Form) : Ent q (peirceForm p q) :=
-  .impI (.impE .h₀ (.impI .h₂))
-
 /-- `b` gives `π ∧ (λ ∨ (a → b))`: `⟨peirce_of_right hb, Or.inr (fun _ => hb)⟩`. -/
 theorem kiteArg₁_of_right (p q : Form) : Ent q (kiteArg₁ p q) :=
   .andI ((peirce_of_right _ _).mp .h₀) (.orI₂ (.impI .h₁))
-
-/-- `¬ λ` is absurd: it refutes `a` (which gives `λ`), and `¬ a` gives `λ`. -/
-theorem neg_luk_ent_fls (p q : Form) : Ent (Form.neg (lukForm p q)) .fls :=
-  .impE .h₀ (.impI (.impI              -- apply hnl; intro hi hb
-    (.flsE (.impE (.impE .h₁           -- absurd hb (hi (fun ha => hnl (fun _ _ => ha)))
-      (.impI (.impE .h₃ (.impI (.impI .h₂))))) .h₀))))
-
-/-- `¬ (a → b ∨ ¬ b)` is absurd, `b ∨ ¬ b` being irrefutable. -/
-theorem neg_imp_em_ent_fls (p q : Form) : Ent (Form.neg (.imp p (excludedMiddleForm q))) .fls :=
-  .impE (nn_em q) (.impI (.impE .h₁ (.impI .h₁)))  -- nn_em (fun he => hn (fun _ => he))
 
 /-- `a → b` gives `n`: `fun h => h.2 (hab h.1)`. -/
 theorem notAndNot_of_imp (p q : Form) : Ent (.imp p q) (notAndNot p q) :=

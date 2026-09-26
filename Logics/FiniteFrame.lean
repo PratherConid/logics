@@ -6,9 +6,9 @@ import Logics.Homomorphism
 Two ways of turning a frame into a smaller one whose algebra sits below the
 original in the Jankov order, and the count that makes "smaller" bite.
 
-* **The points above a point** (`Above`), and more generally the points of an
-  upward closed set (`Within`), form a frame whose algebra is a homomorphic
-  image: restricting upward closed sets is onto.
+* **The points of an upward closed set** (`Within`), in particular the points
+  above a point (`Above`), form a frame whose algebra is a homomorphic image:
+  restricting upward closed sets is onto.
 * **Merging points** (`Merger`) along a map that respects the order as a
   p-morphism must gives a frame whose algebra is a subalgebra: pulling upward
   closed sets back is one to one.  Collapsing a set onto one of its members
@@ -36,8 +36,7 @@ original in the Jankov order, and the count that makes "smaller" bite.
 Finiteness is a list naming every point.  Minimal points exist in a finite
 frame, and so, turning the order round (`Op`), do maximal ones
 (`hasMaximal_of_list`).  Also here: the upward closed set a finite set of points
-generates, as a finite join (`Upset.gen`), and the coatom of a rooted frame
-(`Upset.coatom`).
+generates, as a finite join (`Upset.gen`).
 -/
 
 open PartialOrder Lattice BoundedLattice HeytingAlgebra
@@ -111,23 +110,26 @@ theorem countP_succ {α : Type u} {p q : α → Bool} {x : α} {l : List α}
       rw [hsame a (List.mem_cons.mpr (Or.inl rfl)) hax]
       omega
 
-/-- Dropping a member leaves a shorter list. -/
-theorem length_filterMap_lt {α β : Type u} (f : α → Option β) {l : List α}
-    (h : ∃ x ∈ l, f x = none) : (l.filterMap f).length < l.length := by
-  induction l with
-  | nil => obtain ⟨_, hx, _⟩ := h; cases hx
-  | cons a t ih =>
-    obtain ⟨x, hx, hfx⟩ := h
-    rcases List.mem_cons.mp hx with rfl | hxt
-    · rw [List.filterMap_cons_none hfx, List.length_cons]
-      exact Nat.lt_succ_of_le (List.length_filterMap_le f t)
-    · cases hfa : f a with
-      | none =>
-        rw [List.filterMap_cons_none hfa, List.length_cons]
-        exact Nat.lt_succ_of_lt (ih ⟨x, hxt, hfx⟩)
-      | some b =>
-        rw [List.filterMap_cons_some hfa, List.length_cons, List.length_cons]
-        exact Nat.succ_lt_succ (ih ⟨x, hxt, hfx⟩)
+open Classical in
+/-- The entries of `l` satisfying `S`, each carried into `β` by `mk`: a list
+naming the points of a subtype. -/
+noncomputable def pick {α β : Type u} (S : α → Prop) (mk : ∀ a, S a → β) (l : List α) :
+    List β :=
+  l.filterMap fun a => if h : S a then some (mk a h) else none
+
+theorem mem_pick {α β : Type u} {S : α → Prop} {mk : ∀ a, S a → β} {l : List α} {a : α}
+    (hl : a ∈ l) (ha : S a) : mk a ha ∈ pick S mk l := by
+  unfold pick
+  rw [List.mem_filterMap]
+  refine ⟨a, hl, ?_⟩
+  split
+  · rfl
+  · exact absurd ha ‹_›
+
+/-- An entry failing `S` is lost, so fewer remain. -/
+theorem length_pick_lt {α β : Type u} {S : α → Prop} {mk : ∀ a, S a → β} {l : List α} {x : α}
+    (hx : x ∈ l) (hnx : ¬ S x) : (pick S mk l).length < l.length :=
+  List.length_filterMap_lt_length_iff_exists.mpr ⟨x, hx, by simp [hnx]⟩
 
 end ListCount
 
@@ -298,6 +300,17 @@ theorem length_le_of_sh {M Q : Type} [Frame M] [Frame Q]
     (h : SH (Upset M) (Upset Q)) : lM.length ≤ lQ.length :=
   length_ge_of_hasChain hlQ (HasChain.of_sh h (hasChain_of_nodup antisymm hnd hlM))
 
+/-- **Nothing with fewer points below a minimal refuter refutes its formula**:
+minimality would put the refuter back below it, and counting forbids that. -/
+theorem RefuterLB.valid_of_length_lt {M Q : Type} [Frame M] [Frame Q] {p : Form}
+    (hLB : RefuterLB (Upset M) p) (antisymm : Frame.Antisymm M)
+    {lM : List M} (hnd : lM.Nodup) (hlM : ∀ x, x ∈ lM) {lQ : List Q} (hlQ : ∀ q, q ∈ lQ)
+    (hlt : lQ.length < lM.length) (hsh : SH (Upset Q) (Upset M)) :
+    ∀ v : Nat → Upset Q, p.eval v = ⊤ :=
+  Classical.byContradiction fun hv =>
+    absurd (length_le_of_sh antisymm hnd hlM hlQ (hLB _ inferInstance hsh hv))
+      (Nat.not_le.mpr hlt)
+
 /-! ## Maximal points -/
 
 /-- A frame with its order turned round. -/
@@ -376,106 +389,11 @@ theorem gen_mem {l : List P} (hl : ∀ x, x ∈ l) (U : Upset P) : gen l U.mem =
 
 end Upset
 
-/-! ## Rooted frames
-
-When one point lies below every other and nothing else lies below it, the other
-points form an upward closed set, and every upward closed set short of the
-whole frame lies inside it. -/
-
-namespace Upset
-
-variable {P : Type} [Frame P] {r : P}
-
-/-- Every point but `r`, upward closed when nothing else lies below `r`. -/
-def coatom (r : P) (hr : ∀ x, x ≼ r → x = r) : Upset P :=
-  ⟨fun x => x ≠ r, fun {x _} hxy hx hy => hx (hr x (hy ▸ hxy))⟩
-
-/-- An upward closed set short of the whole frame misses the root, since one
-holding the root holds everything. -/
-theorem le_coatom (hroot : ∀ x, r ≼ x) (hr : ∀ x, x ≼ r → x = r) (U : Upset P)
-    (hU : U ≠ ⊤) : U ⊑ coatom r hr := by
-  intro x hx hxr
-  exact hU (eq_top_of_mem fun y => U.upward (show x ≼ y from hxr ▸ hroot y) hx)
-
-end Upset
-
-/-! ## The points above a point
-
-Passing to the points above one of them is a homomorphic image: restricting
-upward closed sets is onto. -/
-
-/-- The points above `r`, as a frame of their own. -/
-structure Above {P : Type} [Frame P] (r : P) where
-  pt : P
-  above : r ≼ pt
-
-namespace Above
-
-variable {P : Type} [Frame P] {r : P}
-
-instance : Frame (Above r) where
-  le p q := p.pt ≼ q.pt
-  le_refl p := Frame.le_refl p.pt
-  le_trans h₁ h₂ := Frame.le_trans h₁ h₂
-
-/-- The root of the points above `r`, which is `r` itself. -/
-def root (r : P) : Above r := ⟨r, Frame.le_refl r⟩
-
-open Classical in
-/-- The entries of `l` lying above `r`. -/
-noncomputable def cover (r : P) (l : List P) : List (Above r) :=
-  l.filterMap fun p => if h : r ≼ p then some ⟨p, h⟩ else none
-
-theorem mem_cover {l : List P} (hl : ∀ p, p ∈ l) (q : Above r) : q ∈ cover r l := by
-  unfold cover
-  rw [List.mem_filterMap]
-  refine ⟨q.pt, hl q.pt, ?_⟩
-  split
-  · rfl
-  · exact absurd q.above ‹_›
-
-/-- A point not above `r` is lost, so fewer entries remain. -/
-theorem length_cover_lt {l : List P} {p : P} (hpl : p ∈ l) (hrp : ¬ r ≼ p) :
-    (cover r l).length < l.length :=
-  ListCount.length_filterMap_lt _ ⟨p, hpl, by simp [hrp]⟩
-
-/-- Restricting an upward closed set to the points above `r`. -/
-def restrict (U : Upset P) : Upset (Above r) :=
-  ⟨fun q => U.mem q.pt, fun h hq => U.upward h hq⟩
-
-/-- Extending back: the points above `r` that `V` contains. -/
-def extend (V : Upset (Above r)) : Upset P :=
-  ⟨fun p => ∃ h : r ≼ p, V.mem ⟨p, h⟩,
-   fun {_ _} hpp' ⟨h, hv⟩ => ⟨Frame.le_trans h hpp', V.upward hpp' hv⟩⟩
-
-theorem restrict_extend (V : Upset (Above r)) : restrict (extend V) = V :=
-  Upset.ext fun q => ⟨fun ⟨_, hv⟩ => hv, fun hv => ⟨q.above, hv⟩⟩
-
-/-- Restriction is a homomorphism: everything above a point above `r` is above
-`r` too, so the arrow looks at the same points either way. -/
-def restrictHom (r : P) : Hom (Upset P) (Upset (Above r)) where
-  toFun := restrict
-  map_bot := Upset.ext fun _ => Iff.rfl
-  map_top := Upset.ext fun _ => Iff.rfl
-  map_inf _ _ := Upset.ext fun _ => Iff.rfl
-  map_sup _ _ := Upset.ext fun _ => Iff.rfl
-  map_himp _ _ := Upset.ext fun q =>
-    ⟨fun h q' hqq' hu => h q'.pt hqq' hu,
-     fun h p hqp hu => h ⟨p, Frame.le_trans q.above hqp⟩ hqp hu⟩
-
-theorem onto (r : P) : Onto (Upset (Above r)) (Upset P) :=
-  ⟨restrictHom r, fun V => ⟨extend V, restrict_extend V⟩⟩
-
-theorem sh (r : P) : SH (Upset (Above r)) (Upset P) :=
-  ⟨Upset (Above r), inferInstance, onto r, embeds_refl _⟩
-
-end Above
-
 /-! ## The points of an upward closed set
 
-The same goes for the points of any upward closed set `U`: with a point they
-hold everything above it, so restricting upward closed sets to them is onto.
-Two sets restrict to the same one exactly when they agree on `U`. -/
+Passing to the points of an upward closed set `U` is a homomorphic image: with a
+point they hold everything above it, so restricting upward closed sets to them
+is onto.  Two sets restrict to the same one exactly when they agree on `U`. -/
 
 /-- The points of an upward closed set `U`, as a frame of their own. -/
 structure Within {P : Type} [Frame P] (U : Upset P) where
@@ -491,23 +409,17 @@ instance : Frame (Within U) where
   le_refl p := Frame.le_refl p.pt
   le_trans h₁ h₂ := Frame.le_trans h₁ h₂
 
-open Classical in
 /-- The entries of `l` in `U`. -/
 noncomputable def cover (U : Upset P) (l : List P) : List (Within U) :=
-  l.filterMap fun p => if h : U.mem p then some ⟨p, h⟩ else none
+  ListCount.pick (fun p => U.mem p) (fun p h => ⟨p, h⟩) l
 
-theorem mem_cover {l : List P} (hl : ∀ p, p ∈ l) (q : Within U) : q ∈ cover U l := by
-  unfold cover
-  rw [List.mem_filterMap]
-  refine ⟨q.pt, hl q.pt, ?_⟩
-  split
-  · rfl
-  · exact absurd q.mem ‹_›
+theorem mem_cover {l : List P} (hl : ∀ p, p ∈ l) (q : Within U) : q ∈ cover U l :=
+  ListCount.mem_pick (hl q.pt) q.mem
 
 /-- A point outside `U` is lost, so fewer entries remain. -/
 theorem length_cover_lt {l : List P} {p : P} (hpl : p ∈ l) (hp : ¬ U.mem p) :
     (cover U l).length < l.length :=
-  ListCount.length_filterMap_lt _ ⟨p, hpl, by simp [hp]⟩
+  ListCount.length_pick_lt hpl hp
 
 /-- Restricting an upward closed set to the points of `U`. -/
 def restrict (V : Upset P) : Upset (Within U) :=
@@ -543,10 +455,20 @@ def restrictHom (U : Upset P) : Hom (Upset P) (Upset (Within U)) where
 theorem onto (U : Upset P) : Onto (Upset (Within U)) (Upset P) :=
   ⟨restrictHom U, fun W => ⟨extend W, restrict_extend W⟩⟩
 
-theorem sh (U : Upset P) : SH (Upset (Within U)) (Upset P) :=
-  ⟨Upset (Within U), inferInstance, onto U, embeds_refl _⟩
+theorem sh (U : Upset P) : SH (Upset (Within U)) (Upset P) := sh_of_onto (onto U)
 
 end Within
+
+/-! ## The points above a point
+
+The points above `r` are the points of the upward closed set above `r`, a frame
+rooted at `r` itself. -/
+
+/-- The points above `r`, as a frame of their own. -/
+abbrev Above {P : Type} [Frame P] (r : P) := Within (Upset.up r)
+
+/-- The root of the points above `r`, which is `r` itself. -/
+def Above.root {P : Type} [Frame P] (r : P) : Above r := ⟨r, Frame.le_refl r⟩
 
 /-! ## Merging points
 
@@ -602,6 +524,12 @@ theorem proj_back {x : P} {q : m.Pt} (h : m.proj x ≼ q) :
 def pull (V : Upset m.Pt) : Upset P :=
   ⟨fun x => V.mem (m.proj x), fun h hv => V.upward (m.proj_mono h) hv⟩
 
+/-- A pulled back set never separates merged points. -/
+theorem pull_mem_congr (V : Upset m.Pt) {x y : P} (h : m.g x = m.g y) :
+    (m.pull V).mem x ↔ (m.pull V).mem y := by
+  show V.mem (m.proj x) ↔ V.mem (m.proj y)
+  rw [show m.proj x = m.proj y from Pt.ext m h]
+
 /-- Pulling back is a homomorphism, the arrow surviving because the merge
 lifts every step up the order. -/
 def pullHom : Hom (Upset m.Pt) (Upset P) where
@@ -623,26 +551,19 @@ theorem pull_injective : Function.Injective m.pull := by
   simp only [pull, m.proj_fixed] at this
   exact Iff.of_eq this
 
-theorem sh : SH (Upset m.Pt) (Upset P) :=
-  ⟨Upset P, inferInstance, onto_refl _, ⟨m.pullHom, m.pull_injective⟩⟩
+theorem sh : SH (Upset m.Pt) (Upset P) := sh_of_embeds ⟨m.pullHom, m.pull_injective⟩
 
-open Classical in
 /-- The entries of `l` that are representatives. -/
 noncomputable def cover (l : List P) : List m.Pt :=
-  l.filterMap fun x => if h : m.g x = x then some ⟨x, h⟩ else none
+  ListCount.pick (fun x => m.g x = x) (fun x h => ⟨x, h⟩) l
 
-theorem mem_cover {l : List P} (hl : ∀ p, p ∈ l) (q : m.Pt) : q ∈ m.cover l := by
-  unfold cover
-  rw [List.mem_filterMap]
-  refine ⟨q.pt, hl q.pt, ?_⟩
-  split
-  · rfl
-  · exact absurd q.fixed ‹_›
+theorem mem_cover {l : List P} (hl : ∀ p, p ∈ l) (q : m.Pt) : q ∈ m.cover l :=
+  ListCount.mem_pick (S := fun x => m.g x = x) (mk := fun x h => (⟨x, h⟩ : m.Pt)) (hl q.pt) q.fixed
 
 /-- A point merged into another is lost, so fewer entries remain. -/
 theorem length_cover_lt {l : List P} {x : P} (hxl : x ∈ l) (hx : m.g x ≠ x) :
     (m.cover l).length < l.length :=
-  ListCount.length_filterMap_lt _ ⟨x, hxl, by simp [hx]⟩
+  ListCount.length_pick_lt hxl hx
 
 /-- An upward closed set that never separates merged points, read on the
 representatives. -/
@@ -759,21 +680,6 @@ def sUnion (F : Upset P → Prop) : Upset P :=
 def sInter (F : Upset P → Prop) : Upset P :=
   ⟨fun x => ∀ U, F U → U.mem x, fun h hx U hU => U.upward h (hx U hU)⟩
 
-/-- A point is in the meet of a list exactly when it is in all of its entries. -/
-theorem mem_infList : ∀ {L : List (Upset P)} {p : P},
-    (infList L).mem p ↔ ∀ U ∈ L, U.mem p
-  | [], _ => ⟨(fun _ _ h => nomatch h), fun _ => trivial⟩
-  | U :: t, p => by
-    show U.mem p ∧ (infList t).mem p ↔ _
-    rw [mem_infList]
-    constructor
-    · rintro ⟨h, ht⟩ V hV
-      rcases List.mem_cons.mp hV with rfl | hV
-      · exact h
-      · exact ht V hV
-    · intro h
-      exact ⟨h U (List.mem_cons_self ..), fun V hV => h V (List.mem_cons_of_mem _ hV)⟩
-
 /-- **On a finite frame a union is a finite join**, of one member of the family
 per point it contains. -/
 theorem exists_supList (l : List P) (hl : ∀ x, x ∈ l) (F : Upset P → Prop) :
@@ -837,8 +743,7 @@ separates merged points. -/
 theorem pulled_iff (U : Upset P) : (∃ V, m.pull V = U) ↔ ∀ x, U.mem x ↔ U.mem (m.g x) := by
   constructor
   · rintro ⟨V, rfl⟩ x
-    show V.mem (m.proj x) ↔ V.mem (m.proj (m.g x))
-    rw [show m.proj (m.g x) = m.proj x from Pt.ext m (m.idem x)]
+    exact m.pull_mem_congr V (m.idem x).symm
   · intro hU
     exact ⟨m.lift U hU, m.pull_lift U hU⟩
 
@@ -1024,6 +929,30 @@ def homOfPull {α : Type} [HeytingAlgebra α] (m : Merger P) (f : Hom α (Upset 
   map_himp a b := m.pull_injective ((he _).trans ((f.map_himp a b).trans
     ((congr (congrArg (· ⇨ ·) (he a)) (he b)).symm.trans (m.pullHom.map_himp _ _).symm)))
 
+/-- A homomorphism into the upward closed sets whose values never separate
+merged points, read on the representatives. -/
+def liftHom {α : Type} [HeytingAlgebra α] (m : Merger P) (f : Hom α (Upset P))
+    (hsat : ∀ a x, (f.toFun a).mem x ↔ (f.toFun a).mem (m.g x)) : Hom α (Upset m.Pt) :=
+  m.homOfPull f (fun a => m.lift (f.toFun a) (hsat a)) fun a => m.pull_lift (f.toFun a) (hsat a)
+
+theorem pull_liftHom {α : Type} [HeytingAlgebra α] (m : Merger P) (f : Hom α (Upset P))
+    (hsat : ∀ a x, (f.toFun a).mem x ↔ (f.toFun a).mem (m.g x)) (a : α) :
+    m.pull ((m.liftHom f hsat).toFun a) = f.toFun a :=
+  m.pull_lift (f.toFun a) (hsat a)
+
+theorem liftHom_injective {α : Type} [HeytingAlgebra α] (m : Merger P) (f : Hom α (Upset P))
+    (hsat : ∀ a x, (f.toFun a).mem x ↔ (f.toFun a).mem (m.g x))
+    (hf : Function.Injective f.toFun) : Function.Injective (m.liftHom f hsat).toFun :=
+  fun a b h => hf (by rw [← m.pull_liftHom f hsat a, ← m.pull_liftHom f hsat b, h])
+
+/-- **Merging less puts the algebra higher.**  If `m` identifies whatever `s`
+does, what `m` pulls back `s` pulls back too, so `m`'s algebra embeds in
+`s`'s. -/
+theorem sh_of_refines (s m : Merger P) (h : ∀ a b, s.g a = s.g b → m.g a = m.g b) :
+    SH (Upset m.Pt) (Upset s.Pt) :=
+  sh_of_embeds ⟨s.liftHom m.pullHom fun V x => m.pull_mem_congr V (h _ _ (s.idem x).symm),
+    s.liftHom_injective _ _ m.pull_injective⟩
+
 /-- **And the algebra is that of the merged frame.**  For an embedding `f`,
 sending `a` to `f a` read on the representatives of the merge of
 `exists_of_hom` is an isomorphism, since pulling back is one to one and has the
@@ -1035,15 +964,9 @@ theorem exists_iso_of_hom {α : Type} [HeytingAlgebra α] (l : List P) (hl : ∀
   obtain ⟨m, hm⟩ := exists_of_hom l hl f
   have hsat : ∀ a x, (f.toFun a).mem x ↔ (f.toFun a).mem (m.g x) :=
     fun a => (m.pulled_iff _).mp ((hm _).mp ⟨a, rfl⟩)
-  have hpull : ∀ a, m.pull (m.lift (f.toFun a) (hsat a)) = f.toFun a :=
-    fun a => m.pull_lift _ _
-  let e := m.homOfPull f _ hpull
-  have he_inj : Function.Injective e.toFun := fun a b h =>
-    hf (by rw [← hpull a, ← hpull b]; exact congrArg m.pull h)
-  have he_surj : Function.Surjective e.toFun := fun V => by
-    obtain ⟨a, ha⟩ := (hm (m.pull V)).mpr ⟨V, rfl⟩
-    exact ⟨a, m.pull_injective ((hpull a).trans ha)⟩
-  exact ⟨m, e, he_inj, he_surj⟩
+  refine ⟨m, m.liftHom f hsat, m.liftHom_injective f hsat hf, fun V => ?_⟩
+  obtain ⟨a, ha⟩ := (hm (m.pull V)).mpr ⟨V, rfl⟩
+  exact ⟨a, m.pull_injective ((m.pull_liftHom f hsat a).trans ha)⟩
 
 /-- So the merge of `exists_of_hom` puts `α` and the upward closed sets of the
 merged frame below each other. -/
@@ -1100,8 +1023,8 @@ theorem map_eq_iff_ker (l : List P) (hl : ∀ x, x ∈ l) (f : Hom (Upset P) α)
     {V W : Upset P} : f.toFun V = f.toFun W ↔ ∀ x, (ker f).mem x → (V.mem x ↔ W.mem x) := by
   constructor
   · intro h x hx
-    have hVW : f.toFun (V ⇨ W) = ⊤ := by rw [f.map_himp, h]; exact himp_eq_top_of_le le_rfl
-    have hWV : f.toFun (W ⇨ V) = ⊤ := by rw [f.map_himp, h]; exact himp_eq_top_of_le le_rfl
+    have hVW : f.toFun (V ⇨ W) = ⊤ := by rw [f.map_himp, h]; exact himp_self _
+    have hWV : f.toFun (W ⇨ V) = ⊤ := by rw [f.map_himp, h]; exact himp_self _
     exact ⟨hx _ hVW x (Frame.le_refl x), hx _ hWV x (Frame.le_refl x)⟩
   · intro h
     have hKV : ker f ⊓ V = ker f ⊓ W :=

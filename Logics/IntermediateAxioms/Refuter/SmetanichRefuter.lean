@@ -60,68 +60,23 @@ open PartialOrder Lattice BoundedLattice HeytingAlgebra
 The principle takes only the values `2` and `⊤` in the four element chain, and
 misses the top only at `a = 2`, `b = 1`. -/
 
-open HeytingAlgebra in
-theorem smetanich_four_ge_two : ∀ a b : Fin 4,
-    ((2 : Fin 4) ⊓ ((neg b ⇨ a) ⇨ (((a ⇨ b) ⇨ a) ⇨ a))) = 2 := by decide
-
-open HeytingAlgebra in
-theorem smetanich_four_fail : ∀ a b : Fin 4,
-    ((neg b ⇨ a) ⇨ (((a ⇨ b) ⇨ a) ⇨ a)) ≠ ⊤ → a = 2 ∧ b = 1 := by decide
-
-theorem smetanich_four_eval_ge (v : Nat → Fin 4) :
-    (2 : Fin 4) ⊑ (smetanichForm (.var 0) (.var 1)).eval v :=
-  inf_eq_left_iff.mp (smetanich_four_ge_two (v 0) (v 1))
-
 /-- **No algebra strictly below `Fin 4` refutes `peirce₁₂OrImpOr₂₁Form`.** -/
 theorem refuterLB_four : RefuterLB (Fin 4) (smetanichForm (.var 0) (.var 1)) :=
-  refuterLB_of_coatom four_coatom' smetanich_four_eval_ge fun _ _ h _ v hv y => by
-    have hfail := smetanich_four_fail _ _ hv
-    rcases four_cases y with rfl | rfl | rfl | rfl
-    · exact ⟨⊥, h.map_bot⟩
-    · exact ⟨v 1, hfail.2⟩
-    · exact ⟨v 0, hfail.1⟩
-    · exact ⟨⊤, h.map_top⟩
+  PointEmbed.refuterLB_of_generates (c := 2)
+    [.fls, Form.tru, .var 0, .var 1]
+    (by decide) (by decide) four_coatom' (by decide) (by decide)
 
 /-! ## `ForkUp 1 1`
 
 The principle takes only the coatom `tails 0 0` and `⊤` in the fork, and misses
 the top only at `a = tails 0 0` with `b` one of the two branch tails. -/
 
-open HeytingAlgebra in
-theorem smetanich_fork_ge_coatom : ∀ a b : ForkUp 1 1,
-    ((ForkUp.tails 0 0 : ForkUp 1 1) ⊓
-      ((neg b ⇨ a) ⇨ (((a ⇨ b) ⇨ a) ⇨ a))) = ForkUp.tails 0 0 := by decide
-
-open HeytingAlgebra in
-theorem smetanich_fork_fail : ∀ a b : ForkUp 1 1,
-    ((neg b ⇨ a) ⇨ (((a ⇨ b) ⇨ a) ⇨ a)) ≠ ⊤ →
-      a = ForkUp.tails 0 0 ∧ (b = ForkUp.tails 0 1 ∨ b = ForkUp.tails 1 0) := by decide
-
-open HeytingAlgebra in
-theorem fork_neg_tails : neg (ForkUp.tails 0 1 : ForkUp 1 1) = ForkUp.tails 1 0 ∧
-    neg (ForkUp.tails 1 0 : ForkUp 1 1) = ForkUp.tails 0 1 := by decide
-
-theorem smetanich_fork_eval_ge (v : Nat → ForkUp 1 1) :
-    (ForkUp.tails 0 0 : ForkUp 1 1) ⊑ (smetanichForm (.var 0) (.var 1)).eval v :=
-  inf_eq_left_iff.mp (smetanich_fork_ge_coatom (v 0) (v 1))
-
 /-- **No algebra strictly below `ForkUp 1 1` refutes
 `peirce₁₂OrImpOr₂₁Form`.** -/
 theorem refuterLB_fork : RefuterLB (ForkUp 1 1) (smetanichForm (.var 0) (.var 1)) :=
-  refuterLB_of_coatom fork_coatom' smetanich_fork_eval_ge fun _ _ h _ v hv y => by
-    have hfail := smetanich_fork_fail _ _ hv
-    have h0 : h.toFun (v 0) = ForkUp.tails 0 0 := hfail.1
-    have h1 : h.toFun (v 1) = ForkUp.tails 0 1 ∨ h.toFun (v 1) = ForkUp.tails 1 0 := hfail.2
-    rcases fork_cases y with rfl | rfl | rfl | rfl | rfl
-    · exact ⟨⊤, h.map_top⟩
-    · exact ⟨v 0, h0⟩
-    · rcases h1 with he | he
-      · exact ⟨v 1, he⟩
-      · exact ⟨neg (v 1), by rw [h.map_neg, he, fork_neg_tails.2]⟩
-    · rcases h1 with he | he
-      · exact ⟨neg (v 1), by rw [h.map_neg, he, fork_neg_tails.1]⟩
-      · exact ⟨v 1, he⟩
-    · exact ⟨⊥, h.map_bot⟩
+  PointEmbed.refuterLB_of_generates (c := .tails 0 0)
+    [.fls, Form.tru, .var 0, .var 1, Form.neg (.var 1)]
+    (by decide) (by decide) fork_coatom' (by decide) (by decide)
 
 /-! ## The two are incomparable
 

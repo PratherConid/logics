@@ -1,4 +1,4 @@
-import Logics.IntermediateAxioms.AxiomDef
+import Logics.IntermediateAxioms.Derivation
 import Logics.PointEmbed
 import Logics.Lindenbaum
 import Logics.Adjoin
@@ -109,21 +109,6 @@ logic: a case split is `orE`, `Or.inl` is `orI₁`, introducing a hypothesis is
 `have` is a `cut` at the formula it states, and using an entailment is
 `Ent.mp`. -/
 
-/-! ### Two general steps -/
-
-/-- A hypothesis `p ∧ q` serves as `q ∧ p`: discharged, it is an arrow out of
-`p ∧ q`, which the swap `q ∧ p ⊢ p ∧ q` turns into one out of `q ∧ p`. -/
-private theorem and_swap {Γ : List Form} {p q r : Form} (d : (.and p q :: Γ) ⊢ r) :
-    (.and q p :: Γ) ⊢ r :=
-  Derives.deduction.mpr ((Ent.imp_cong (.andI (.andE₂ .h₀) (.andE₁ .h₀)) (Ent.refl r)).mp
-    (Derives.deduction.mp d))
-
-/-- **Contraction**: an arrow from `p` into anything that gives `p → q` gives
-`p → q`, `fun hp => hD (h hp) hp`. -/
-private theorem imp_contract {Γ : List Form} {p q D : Form} (hD : Ent D (.imp p q)) :
-    (.imp p D :: Γ) ⊢ .imp p q :=
-  .impI (.impE (hD.mp (.impE .h₁ .h₀)) .h₀)
-
 /-! ### Order -/
 
 /-- `¬ a` refutes `¬ a → a`: `fun hu => absurd (hu hz) hz`. -/
@@ -165,19 +150,19 @@ theorem disj_u_z_m : Ent (Form.disj [Tu, Tz, Tm]) (.or Tz Tu) :=
 /-- `m`'s formula is the meet itself: `Or.inl h`. -/
 theorem meet_u_v {Γ : List Form} : (.and Tu Tv :: Γ) ⊢ Form.disj [Tm] := .orI₁ .h₀
 
-theorem meet_v_u {Γ : List Form} : (.and Tv Tu :: Γ) ⊢ Form.disj [Tm] := and_swap meet_u_v
+theorem meet_v_u {Γ : List Form} : (.and Tv Tu :: Γ) ⊢ Form.disj [Tm] := Derives.and_swap meet_u_v
 
 /-- `¬ a → a` refutes `¬ a`: `h.2 (h.1 h.2)`. -/
 theorem meet_u_z {Γ : List Form} : (.and Tu Tz :: Γ) ⊢ Form.disj [] :=
   .impE (.andE₂ .h₀) (.impE (.andE₁ .h₀) (.andE₂ .h₀))
 
-theorem meet_z_u {Γ : List Form} : (.and Tz Tu :: Γ) ⊢ Form.disj [] := and_swap meet_u_z
+theorem meet_z_u {Γ : List Form} : (.and Tz Tu :: Γ) ⊢ Form.disj [] := Derives.and_swap meet_u_z
 
 /-- `m` lies above `u`, so this is `meet_u_z` again: `meet_u_z ⟨h.1.1, h.2⟩`. -/
 theorem meet_m_z {Γ : List Form} : (.and Tm Tz :: Γ) ⊢ Form.disj [] :=
   .cut (.andI (.andE₁ (.andE₁ .h₀)) (.andE₂ .h₀)) meet_u_z
 
-theorem meet_z_m {Γ : List Form} : (.and Tz Tm :: Γ) ⊢ Form.disj [] := and_swap meet_m_z
+theorem meet_z_m {Γ : List Form} : (.and Tz Tm :: Γ) ⊢ Form.disj [] := Derives.and_swap meet_m_z
 
 /-! ### Arrows -/
 
@@ -185,7 +170,7 @@ theorem meet_z_m {Γ : List Form} : (.and Tz Tm :: Γ) ⊢ Form.disj [] := and_s
 `Or.inl (fun hu => disj_above_v (h hu) hu)`. -/
 theorem arrow_u {Γ : List Form} :
     (.imp Tu (Form.disj [Tv, Tz, Tm]) :: Γ) ⊢ Form.disj [Tv, Tz, Tm] :=
-  .orI₁ (imp_contract disj_above_v)
+  .orI₁ (Derives.imp_contract disj_above_v)
 
 /-- `P`'s hypothesis holds: `b` gives `v`'s formula, which `h` turns into the
 formula of `u`, `z` or `m`, and so into `¬ a ∨ (¬ a → a)` by `disj_u_z_m`.  So
@@ -201,7 +186,7 @@ theorem arrow_v : [.imp Tv (Form.disj [Tu, Tz, Tm]), P] ⊢ Form.disj [Tu, Tz, T
 /-- `u`'s formula is an arrow out of the hair's, so this is contraction too:
 `Or.inl (fun hz => disj_above_u (h hz) hz)`. -/
 theorem arrow_z {Γ : List Form} : (.imp Tz (Form.disj [Tu, Tm]) :: Γ) ⊢ Form.disj [Tu, Tm] :=
-  .orI₁ (imp_contract disj_above_u)
+  .orI₁ (Derives.imp_contract disj_above_u)
 
 /-- Under `a`, `u`'s formula holds, and excluded middle at `b` then gives `m`'s,
 which `h` turns into `¬ a`.  So `a` refutes that excluded middle, which cannot
@@ -213,8 +198,7 @@ theorem arrow_m {Γ : List Form} : (.imp Tm (Form.disj [Tz]) :: Γ) ⊢ Form.dis
                                         --   fun hem => cases h ⟨fun _ => ha, fun _ => hem⟩
         (.impE .h₀ .h₂)                 --   | inl hz => hz ha
         .h₀))                           --   | inr f => f
-      (.impE .h₀ (.orI₂ (.impI (.impE .h₁ (.orI₁ .h₀)))))))
-                                        -- k (Or.inr (fun hb => k (Or.inl hb)))
+      (.impE (nn_em (.var 1)) .h₀)))     -- nn_em k
 
 /-- `u`'s formula gives `P`'s hypothesis, so `a ∨ b`, and either gives `C`.  The
 other three give `v`'s, by `disj_above_v`, which is `C`'s right disjunct once

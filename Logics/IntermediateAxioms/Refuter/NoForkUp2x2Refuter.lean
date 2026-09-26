@@ -126,16 +126,16 @@ theorem meet_x2_y2 {Γ : List Form} : (.and Tx2 Ty2 :: Γ) ⊢ Form.disj [] :=
   .impE (.andE₁ (.andE₁ .h₀)) (.andE₁ (.andE₂ .h₀))  -- h.1.1 h.2.1
 
 theorem meet_y1_x1 {Γ : List Form} : (.and Ty1 Tx1 :: Γ) ⊢ Form.disj [] :=
-  .impE (.andE₂ .h₀) (.andE₁ .h₀)       -- h.2 h.1
+  Derives.and_swap meet_x1_y1
 
 theorem meet_y1_x2 {Γ : List Form} : (.and Ty1 Tx2 :: Γ) ⊢ Form.disj [] :=
-  .impE (.andE₁ (.andE₂ .h₀)) (.andE₁ .h₀)  -- h.2.1 h.1
+  Derives.and_swap meet_x2_y1
 
 theorem meet_y2_x1 {Γ : List Form} : (.and Ty2 Tx1 :: Γ) ⊢ Form.disj [] :=
-  .impE (.andE₂ .h₀) (.andE₁ (.andE₁ .h₀))  -- h.2 h.1.1
+  Derives.and_swap meet_x1_y2
 
 theorem meet_y2_x2 {Γ : List Form} : (.and Ty2 Tx2 :: Γ) ⊢ Form.disj [] :=
-  .impE (.andE₁ (.andE₂ .h₀)) (.andE₁ (.andE₁ .h₀))  -- h.2.1 h.1.1
+  Derives.and_swap meet_x2_y2
 
 /-! ### Joins
 
@@ -175,8 +175,7 @@ theorem disj_not_y1 : Ent (Form.disj [Tx1, Tx2, Ty2]) (.imp (.var 0) (.var 1)) :
 through `k`. -/
 theorem arrow_x1 : [.imp Tx1 (Form.disj [Tx2, Ty1, Ty2]), P] ⊢ Form.disj [Tx2, Ty1, Ty2] :=
   .orE (.impE (.andE₁ .h₁)              -- cases hP.1 (Or.inl (fun hna => …))
-      (.orI₁ (.impI (.impE (disj_not_x1.mp (.impE .h₁ .h₀)) .h₀))))
-                                        --   disj_not_x1 (k hna) hna
+      (.orI₁ (Derives.imp_contract disj_not_x1)))  --   disj_not_x1 (k hna) hna
     (.orI₂ (.orI₁ .h₀))                 -- | inl ha => Or.inr (Or.inl ha)
     (.impE .h₁ .h₀)                     -- | inr hna => k hna
 
@@ -197,8 +196,7 @@ so `P` decides `a`: `a` gives the join through `k`, and `¬ a` is `x₁`'s
 formula. -/
 theorem arrow_y1 : [.imp Ty1 (Form.disj [Tx1, Tx2, Ty2]), P] ⊢ Form.disj [Tx1, Tx2, Ty2] :=
   .orE (.impE (.andE₁ .h₁)              -- cases hP.1 (Or.inr (fun ha => …))
-      (.orI₂ (.impI (.impE (disj_not_y1.mp (.impE .h₁ .h₀)) .h₀))))
-                                        --   disj_not_y1 (k ha) ha
+      (.orI₂ (Derives.imp_contract disj_not_y1)))  --   disj_not_y1 (k ha) ha
     (.impE .h₁ .h₀)                     -- | inl ha => k ha
     (.orI₁ .h₀)                         -- | inr hna => Or.inl hna
 

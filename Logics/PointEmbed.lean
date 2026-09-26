@@ -167,7 +167,7 @@ theorem ext_bot : ext S.J g (⊥ : A) = ⊥ :=
     exact absurd hjb (S.not_le_bot j hjJ))
 
 theorem ext_top (hg : Images S g) : ext S.J g (⊤ : A) = ⊤ :=
-  (eq_top_iff _).mpr (le_trans (le_of_eq hg.top.symm) (g_le_ext S.top_mem le_rfl))
+  eq_top_of_le hg.top (g_le_ext S.top_mem le_rfl)
 
 theorem ext_sup (a b : A) : ext S.J g (a ⊔ b) = ext S.J g a ⊔ ext S.J g b := by
   refine le_antisymm (supList_le fun x hx => ?_)
@@ -239,12 +239,8 @@ def hom (hg : Images S g) : Hom A B where
 
 /-- **It is injective once the coatom's image misses the top.** -/
 theorem injective (hg : Images S g) (hc : ext S.J g S.c ≠ ⊤) :
-    Function.Injective (ext S.J g) := by
-  intro x y hxy
-  refine eq_of_himp_inf_eq_top (Classical.byContradiction fun hne => hc ?_)
-  have h : ext S.J g ((x ⇨ y) ⊓ (y ⇨ x)) = ⊤ := by
-    rw [ext_inf hg, ext_himp hg, ext_himp hg, hxy, himp_eq_top_of_le le_rfl, inf_top]
-  exact (eq_top_iff _).mpr (le_trans (le_of_eq h.symm) (ext_mono (S.le_coatom _ hne)))
+    Function.Injective (ext S.J g) := fun _ _ hxy =>
+  Classical.byContradiction fun hne => hc ((hom hg).map_eq_top_of_collapse hxy hne S.le_coatom)
 
 /-- **The images of the points embed `A`.** -/
 theorem embeds (hg : Images S g) (hc : ext S.J g S.c ≠ ⊤) : Embeds A B :=
@@ -282,10 +278,7 @@ theorem sh_of_refutes (S : Points A) (T : A → Form) {P C : Form}
     rw [Form.eval_disj, List.map_map]
     rfl
   have hg : Images S g :=
-    { top := by
-        have h := Derives.soundness w htop
-        simp only [evalCtx, hP, inf_top] at h
-        exact (eq_top_iff _).mpr h
+    { top := Derives.eval_eq_top (fun q hq => by rw [List.mem_singleton.mp hq]; exact hP) htop
       mono := fun j hj k hk h₁ h₂ h₃ => le_of_derives hP (hmono j hj k hk h₁ h₂ h₃)
       meet := fun j hj k hk h₁ h₂ => by
         rw [hext]; exact le_of_derives hP (hmeet j hj k hk h₁ h₂)

@@ -186,35 +186,49 @@ theorem kp_ntop_iff_splits {P : Type} [Frame P] (hm : HasMinimal P) :
   · rintro ⟨r, a, hsp⟩
     exact kp_ntop_of_splits hsp
 
-/-! ## The points above a point
+/-! ## The points of an upward closed set
 
-The points above a failure form a rooted frame (`Above`), and the region at
-the failure is the region at that frame's root. -/
+On the points of an upward closed set `U` (`Within U`), the region at one of
+them cut out by a restricted set is the region of the whole frame, and a split
+of either is a split of the other (`Within.splits_iff`).  The region at a point
+of `U` lies inside `U`, which is what lets a split of the frame come back.  In
+particular a failure at `r` is a failure at the root of the points above `r`
+(`Above`). -/
 
-namespace Above
+namespace Within
 
-variable {P : Type} [Frame P] {r : P}
+variable {P : Type} [Frame P] {U : Upset P}
 
-/-- A point above `r` is in the region at the root exactly when it is in the
-region at `r` of the whole frame. -/
-theorem region_iff (a : Upset P) (q : Above r) :
-    (kpRegion (root r) (restrict a)).mem q ↔ (kpRegion r a).mem q.pt :=
-  ⟨fun ⟨_, hn⟩ => ⟨q.above, fun p hqp hap =>
-      hn ⟨p, Frame.le_trans q.above hqp⟩ hqp hap⟩,
-   fun ⟨_, hn⟩ => ⟨q.above, fun q' hqq' haq' => hn q'.pt hqq' haq'⟩⟩
+/-- Restriction keeps negation. -/
+theorem mem_neg_restrict (a : Upset P) (q : Within U) :
+    (neg (restrict a : Upset (Within U))).mem q ↔ (neg a).mem q.pt :=
+  Iff.of_eq (congrArg (fun R : Upset (Within U) => R.mem q) ((restrictHom U).map_neg a)).symm
 
-/-- A split at `r` is a split at the root of the points above `r`. -/
-theorem splits {a : Upset P} (hs : (kpRegion r a).Splits) :
-    (kpRegion (root r) (restrict a)).Splits := by
-  obtain ⟨m, m', ⟨hm, hmin⟩, ⟨hm', hmin'⟩, hmm', hm'm⟩ := hs
-  refine ⟨⟨m, hm.1⟩, ⟨m', hm'.1⟩,
-    ⟨(region_iff a _).mpr hm,
-      fun q hq hqm => hmin q.pt ((region_iff a q).mp hq) hqm⟩,
-    ⟨(region_iff a _).mpr hm',
-      fun q hq hqm => hmin' q.pt ((region_iff a q).mp hq) hqm⟩,
-    hmm', hm'm⟩
+/-- A point of `U` is in the region at `r` cut out by a restricted set exactly
+when it is in the region of the whole frame. -/
+theorem region_iff (r : Within U) (a : Upset P) (q : Within U) :
+    (kpRegion r (restrict a)).mem q ↔ (kpRegion r.pt a).mem q.pt :=
+  and_congr Iff.rfl (mem_neg_restrict a q)
 
-end Above
+/-- **A split on the points of `U` is a split of the whole frame, and back.** -/
+theorem splits_iff (r : Within U) (a : Upset P) :
+    (kpRegion r (restrict a)).Splits ↔ (kpRegion r.pt a).Splits := by
+  have hU : ∀ {z : P}, (kpRegion r.pt a).mem z → U.mem z := fun hz => U.upward hz.1 r.mem
+  constructor
+  · rintro ⟨m, m', ⟨hm, hmin⟩, ⟨hm', hmin'⟩, hmm', hm'm⟩
+    exact ⟨m.pt, m'.pt,
+      ⟨(region_iff r a m).mp hm,
+        fun z hz hzm => hmin ⟨z, hU hz⟩ ((region_iff r a _).mpr hz) hzm⟩,
+      ⟨(region_iff r a m').mp hm',
+        fun z hz hzm => hmin' ⟨z, hU hz⟩ ((region_iff r a _).mpr hz) hzm⟩,
+      hmm', hm'm⟩
+  · rintro ⟨m, m', ⟨hm, hmin⟩, ⟨hm', hmin'⟩, hmm', hm'm⟩
+    exact ⟨⟨m, hU hm⟩, ⟨m', hU hm'⟩,
+      ⟨(region_iff r a _).mpr hm, fun q hq hqm => hmin q.pt ((region_iff r a q).mp hq) hqm⟩,
+      ⟨(region_iff r a _).mpr hm', fun q hq hqm => hmin' q.pt ((region_iff r a q).mp hq) hqm⟩,
+      hmm', hm'm⟩
+
+end Within
 
 /-! ## The list -/
 
@@ -248,9 +262,9 @@ theorem kpList_complete_finite {X : Form}
   refine kreiselPutnamForm_valid_iff.mpr (Classical.byContradiction fun hkp => ?_)
   obtain ⟨r, a, hs⟩ := (kp_ntop_iff_splits (hasMinimal_of_list l hl)).mp hkp
   exact hX (Above r)
-    ⟨⟨Above.cover r l, Above.mem_cover hl⟩, ⟨Above.root r, fun q => q.above⟩,
-      ⟨Above.root r, Above.restrict a, Above.splits hs⟩⟩
-    (valid_of_onto (Above.onto r) hv)
+    ⟨⟨Within.cover _ l, Within.mem_cover hl⟩, ⟨Above.root r, fun q => q.mem⟩,
+      ⟨Above.root r, Within.restrict a, (Within.splits_iff (Above.root r) a).mpr hs⟩⟩
+    (valid_of_onto (Within.onto _) hv)
 
 /-- The finite model property of a schema at the axiom: it derives the axiom
 as soon as every finite frame validating it validates the axiom.  Every schema

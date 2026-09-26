@@ -26,32 +26,12 @@ open PartialOrder Lattice BoundedLattice HeytingAlgebra
 
 /-! # Part one: the fork cannot be shrunk -/
 
-open HeytingAlgebra in
-theorem weakEm_fork_ge_coatom : ∀ a : ForkUp 1 1,
-    ((ForkUp.tails 0 0 : ForkUp 1 1) ⊓ (neg a ⊔ neg (neg a))) = ForkUp.tails 0 0 := by
-  decide
-
-theorem weakEmForm_eval_ge (v : Nat → ForkUp 1 1) :
-    (ForkUp.tails 0 0 : ForkUp 1 1) ⊑ (weakEmForm (.var 0)).eval v :=
-  inf_eq_left_iff.mp (weakEm_fork_ge_coatom (v 0))
-
-open HeytingAlgebra in
-/-- A failing element generates the whole fork. -/
-theorem weakEm_fork_fail : ∀ a : ForkUp 1 1, (neg a ⊔ neg (neg a)) ≠ ⊤ →
-    ∀ z : ForkUp 1 1, z = ⊥ ∨ z = ⊤ ∨ z = neg a ∨ z = neg (neg a) ∨
-      z = neg a ⊔ neg (neg a) := by decide
-
 /-- **Nothing below the fork refutes `weakEmForm`.** -/
 theorem refuterLB_fork_weakEm : RefuterLB (ForkUp 1 1) (weakEmForm (.var 0)) :=
-  refuterLB_of_coatom fork_coatom' weakEmForm_eval_ge fun _ _ h _ v hv z => by
-    have hfail := weakEm_fork_fail _ hv
-    rcases hfail z with hz | hz | hz | hz | hz
-    · exact ⟨⊥, by rw [h.map_bot, hz]⟩
-    · exact ⟨⊤, by rw [h.map_top, hz]⟩
-    · exact ⟨neg (v 0), by rw [h.map_neg]; exact hz.symm⟩
-    · exact ⟨neg (neg (v 0)), by rw [h.map_neg, h.map_neg]; exact hz.symm⟩
-    · exact ⟨neg (v 0) ⊔ neg (neg (v 0)),
-        by rw [h.map_sup, h.map_neg, h.map_neg, h.map_neg]; exact hz.symm⟩
+  PointEmbed.refuterLB_of_generates (c := .tails 0 0)
+    [.fls, Form.tru, Form.neg (.var 0), Form.neg (Form.neg (.var 0)),
+      .or (Form.neg (.var 0)) (Form.neg (Form.neg (.var 0)))]
+    (by decide) (by decide) fork_coatom' (by decide) (by decide)
 
 /-! # Part two: which schemas derive the axiom -/
 

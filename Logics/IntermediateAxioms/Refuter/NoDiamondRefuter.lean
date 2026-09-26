@@ -38,40 +38,11 @@ open PartialOrder Lattice BoundedLattice HeytingAlgebra
 
 /-! # Part one: the diamond cannot be shrunk -/
 
-/-- The diamond's largest value below the top is the join of its two
-incomparable middles. -/
-theorem kite_coatom : ∀ z : KiteUp 1 1,
-    z ≠ ⊤ → z ⊓ (KiteUp.tails 0 0 : KiteUp 1 1) = z := by decide
-
-theorem kite_coatom' (z : KiteUp 1 1) (h : z ≠ ⊤) :
-    z ⊑ (KiteUp.tails 0 0 : KiteUp 1 1) := inf_eq_left_iff.mp (kite_coatom z h)
-
-theorem noDiamond_kite_ge_coatom : ∀ a b : KiteUp 1 1,
-    ((KiteUp.tails 0 0 : KiteUp 1 1) ⊓ ((a ⇨ (b ⊔ neg b)) ⊔ (b ⇨ (a ⊔ neg a))))
-      = KiteUp.tails 0 0 := by decide
-
-theorem noDiamondForm_eval_ge (v : Nat → KiteUp 1 1) :
-    (KiteUp.tails 0 0 : KiteUp 1 1) ⊑ (noDiamondForm (.var 0) (.var 1)).eval v :=
-  inf_eq_left_iff.mp (noDiamond_kite_ge_coatom (v 0) (v 1))
-
-/-- A failing pair generates the whole diamond: every value is one of the
-bounds, one of the pair, or the pair's meet or join. -/
-theorem noDiamond_kite_fail : ∀ a b : KiteUp 1 1,
-    ((a ⇨ (b ⊔ neg b)) ⊔ (b ⇨ (a ⊔ neg a))) ≠ ⊤ →
-      ∀ z : KiteUp 1 1,
-        z = ⊥ ∨ z = ⊤ ∨ z = a ∨ z = b ∨ z = a ⊓ b ∨ z = a ⊔ b := by decide
-
 /-- **Nothing below the diamond refutes `noDiamondForm`.** -/
 theorem refuterLB_kite_noDiamond : RefuterLB (KiteUp 1 1) (noDiamondForm (.var 0) (.var 1)) :=
-  refuterLB_of_coatom kite_coatom' noDiamondForm_eval_ge fun _ _ h _ v hv z => by
-    have hfail := noDiamond_kite_fail _ _ hv
-    rcases hfail z with hz | hz | hz | hz | hz | hz
-    · exact ⟨⊥, by rw [h.map_bot, hz]⟩
-    · exact ⟨⊤, by rw [h.map_top, hz]⟩
-    · exact ⟨v 0, hz.symm⟩
-    · exact ⟨v 1, hz.symm⟩
-    · exact ⟨v 0 ⊓ v 1, by rw [h.map_inf]; exact hz.symm⟩
-    · exact ⟨v 0 ⊔ v 1, by rw [h.map_sup]; exact hz.symm⟩
+  PointEmbed.refuterLB_of_generates (c := .tails 0 0)
+    [.fls, Form.tru, .var 0, .var 1, .and (.var 0) (.var 1), .or (.var 0) (.var 1)]
+    (by decide) (by decide) kite_coatom' (by decide) (by decide)
 
 /-! # Part two: which schemas derive the axiom -/
 

@@ -198,6 +198,6 @@ theorem valid_of_valid (F : Filter α) {p : Form}
 is the first way to establish `SH` other than by reflexivity. -/
 theorem sh_of_filter {α : Type} [HeytingAlgebra α] (F : Filter α) :
     SH (FilterQuot F) α :=
-  ⟨FilterQuot F, inferInstance, onto F, embeds_refl _⟩
+  sh_of_onto (onto F)
 
 end FilterQuot

@@ -96,51 +96,17 @@ theorem derivesFromSchema_linearity_iff (X : Form) :
 
 /-! # Part two: neither refuter can be shrunk, and neither can be dropped -/
 
-theorem linearity_fork_ge_coatom : ∀ a b : ForkUp 1 1,
-    ((ForkUp.tails 0 0 : ForkUp 1 1) ⊓ ((a ⇨ b) ⊔ (b ⇨ a))) = ForkUp.tails 0 0 := by
-  decide
-
-theorem linearityForm_fork_eval_ge (v : Nat → ForkUp 1 1) :
-    (ForkUp.tails 0 0 : ForkUp 1 1) ⊑ (linearityForm (.var 0) (.var 1)).eval v :=
-  inf_eq_left_iff.mp (linearity_fork_ge_coatom (v 0) (v 1))
-
-theorem linearity_fork_fail : ∀ a b : ForkUp 1 1, ((a ⇨ b) ⊔ (b ⇨ a)) ≠ ⊤ →
-    ∀ z : ForkUp 1 1, z = ⊥ ∨ z = ⊤ ∨ z = a ∨ z = b ∨ z = a ⊔ b := by decide
-
 /-- **Nothing below the fork refutes linearity.** -/
 theorem refuterLB_fork_linearity : RefuterLB (ForkUp 1 1) (linearityForm (.var 0) (.var 1)) :=
-  refuterLB_of_coatom fork_coatom' linearityForm_fork_eval_ge fun _ _ h _ v hv z => by
-    have hfail := linearity_fork_fail _ _ hv
-    rcases hfail z with hz | hz | hz | hz | hz
-    · exact ⟨⊥, by rw [h.map_bot, hz]⟩
-    · exact ⟨⊤, by rw [h.map_top, hz]⟩
-    · exact ⟨v 0, hz.symm⟩
-    · exact ⟨v 1, hz.symm⟩
-    · exact ⟨v 0 ⊔ v 1, by rw [h.map_sup]; exact hz.symm⟩
-
-theorem linearity_kite_ge_coatom : ∀ a b : KiteUp 1 1,
-    ((KiteUp.tails 0 0 : KiteUp 1 1) ⊓ ((a ⇨ b) ⊔ (b ⇨ a))) = KiteUp.tails 0 0 := by
-  decide
-
-theorem linearityForm_kite_eval_ge (v : Nat → KiteUp 1 1) :
-    (KiteUp.tails 0 0 : KiteUp 1 1) ⊑ (linearityForm (.var 0) (.var 1)).eval v :=
-  inf_eq_left_iff.mp (linearity_kite_ge_coatom (v 0) (v 1))
-
-theorem linearity_kite_fail : ∀ a b : KiteUp 1 1, ((a ⇨ b) ⊔ (b ⇨ a)) ≠ ⊤ →
-    ∀ z : KiteUp 1 1, z = ⊥ ∨ z = ⊤ ∨ z = a ∨ z = b ∨ z = a ⊓ b ∨ z = a ⊔ b := by
-  decide
+  PointEmbed.refuterLB_of_generates (c := .tails 0 0)
+    [.fls, Form.tru, .var 0, .var 1, .or (.var 0) (.var 1)]
+    (by decide) (by decide) fork_coatom' (by decide) (by decide)
 
 /-- **Nothing below the diamond refutes linearity either.** -/
 theorem refuterLB_kite_linearity : RefuterLB (KiteUp 1 1) (linearityForm (.var 0) (.var 1)) :=
-  refuterLB_of_coatom kite_coatom' linearityForm_kite_eval_ge fun _ _ h _ v hv z => by
-    have hfail := linearity_kite_fail _ _ hv
-    rcases hfail z with hz | hz | hz | hz | hz | hz
-    · exact ⟨⊥, by rw [h.map_bot, hz]⟩
-    · exact ⟨⊤, by rw [h.map_top, hz]⟩
-    · exact ⟨v 0, hz.symm⟩
-    · exact ⟨v 1, hz.symm⟩
-    · exact ⟨v 0 ⊓ v 1, by rw [h.map_inf]; exact hz.symm⟩
-    · exact ⟨v 0 ⊔ v 1, by rw [h.map_sup]; exact hz.symm⟩
+  PointEmbed.refuterLB_of_generates (c := .tails 0 0)
+    [.fls, Form.tru, .var 0, .var 1, .and (.var 0) (.var 1), .or (.var 0) (.var 1)]
+    (by decide) (by decide) kite_coatom' (by decide) (by decide)
 
 /-- The fork is not below the diamond: weak excluded middle holds in the
 diamond and fails in the fork. -/

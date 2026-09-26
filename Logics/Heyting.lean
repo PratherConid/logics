@@ -65,6 +65,14 @@ theorem himp_top_left : ((⊤ : α) ⇨ a) = a :=
   le_antisymm (by have h := himp_inf_le (⊤ : α) a; rwa [inf_top] at h)
     (le_himp_of_inf_le (inf_le_left a ⊤))
 
+theorem himp_self : (a ⇨ a) = ⊤ := himp_eq_top_of_le le_rfl
+
+theorem himp_top : (a ⇨ ⊤) = ⊤ := himp_eq_top_of_le (le_top a)
+
+theorem bot_himp : ((⊥ : α) ⇨ a) = ⊤ := himp_eq_top_of_le (bot_le a)
+
+theorem neg_top : neg (⊤ : α) = ⊥ := himp_top_left ⊥
+
 /-- The negation of an excluded middle is absurd: it lies below both `a` and
 `neg a`, hence below their meet, which is `⊥`. -/
 theorem neg_sup_neg_eq_bot (a : α) : neg (a ⊔ neg a) = ⊥ := by
@@ -78,7 +86,7 @@ theorem neg_sup_neg_eq_bot (a : α) : neg (a ⊔ neg a) = ⊥ := by
   exact (eq_bot_iff _).mpr (le_trans (le_of_eq (inf_idem _).symm) h5)
 
 /-- `neg ⊥` is the top. -/
-theorem neg_bot : neg (⊥ : α) = ⊤ := himp_eq_top_of_le le_rfl
+theorem neg_bot : neg (⊥ : α) = ⊤ := himp_self ⊥
 
 
 /-! ### Implication and the lattice operations
@@ -210,13 +218,16 @@ theorem sup_neg_himp_right (a : α) :
 /-- Weakening: a value lies below anything implying it. -/
 theorem le_himp_self (a b : α) : a ⊑ (b ⇨ a) := le_himp_of_inf_le (inf_le_left a b)
 
-/-- Negation is antitone. -/
-theorem neg_antitone {a b : α} (h : a ⊑ b) : neg b ⊑ neg a :=
-  le_himp_of_inf_le (le_trans (inf_le_inf le_rfl h) (himp_inf_le b ⊥))
-
 /-- Implication is antitone in its hypothesis. -/
 theorem himp_le_himp_left {x y z : α} (h : x ⊑ y) : (y ⇨ z) ⊑ (x ⇨ z) :=
   le_himp_of_inf_le (le_trans (inf_le_inf le_rfl h) (himp_inf_le y z))
+
+/-- Negation is antitone. -/
+theorem neg_antitone {a b : α} (h : a ⊑ b) : neg b ⊑ neg a := himp_le_himp_left h
+
+/-- Above an element with absurd negation, every negation is absurd. -/
+theorem neg_eq_bot_of_le {a b : α} (h : a ⊑ b) (ha : neg a = ⊥) : neg b = ⊥ :=
+  (eq_bot_iff _).mpr (le_trans (neg_antitone h) (le_of_eq ha))
 
 /-- A negation lies below every arrow out of what it negates. -/
 theorem neg_le_himp (a b : α) : neg a ⊑ (a ⇨ b) :=
@@ -225,8 +236,7 @@ theorem neg_le_himp (a b : α) : neg a ⊑ (a ⇨ b) :=
 /-- An arrow into an excluded middle is dense: it lies above that excluded
 middle, whose negation is absurd. -/
 theorem neg_himp_sup_neg_eq_bot (a b : α) : neg (a ⇨ (b ⊔ neg b)) = ⊥ :=
-  (eq_bot_iff _).mpr (le_trans (neg_antitone (le_himp_self (b ⊔ neg b) a))
-    (le_of_eq (neg_sup_neg_eq_bot b)))
+  neg_eq_bot_of_le (le_himp_self (b ⊔ neg b) a) (neg_sup_neg_eq_bot b)
 
 end HeytingAlgebra
 
@@ -361,6 +371,21 @@ theorem mem_supList : ∀ {L : List (Upset P)} {p : P},
       rcases List.mem_cons.mp hV with rfl | hV
       · exact Or.inl hp
       · exact Or.inr ⟨V, hV, hp⟩
+
+/-- A point is in the meet of a list exactly when it is in all of its entries. -/
+theorem mem_infList : ∀ {L : List (Upset P)} {p : P},
+    (infList L).mem p ↔ ∀ U ∈ L, U.mem p
+  | [], _ => ⟨(fun _ _ h => nomatch h), fun _ => trivial⟩
+  | U :: t, p => by
+    show U.mem p ∧ (infList t).mem p ↔ _
+    rw [mem_infList]
+    constructor
+    · rintro ⟨h, ht⟩ V hV
+      rcases List.mem_cons.mp hV with rfl | hV
+      · exact h
+      · exact ht V hV
+    · intro h
+      exact ⟨h U (List.mem_cons_self ..), fun V hV => h V (List.mem_cons_of_mem _ hV)⟩
 
 /-! ### A worked frame
 
@@ -527,6 +552,33 @@ def Form.eval {α : Type u} [HeytingAlgebra α] (v : Nat → α) : Form → α
 def Valid (p : Form) : Prop :=
   ∀ (α : Type) [HeytingAlgebra α] (v : Nat → α), p.eval v = ⊤
 
+/-- Each conjunct lies above a conjunction's value. -/
+theorem Form.conj_eval_le {α : Type u} [HeytingAlgebra α] (v : Nat → α) :
+    ∀ (ps : List Form) {p : Form}, p ∈ ps → (Form.conj ps).eval v ⊑ p.eval v := by
+  intro ps
+  induction ps with
+  | nil => intro p hp; exact absurd hp (by simp)
+  | cons q ps ih =>
+    intro p hp
+    show q.eval v ⊓ (Form.conj ps).eval v ⊑ p.eval v
+    rcases List.mem_cons.mp hp with rfl | hp'
+    · exact inf_le_left _ _
+    · exact le_trans (inf_le_right _ _) (ih hp')
+
+/-- Anything below every conjunct lies below the conjunction's value. -/
+theorem Form.le_conj_eval {α : Type u} [HeytingAlgebra α] (v : Nat → α) {x : α} :
+    ∀ ps : List Form, (∀ p ∈ ps, x ⊑ p.eval v) → x ⊑ (Form.conj ps).eval v := by
+  intro ps
+  induction ps with
+  | nil =>
+    intro _
+    show x ⊑ ((⊥ : α) ⇨ ⊥)
+    exact le_trans (le_top x) (le_of_eq (himp_self _).symm)
+  | cons q ps ih =>
+    intro h
+    exact le_inf (h q (List.mem_cons.mpr (Or.inl rfl)))
+      (ih (fun p hp => h p (List.mem_cons.mpr (Or.inr hp))))
+
 /-- A formula that is not valid in an algebra misses the top value somewhere. -/
 theorem exists_ne_top {α : Type} [HeytingAlgebra α] {p : Form}
     (h : ¬ ∀ v : Nat → α, p.eval v = ⊤) : ∃ v : Nat → α, p.eval v ≠ ⊤ :=
@@ -678,13 +730,10 @@ theorem jointly {P : Form → Prop} : ∀ {Δ : List Form},
   | q :: _, h => by
     obtain ⟨Θ₁, hΘ₁, d₁⟩ := h q (List.mem_cons_self ..)
     obtain ⟨Θ₂, hΘ₂, d₂⟩ := jointly fun r hr => h r (List.mem_cons_of_mem _ hr)
-    refine ⟨Θ₁ ++ Θ₂, fun r hr => ?_, fun r hr => ?_⟩
-    · rcases List.mem_append.mp hr with hr | hr
-      · exact hΘ₁ r hr
-      · exact hΘ₂ r hr
-    · rcases List.mem_cons.mp hr with rfl | hr
-      · exact d₁.weaken _ fun _ h => List.mem_append_left _ h
-      · exact (d₂ r hr).weaken _ fun _ h => List.mem_append_right _ h
+    refine ⟨Θ₁ ++ Θ₂, List.forall_mem_append.mpr ⟨hΘ₁, hΘ₂⟩, fun r hr => ?_⟩
+    rcases List.mem_cons.mp hr with rfl | hr
+    · exact d₁.weaken _ fun _ h => List.mem_append_left _ h
+    · exact (d₂ r hr).weaken _ fun _ h => List.mem_append_right _ h
 
 theorem evalCtx_le_of_mem {α : Type u} [HeytingAlgebra α] (v : Nat → α) {p : Form}
     {Γ : List Form} (h : p ∈ Γ) : evalCtx v Γ ⊑ p.eval v := by
@@ -710,6 +759,19 @@ theorem soundness {α : Type u} [HeytingAlgebra α] (v : Nat → α) {Γ : List 
       rw [inf_comm]
       exact ih
   | impE _ _ ih₁ ih₂ => exact le_trans (le_inf ih₁ ih₂) (himp_inf_le _ _)
+
+/-- **A derivation from premises at the top reaches the top.** -/
+theorem eval_eq_top {α : Type u} [HeytingAlgebra α] {v : Nat → α} {Γ : List Form} {p : Form}
+    (hΓ : ∀ q ∈ Γ, q.eval v = ⊤) (d : Γ ⊢ p) : p.eval v = ⊤ := by
+  have hctx : evalCtx v Γ = ⊤ := by
+    clear d
+    induction Γ with
+    | nil => rfl
+    | cons q Γ ih =>
+      show q.eval v ⊓ evalCtx v Γ = ⊤
+      rw [hΓ q (List.mem_cons_self ..), ih fun r hr => hΓ r (List.mem_cons_of_mem q hr)]
+      exact BoundedLattice.inf_top ⊤
+  exact (BoundedLattice.eq_top_iff _).mpr (hctx ▸ soundness v d)
 
 /-- A closed derivation gives a valid formula. -/
 theorem valid_of_derives {p : Form} (d : [] ⊢ p) : Valid p := by
@@ -788,6 +850,23 @@ theorem imp_cong {p p' q q' : Form} (h₁ : Ent p' p) (h₂ : Ent q q') :
   Derives.impI (mp h₂ (Derives.impE (Derives.ax (by simp)) (mp h₁ (Derives.ax (by simp)))))
 
 end Ent
+
+namespace Derives
+
+/-- A hypothesis `p ∧ q` serves as `q ∧ p`: discharged, it is an arrow out of
+`p ∧ q`, which the swap `q ∧ p ⊢ p ∧ q` turns into one out of `q ∧ p`. -/
+theorem and_swap {Γ : List Form} {p q r : Form} (d : (.and p q :: Γ) ⊢ r) :
+    (.and q p :: Γ) ⊢ r :=
+  deduction.mpr ((Ent.imp_cong (.andI (.andE₂ .h₀) (.andE₁ .h₀)) (Ent.refl r)).mp
+    (deduction.mp d))
+
+/-- **Contraction**: an arrow from `p` into anything that gives `p → q` gives
+`p → q`, `fun hp => hD (h hp) hp`. -/
+theorem imp_contract {Γ : List Form} {p q D : Form} (hD : Ent D (.imp p q)) :
+    (.imp p D :: Γ) ⊢ .imp p q :=
+  .impI (.impE (hD.mp (.impE .h₁ .h₀)) .h₀)
+
+end Derives
 
 /-! ## Substitution
 
@@ -872,18 +951,16 @@ theorem valid {α : Type u} [HeytingAlgebra α] {X p : Form}
     (hX : ∀ w : Nat → α, X.eval w = ⊤) (h : DerivesFromSchema X p) (v : Nat → α) :
     p.eval v = ⊤ := by
   obtain ⟨Γ, hΓ, d⟩ := h
-  have hctx : evalCtx v Γ = ⊤ := by
-    clear d
-    induction Γ with
-    | nil => rfl
-    | cons q Γ ih =>
-      obtain ⟨σ, hq⟩ := hΓ q (List.mem_cons_self ..)
-      have h1 : q.eval v = ⊤ := by rw [hq, Form.eval_subst]; exact hX _
-      have h2 : evalCtx v Γ = ⊤ := ih (fun r hr => hΓ r (List.mem_cons_of_mem q hr))
-      show q.eval v ⊓ evalCtx v Γ = ⊤
-      rw [h1, h2]
-      exact BoundedLattice.inf_top ⊤
-  exact (BoundedLattice.eq_top_iff _).mpr (hctx ▸ Derives.soundness v d)
+  refine Derives.eval_eq_top (fun q hq => ?_) d
+  obtain ⟨σ, rfl⟩ := hΓ q hq
+  rw [Form.eval_subst]
+  exact hX _
+
+/-- **A separation**: an algebra validating `X` but refuting `p` shows that no
+instantiation of `X` derives `p`. -/
+theorem not_of_valid {α : Type u} [HeytingAlgebra α] {X p : Form} {w : Nat → α}
+    (hX : ∀ v : Nat → α, X.eval v = ⊤) (hp : p.eval w ≠ ⊤) : ¬ DerivesFromSchema X p :=
+  fun h => hp (valid hX h w)
 
 /-- Every schema derives itself: it is its own instance, under the identity
 substitution. -/
@@ -1126,15 +1203,6 @@ theorem himp_eq_of_not_le {a b : Fin (n + 1)} (h : ¬ a.val ≤ b.val) : (a ⇨ 
   · next h' => exact absurd h' h
   · rfl
 
-theorem himp_top_right (a : Fin (n + 1)) : (a ⇨ (⊤ : Fin (n + 1))) = ⊤ :=
-  (himp_eq_top_iff a ⊤).mpr (Nat.lt_succ_iff.mp a.isLt)
-
-/-- Implying out of the top element never lands above its conclusion. -/
-theorem himp_top_left_le (a : Fin (n + 1)) : (((⊤ : Fin (n + 1)) ⇨ a) : Fin (n + 1)).val ≤ a.val := by
-  show (himp (Fin.last n) a).val ≤ a.val
-  simp only [himp, Fin.val_last]
-  split <;> first | omega | (simp only [Fin.val_last]; omega)
-
 /-! ### Failure of excluded middle -/
 
 theorem neg_eq_bot {a : Fin (n + 1)} (h : 0 < a.val) : HeytingAlgebra.neg a = ⊥ := by
@@ -1168,6 +1236,23 @@ theorem sup_eq_right {a b : Fin (n + 1)} (h : a.val ≤ b.val) : a ⊔ b = b := 
 theorem sup_eq_left {a b : Fin (n + 1)} (h : ¬ a.val ≤ b.val) : a ⊔ b = a := by
   show (if a.val ≤ b.val then b else a) = a
   simp [h]
+
+/-- **A monotone map out of a chain keeps meets**: of two elements the meet is
+the lower one, and its image is the lower image. -/
+theorem map_inf_of_mono {β : Type u} [Lattice β] {f : Fin (n + 1) → β}
+    (hf : ∀ {i j : Fin (n + 1)}, i.val ≤ j.val → f i ⊑ f j) (i j : Fin (n + 1)) :
+    f (i ⊓ j) = f i ⊓ f j := by
+  by_cases h : i.val ≤ j.val
+  · rw [inf_eq_left h]; exact (inf_eq_left_iff.mpr (hf h)).symm
+  · rw [inf_eq_right h, Lattice.inf_comm]; exact (inf_eq_left_iff.mpr (hf (by omega))).symm
+
+/-- And joins. -/
+theorem map_sup_of_mono {β : Type u} [Lattice β] {f : Fin (n + 1) → β}
+    (hf : ∀ {i j : Fin (n + 1)}, i.val ≤ j.val → f i ⊑ f j) (i j : Fin (n + 1)) :
+    f (i ⊔ j) = f i ⊔ f j := by
+  by_cases h : i.val ≤ j.val
+  · rw [sup_eq_right h]; exact (sup_eq_right_iff.mpr (hf h)).symm
+  · rw [sup_eq_left h, Lattice.sup_comm]; exact (sup_eq_right_iff.mpr (hf (by omega))).symm
 /-- Comparison in a chain is decidable, which anything building on `⇨` needs to
 know.  Resolution cannot see it through the class field. -/
 instance decLe {n : Nat} (a b : Fin (n + 1)) : Decidable (a ⊑ b) :=
