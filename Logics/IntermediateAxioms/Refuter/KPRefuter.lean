@@ -101,20 +101,27 @@ def kpTrim {P : Type} [Frame P] (r : P) (a : Upset P) (m : P) : Upset P :=
    fun hxy hx => ⟨(kpRegion r a).upward hxy hx.1,
      fun hym => hx.2 (Frame.le_trans hxy hym)⟩⟩
 
+/-- **One entrance settles the disjunct.**  If the region at `r` has a least
+point, whichever disjunct holds there holds on the whole region, by upward
+closure. -/
+theorem kp_step_of_principal {P : Type} [Frame P] {r : P} {a : Upset P}
+    (h : (kpRegion r a).Principal) (b c : Upset P) (hr : (neg a ⇨ (b ⊔ c)).mem r) :
+    ((neg a ⇨ b) ⊔ (neg a ⇨ c)).mem r := by
+  by_cases hemp : ∃ s, (kpRegion r a).mem s
+  · obtain ⟨s, hs⟩ := hemp
+    obtain ⟨m, hmem, hmin⟩ := h s hs
+    rcases hr m hmem.1 hmem.2 with hb | hc
+    · exact Or.inl fun s' hrs' hna' => b.upward (hmin s' ⟨hrs', hna'⟩) hb
+    · exact Or.inr fun s' hrs' hna' => c.upward (hmin s' ⟨hrs', hna'⟩) hc
+  · exact Or.inl fun s' hrs' hna' => absurd ⟨s', hrs', hna'⟩ hemp
+
 /-- **One entrance is enough, point by point.**  If every region above `x` has
 a least point, the axiom holds at `x`: the least point settles which disjunct
 to take, and upward closure carries it to the rest of the region. -/
 theorem kp_mem_of_principal {P : Type} [Frame P] {x : P} {a : Upset P}
     (h : ∀ r, x ≼ r → (kpRegion r a).Principal) (b c : Upset P) :
-    (kpAt a b c).mem x := by
-  intro r hxr hr
-  by_cases hemp : ∃ s, (kpRegion r a).mem s
-  · obtain ⟨s, hs⟩ := hemp
-    obtain ⟨m, hmem, hmin⟩ := h r hxr s hs
-    rcases hr m hmem.1 hmem.2 with hb | hc
-    · exact Or.inl fun s' hrs' hna' => b.upward (hmin s' ⟨hrs', hna'⟩) hb
-    · exact Or.inr fun s' hrs' hna' => c.upward (hmin s' ⟨hrs', hna'⟩) hc
-  · exact Or.inl fun s' hrs' hna' => absurd ⟨s', hrs', hna'⟩ hemp
+    (kpAt a b c).mem x :=
+  fun r hxr hr => kp_step_of_principal (h r hxr) b c hr
 
 /-- **One entrance is enough.**  If every region has a least point the axiom
 holds at every point, whatever the frame. -/

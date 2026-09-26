@@ -53,6 +53,9 @@ def IsAlpha (x y : P) : Prop := x ≠ y ∧ x ≼ y ∧ ∀ z, x ≼ z → z ≠
 /-- A β-pair: two distinct points with the same strict successors. -/
 def IsBeta (x y : P) : Prop := x ≠ y ∧ ∀ z, (x ≼ z ∧ z ≠ x) ↔ (y ≼ z ∧ z ≠ y)
 
+theorem IsBeta.symm {x y : P} (h : IsBeta x y) : IsBeta y x :=
+  ⟨Ne.symm h.1, fun z => (h.2 z).symm⟩
+
 namespace Merger
 
 /-- Collapsing an α- or β-pair onto `y` merges correctly: whatever lies above

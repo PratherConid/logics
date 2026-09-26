@@ -14,7 +14,6 @@ import Logics.IntermediateAxioms.Refuter.NoDiamondHairRefuter
 import Logics.IntermediateAxioms.Refuter.NoForkUp2x2Refuter
 import Logics.IntermediateAxioms.Refuter.KPRefuter
 import Logics.IntermediateAxioms.Refuter.KPMinimal
-import Logics.IntermediateAxioms.Refuter.KPInfinite
 import Logics.IntermediateAxioms.Hierarchy
 
 /-!
@@ -53,10 +52,10 @@ infinite one.
 * `Refuter.KPRefuter`        -- Kreisel and Putnam's axiom, by the infinite list
   of finite rooted frames with a region entered at two points: sound, and
   complete for every schema with the finite model property
-* `Refuter.KPMinimal`        -- the shape of that list's minimal members: two
-  regimes, one with at most three frames and one with a fixed pure part
-* `Refuter.KPInfinite`       -- those minimal members are infinitely many: a
-  ladder of frames, one of each size from seven points up
+* `Refuter.KPMinimal`        -- that list's minimal members: the shape they
+  have, in two regimes; the second regime decided exactly, as the frames of its
+  shape admitting no α- or β-step outside a fixed part; and a ladder of members,
+  one of each size from seven points up, so that there are infinitely many
 
 `Hierarchy` draws the hierarchy and its classes, and puts the two halves
 together: for every principle in the classes, it decides exactly which derives
