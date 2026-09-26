@@ -1,4 +1,5 @@
 import Logics.IntermediateAxioms.Derivation
+import Logics.IntermediateAxioms.StrictImply
 import Logics.IntermediateAxioms.Refuter.SmetanichRefuter
 import Logics.IntermediateAxioms.Refuter.BD2Refuter
 import Logics.IntermediateAxioms.Refuter.LCRefuter
@@ -16,29 +17,36 @@ Only the covering relations are drawn, since `DerivesFromSchema.trans` supplies
 the rest: a derivation along any downward path is the composite of its edges.
 The separations come back the same way, read contrapositively -- a derivation
 the diagram forbids would compose into one already refuted -- which is why
-seventeen separations (`Node.seps`) settle every pair (`Node.covered`).
+twenty six separations (`Node.seps`) settle every pair (`Node.covered`).
+The line from `bd2Form` to `scottForm` passes behind the one below
+`pierce₁₂OrPierce₂₁Form`.
 
 ```
-                        excludedMiddleForm
-                                |
-                          smetanichForm
-                         /             \
-                  bd2Form               linearityForm
-                 /       \             /             \
-                /       noDiamondForm                weakEmForm
-               /              |                     /          \
-              |     pierce₁₂OrLuk₁₂Form            |   kreiselPutnamForm
-              |               |                    |
-              |     pierce₁₂OrPierce₂₁Form         |
-              |                                    |
-               \_____________ scottForm __________/
+                          excludedMiddleForm
+                                  |
+                            smetanichForm
+                           /             \
+                    bd2Form               linearityForm
+                   /       \             /             \
+                  /       noDiamondForm                 weakEmForm
+                 /                |                    /    |     \
+                |       pierce₁₂OrLuk₁₂Form           /     |      kreiselPutnamForm
+                |        /        |        \         /      |
+                |       /         |       noDiamondHairForm |
+                | noKiteUp1x2Form |                         |
+                |                 |                         |
+                |       pierce₁₂OrPierce₂₁Form              |
+                |                 |                         |
+                 \________________|_______ scottForm ______/
+                                  |        /
+                            noForkUp2x2Form
 ```
 
 The spine, from `excludedMiddleForm` through `bd2Form` and `noDiamondForm` down
 to `pierce₁₂OrPierce₂₁Form`, is the chain the combined principles fall into:
 every disjunction of two basic principles studied here lands on one of its
-nodes.  The other four nodes are axioms that are not such disjunctions, and none
-of them lies on the spine.
+nodes.  The other seven nodes are axioms that are not such disjunctions, and
+none of them lies on the spine.
 
 * `linearityForm` lies below `smetanichForm` and above `noDiamondForm`, and is
   incomparable with `bd2Form` beside it.
@@ -48,6 +56,18 @@ of them lies on the spine.
   with `noDiamondForm` and everything under it.
 * `kreiselPutnamForm` lies below `weakEmForm`, and is incomparable with
   `bd2Form`, with everything under `noDiamondForm`, and with `scottForm`.
+* `noKiteUp1x2Form`, `noDiamondHairForm` and `noForkUp2x2Form` are the
+  principles of the three smallest refuters of `pierce₁₂OrLuk₁₂Form`: the
+  uneven kite, the diamond with a hair and the tall fork.  Each lies below
+  `pierce₁₂OrLuk₁₂Form` and together they derive it
+  (`derives_pierce₁₂OrLuk₁₂_of_three`), so that node is exactly their
+  conjunction; no one of them derives another.  `noKiteUp1x2Form` lies below
+  nothing else, and is incomparable with `pierce₁₂OrPierce₂₁Form`, `weakEmForm`,
+  `scottForm` and `kreiselPutnamForm`.  `noDiamondHairForm` lies below
+  `weakEmForm` too, and is incomparable with `pierce₁₂OrPierce₂₁Form`,
+  `scottForm` and `kreiselPutnamForm`.  `noForkUp2x2Form` lies below both
+  `pierce₁₂OrPierce₂₁Form` and `scottForm`, so below every node but
+  `kreiselPutnamForm`, with which it is incomparable.
 
 Each node stands for a class of principles that derive one another:
 
@@ -69,6 +89,9 @@ pierce₁₂OrLuk₁₂Form     ≡ peirce₁₂OrImpOr₁₂Form
 pierce₁₂OrPierce₂₁Form  (alone)
 scottForm               (alone)
 kreiselPutnamForm       (alone)
+noKiteUp1x2Form         (alone)
+noDiamondHairForm       (alone)
+noForkUp2x2Form         ≡ noForkUp2x2Var3Form
 ```
 
 Each `≡` is a pair of derivations at shifted instances, not an identity: the
@@ -142,7 +165,7 @@ schema, each a natural deduction derivation from substitution instances
 countermodels (`Logics/IntermediateAxioms/StrictImply.lean`), each an algebra
 validating every instance of the weaker principle and refuting one instance of
 the stronger.  This file puts the two halves together.  `hierarchy` says, for
-every pair of the ten, that one derives the other exactly when the drawing puts
+every pair of the thirteen, that one derives the other exactly when the drawing puts
 it at or above the other.
 
 The drawing is recorded as data: the covering edges (`Node.edges`) and the
@@ -158,17 +181,17 @@ order they generate (`Node.below`, what lies at or under each node).
   them would compose with the paths into one across that separation.
 
 The combinatorial facts about the drawing are checked by evaluation, over all
-ten nodes at once.
+thirteen nodes at once.
 
 The classes are recorded too (`Node.members`), and every member is equivalent
 to the representative by derivations both ways (`members_equiv`), so
 `hierarchy_members` extends the statement to all of them.
 -/
 
-/-- The ten representatives, one per node of the drawing. -/
+/-- The thirteen representatives, one per node of the drawing. -/
 inductive Node
   | em | smetanich | bd2 | linearity | noDiamond | weakEm | pierceLuk | piercePierce
-  | scott | kreiselPutnam
+  | scott | kreiselPutnam | noKite | noHair | noFork
   deriving DecidableEq
 
 namespace Node
@@ -185,10 +208,13 @@ def form : Node → Form
   | piercePierce => (pierce₁₂OrPierce₂₁Form (.var 0) (.var 1))
   | scott => (scottForm (.var 0))
   | kreiselPutnam => (kreiselPutnamForm (.var 0) (.var 1) (.var 2))
+  | noKite => (noKiteUp1x2Form (.var 0) (.var 1))
+  | noHair => (noDiamondHairForm (.var 0) (.var 1))
+  | noFork => (noForkUp2x2Form (.var 0) (.var 1))
 
 def all : List Node :=
   [em, smetanich, bd2, linearity, noDiamond, weakEm, pierceLuk, piercePierce, scott,
-    kreiselPutnam]
+    kreiselPutnam, noKite, noHair, noFork]
 
 theorem mem_all (x : Node) : x ∈ all := by cases x <;> decide
 
@@ -202,25 +228,34 @@ def edges : Node → List Node
   | bd2 => [noDiamond, scott]
   | linearity => [noDiamond, weakEm]
   | noDiamond => [pierceLuk]
-  | weakEm => [scott, kreiselPutnam]
-  | pierceLuk => [piercePierce]
-  | piercePierce => []
-  | scott => []
+  | weakEm => [scott, kreiselPutnam, noHair]
+  | pierceLuk => [piercePierce, noKite, noHair]
+  | piercePierce => [noFork]
+  | scott => [noFork]
   | kreiselPutnam => []
+  | noKite => []
+  | noHair => []
+  | noFork => []
 
 /-- What lies at or under each node. -/
 def below : Node → List Node
   | em => all
   | smetanich =>
-    [smetanich, bd2, linearity, noDiamond, weakEm, pierceLuk, piercePierce, scott, kreiselPutnam]
-  | bd2 => [bd2, noDiamond, pierceLuk, piercePierce, scott]
-  | linearity => [linearity, noDiamond, weakEm, pierceLuk, piercePierce, scott, kreiselPutnam]
-  | noDiamond => [noDiamond, pierceLuk, piercePierce]
-  | weakEm => [weakEm, scott, kreiselPutnam]
-  | pierceLuk => [pierceLuk, piercePierce]
-  | piercePierce => [piercePierce]
-  | scott => [scott]
+    [smetanich, bd2, linearity, noDiamond, weakEm, pierceLuk, piercePierce, scott, kreiselPutnam,
+      noKite, noHair, noFork]
+  | bd2 => [bd2, noDiamond, pierceLuk, piercePierce, scott, noKite, noHair, noFork]
+  | linearity =>
+    [linearity, noDiamond, weakEm, pierceLuk, piercePierce, scott, kreiselPutnam, noKite, noHair,
+      noFork]
+  | noDiamond => [noDiamond, pierceLuk, piercePierce, noKite, noHair, noFork]
+  | weakEm => [weakEm, scott, kreiselPutnam, noHair, noFork]
+  | pierceLuk => [pierceLuk, piercePierce, noKite, noHair, noFork]
+  | piercePierce => [piercePierce, noFork]
+  | scott => [scott, noFork]
   | kreiselPutnam => [kreiselPutnam]
+  | noKite => [noKite]
+  | noHair => [noHair]
+  | noFork => [noFork]
 
 /-- The separations proved: the first principle of each pair does not derive
 the second. -/
@@ -229,7 +264,9 @@ def seps : List (Node × Node) :=
     (piercePierce, pierceLuk), (linearity, bd2), (bd2, weakEm), (weakEm, piercePierce),
     (scott, bd2), (scott, weakEm), (scott, piercePierce), (noDiamond, scott),
     (kreiselPutnam, bd2), (kreiselPutnam, weakEm), (kreiselPutnam, piercePierce),
-    (kreiselPutnam, scott), (bd2, kreiselPutnam)]
+    (kreiselPutnam, scott), (bd2, kreiselPutnam), (noKite, noFork), (noHair, noFork),
+    (kreiselPutnam, noFork), (weakEm, noKite), (piercePierce, noKite), (noKite, noHair),
+    (scott, noHair), (piercePierce, noHair), (kreiselPutnam, noHair)]
 
 /-- The class of each node: the principles that derive its representative and
 are derived by it, the representative first. -/
@@ -254,15 +291,19 @@ def members : Node → List Form
   | piercePierce => [pierce₁₂OrPierce₂₁Form (.var 0) (.var 1)]
   | scott => [scottForm (.var 0)]
   | kreiselPutnam => [kreiselPutnamForm (.var 0) (.var 1) (.var 2)]
+  | noKite => [noKiteUp1x2Form (.var 0) (.var 1)]
+  | noHair => [noDiamondHairForm (.var 0) (.var 1)]
+  | noFork => [noForkUp2x2Form (.var 0) (.var 1), noForkUp2x2Var3Form (.var 0) (.var 1) (.var 2)]
 
 /-- How far above the bottom a node sits; every edge goes down it. -/
 def height : Node → Nat
-  | em => 5
-  | smetanich => 4
-  | bd2 | linearity => 3
-  | noDiamond | weakEm => 2
-  | pierceLuk => 1
-  | piercePierce | scott | kreiselPutnam => 0
+  | em => 6
+  | smetanich => 5
+  | bd2 | linearity => 4
+  | noDiamond | weakEm => 3
+  | pierceLuk => 2
+  | piercePierce | scott => 1
+  | kreiselPutnam | noKite | noHair | noFork => 0
 
 theorem height_lt : ∀ x : Node, ∀ z ∈ x.edges, z.height < x.height := by decide
 
@@ -282,7 +323,7 @@ open Node
 /-- **Along an edge, a derivation.** -/
 theorem derives_of_edge {x z : Node} (h : z ∈ x.edges) : DerivesFromSchema x.form z.form := by
   cases x <;> simp only [edges, List.mem_cons, List.not_mem_nil, or_false] at h <;>
-    rcases h with rfl | rfl <;>
+    rcases h with rfl | rfl | rfl <;>
     first
       | exact derives_smetanich_of_em
       | exact derives_bd2_of_smetanich
@@ -295,6 +336,11 @@ theorem derives_of_edge {x z : Node} (h : z ∈ x.edges) : DerivesFromSchema x.f
       | exact derives_scott_of_weakEm
       | exact derives_kreiselPutnam_of_weakEm
       | exact derives_pierce₁₂OrPierce₂₁_of_pierce₁₂OrLuk₁₂
+      | exact derives_noKiteUp1x2_of_pierce₁₂OrLuk₁₂
+      | exact derives_noDiamondHair_of_pierce₁₂OrLuk₁₂
+      | exact derives_noDiamondHair_of_weakEm
+      | exact derives_noForkUp2x2_of_pierce₁₂OrPierce₂₁
+      | exact derives_noForkUp2x2_of_scott
 
 /-- **Down the drawing, a derivation**: compose the edges along a path. -/
 theorem derives_of_below {x y : Node} (h : y ∈ x.below) : DerivesFromSchema x.form y.form := by
@@ -315,7 +361,7 @@ theorem nderiv_of_sep {p : Node × Node} (h : p ∈ seps) :
     ¬ DerivesFromSchema p.1.form p.2.form := by
   simp only [seps, List.mem_cons, List.not_mem_nil, or_false] at h
   rcases h with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
-    rfl | rfl | rfl | rfl <;>
+    rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
   first
     | exact smetanich_nderiv_em
     | exact bd2_nderiv_smetanich
@@ -334,8 +380,17 @@ theorem nderiv_of_sep {p : Node × Node} (h : p ∈ seps) :
     | exact kreiselPutnam_nderiv_pierce₁₂OrPierce₂₁
     | exact kreiselPutnam_nderiv_scott
     | exact bd2_nderiv_kreiselPutnam
+    | exact noKiteUp1x2_nderiv_noForkUp2x2
+    | exact noDiamondHair_nderiv_noForkUp2x2
+    | exact kreiselPutnam_nderiv_noForkUp2x2
+    | exact weakEm_nderiv_noKiteUp1x2
+    | exact pierce₁₂OrPierce₂₁_nderiv_noKiteUp1x2
+    | exact noKiteUp1x2_nderiv_noDiamondHair
+    | exact scott_nderiv_noDiamondHair
+    | exact pierce₁₂OrPierce₂₁_nderiv_noDiamondHair
+    | exact kreiselPutnam_nderiv_noDiamondHair
 
-/-- **The hierarchy.**  Of any two of the ten principles, one derives the other
+/-- **The hierarchy.**  Of any two of the thirteen principles, one derives the other
 exactly when the drawing puts it at or above the other. -/
 theorem hierarchy (x y : Node) : DerivesFromSchema x.form y.form ↔ y ∈ x.below := by
   refine ⟨fun h => Classical.byContradiction fun hy => ?_, derives_of_below⟩
@@ -374,6 +429,7 @@ theorem members_equiv {x : Node} {X : Form} (h : X ∈ x.members) : SchemaEquiv 
       | exact impOr₁₂OrLuk₂₁_equiv_noDiamond
       | exact luk₁₂OrLuk₂₁_equiv_noDiamond
       | exact peirce₁₂OrImpOr₁₂_equiv_pierce₁₂OrLuk₁₂
+      | exact ⟨noForkUp2x2_equiv_noForkUp2x2Var3.2, noForkUp2x2_equiv_noForkUp2x2Var3.1⟩
 
 /-- **The hierarchy, for every member of every class.**  Of any two principles
 in the classes, one derives the other exactly when the drawing puts its node at

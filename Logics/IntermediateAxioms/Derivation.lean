@@ -1347,6 +1347,79 @@ theorem derives_noDiamondHair_of_pierce₁₂OrLuk₁₂ :
     ⟨Form.args [.or (.imp (.var 0) (Form.neg (.var 1)))
       (.and (.var 1) (.imp (Form.neg (.var 0)) (.var 0))), .var 0], rfl⟩
 
+/-! ## Two of the three principles from further down
+
+`noForkUp2x2Form` follows as well from `pierce₁₂OrPierce₂₁Form` and from
+`scottForm`, and `noDiamondHairForm` from `weakEmForm`, each from a single
+instance. -/
+
+/-- At `a`: `¬ a` gives the conclusion's right disjunct outright, and `¬ ¬ a`
+grants the premise's hypothesis through `¬ a → a`, so `a ∨ b`, which gives the
+conclusion either way. -/
+theorem weakEm_ent_noDiamondHair :
+    Ent (weakEmForm (.var 0)) (noDiamondHairForm (.var 0) (.var 1)) :=
+  .impI (.orE .h₁                       -- intro h; cases hWem
+    (.orI₂ (.impI (.flsE (.impE .h₁ .h₀))))  -- | inl hna => Or.inr (fun ha => absurd ha hna)
+    (.orE (.impE .h₁ (.impI (.orI₂ (.impI (.flsE (.impE .h₂ .h₀))))))
+                                        -- | inr hnna => cases h (fun _ =>
+                                        --     Or.inr (fun hna => absurd hna hnna))
+      (.orI₁ .h₀)                       --   | inl ha => Or.inl ha
+      (.orI₂ (.impI (.orI₁ .h₁)))))     --   | inr hb => Or.inr (fun _ => Or.inl hb)
+
+/-- At `a ∧ b`.  Under `¬ ¬ b`, `a` gives `¬ ¬ (a ∧ b)`; so an arrow
+`¬ ¬ (a ∧ b) → a ∧ b` gives `k : a → a ∧ b`, hence `a → b` and through the
+premise `a ∨ ¬ a`, which `k` turns into Scott's premise.  Of the conclusion,
+`¬ (a ∧ b)` refutes `a` under `¬ ¬ b`, and `¬ ¬ (a ∧ b)` gives `¬ a → b`, a
+disjunct of what the premise asks. -/
+theorem scott_ent_noForkUp2x2 :
+    Ent (scottForm (.and (.var 0) (.var 1))) (noForkUp2x2Form (.var 0) (.var 1)) :=
+  .impI (.orE (.impE .h₁ (.impI         -- intro hQ; cases hScott (fun d =>
+    (.cut (p := .imp (.var 0) (.and (.var 0) (.var 1)))  -- have k : a → a ∧ b
+      (.impI (.impE .h₁ (.impI (.impE (.andE₂ .h₃)  --   fun ha => d (fun nc => hQ.2
+        (.impI (.impE .h₁ (.andI .h₂ .h₀)))))))    --     (fun hb => nc ⟨ha, hb⟩))
+      (.orE (.impE (.andE₁ .h₂) (.orI₂ (.impI (.andE₂ (.impE .h₁ .h₀)))))
+                                        --   cases hQ.1 (Or.inr (fun ha => (k ha).2))
+        (.orI₁ (.impE .h₁ .h₀))         --   | inl ha => Or.inl (k ha)
+        (.orI₂ (.impI (.impE .h₁ (.andE₁ .h₀))))))))  -- | inr hna => Or.inr (hna ·.1))
+    (.orI₂ (.impI (.impE (.andE₂ .h₂)   -- | inl nc => Or.inr (fun ha => hQ.2 (fun hb =>
+      (.impI (.impE .h₂ (.andI .h₁ .h₀))))))  --   nc ⟨ha, hb⟩))
+    (.impE (.andE₁ .h₁) (.orI₁ (.impI   -- | inr nnc => hQ.1 (Or.inl (fun hna =>
+      (.flsE (.impE .h₁ (.impI (.impE .h₁ (.andE₁ .h₀)))))))))  --   absurd (hna ·.1) nnc))
+
+/-- At `a ∧ b` and `b ∧ ¬ a`, which refute each other, so that an arrow from
+either into the other refutes it.  Under `¬ ¬ b`, Peirce's law at
+`a ∧ b, b ∧ ¬ a` then gives `a → b`, and at `b ∧ ¬ a, a ∧ b` it gives
+`¬ a → b`: either is a disjunct of what the premise asks. -/
+theorem pierce₁₂OrPierce₂₁_ent_noForkUp2x2 :
+    Ent (pierce₁₂OrPierce₂₁Form (.and (.var 0) (.var 1)) (.and (.var 1) (Form.neg (.var 0))))
+      (noForkUp2x2Form (.var 0) (.var 1)) :=
+  .impI (.orE .h₁                       -- intro hQ; cases hPP
+    (.impE (.andE₁ .h₁) (.orI₂ (.impI   -- | inl pe => hQ.1 (Or.inr (fun ha =>
+      (.andE₂ (.impE .h₁ (.impI (.flsE (.impE (.andE₂ .h₃)  --   (pe (fun f => absurd
+        (.impI (.impE (.andE₂ (.impE .h₁ (.andI .h₂ .h₀))) .h₂))))))))))
+                                        --     (fun hb => (f ⟨ha, hb⟩).2 ha) hQ.2)).2))
+    (.impE (.andE₁ .h₁) (.orI₁ (.impI   -- | inr pe => hQ.1 (Or.inl (fun hna =>
+      (.andE₁ (.impE .h₁ (.impI (.flsE (.impE (.andE₂ .h₃)  --   (pe (fun g => absurd
+        (.impI (.impE .h₂ (.andE₁ (.impE .h₁ (.andI .h₀ .h₂))))))))))))))
+                                        --     (fun hb => hna (g ⟨hb, hna⟩).1) hQ.2)).1))
+
+/-- **Weak excluded middle derives `noDiamondHairForm`.** -/
+theorem derives_noDiamondHair_of_weakEm :
+    DerivesFromSchema (weakEmForm (.var 0)) (noDiamondHairForm (.var 0) (.var 1)) :=
+  .of_ent_self weakEm_ent_noDiamondHair
+
+/-- **Scott's axiom derives `noForkUp2x2Form`.** -/
+theorem derives_noForkUp2x2_of_scott :
+    DerivesFromSchema (scottForm (.var 0)) (noForkUp2x2Form (.var 0) (.var 1)) :=
+  .of_ent scott_ent_noForkUp2x2 ⟨Form.args [.and (.var 0) (.var 1)], rfl⟩
+
+/-- **`pierce₁₂OrPierce₂₁Form` derives `noForkUp2x2Form`.** -/
+theorem derives_noForkUp2x2_of_pierce₁₂OrPierce₂₁ :
+    DerivesFromSchema (pierce₁₂OrPierce₂₁Form (.var 0) (.var 1))
+      (noForkUp2x2Form (.var 0) (.var 1)) :=
+  .of_ent pierce₁₂OrPierce₂₁_ent_noForkUp2x2
+    ⟨Form.args [.and (.var 0) (.var 1), .and (.var 1) (Form.neg (.var 0))], rfl⟩
+
 /-! ## `pierce₁₂OrLuk₁₂Form` from the principles of its three smallest refuters
 
 Conversely, four instances of the three principles together derive

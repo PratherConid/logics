@@ -1,4 +1,7 @@
 import Logics.IntermediateAxioms.Model
+import Logics.IntermediateAxioms.Refuter.NoKiteUp1x2Refuter
+import Logics.IntermediateAxioms.Refuter.NoDiamondHairRefuter
+import Logics.IntermediateAxioms.Refuter.NoForkUp2x2Refuter
 
 /-!
 # What the principles do not prove
@@ -30,7 +33,9 @@ Most of the principles lie on one chain, the *spine*: from `excludedMiddleForm`
 through `smetanichForm`, `bd2Form`, `noDiamondForm` and `pierce₁₂OrLuk₁₂Form`
 down to `pierce₁₂OrPierce₂₁Form`.  Linearity, weak excluded middle, Scott's
 axiom and Kreisel and Putnam's axiom lie beside it.  The separations below make
-each step down the spine strict, and place the four beside it.
+each step down the spine strict, and place the four beside it; the last section
+places the principles of the three smallest refuters of `pierce₁₂OrLuk₁₂Form`,
+whose algebras include `DiamondHair` from `Logics/Adjoin.lean`.
 
 Each separation is witnessed by one algebra, which validates every instance of
 the weaker principle and refutes one instance of the stronger.  All of them are
@@ -279,3 +284,98 @@ theorem bd2_nderiv_kreiselPutnam :
     ¬ DerivesFromSchema (bd2Form (.var 0) (.var 1))
       (kreiselPutnamForm (.var 0) (.var 1) (.var 2)) := fun h =>
   kreiselPutnamForm_nvalid_fork3 (DerivesFromSchema.valid bd2Form_valid_fork3 h _)
+
+/-! ## The principles of the three smallest refuters of `pierce₁₂OrLuk₁₂Form`
+
+`noKiteUp1x2Form`, `noDiamondHairForm` and `noForkUp2x2Form` each have a single
+smallest refuter: the uneven kite `KiteUp 1 2`, the diamond with a hair
+`DiamondHair` and the tall fork `ForkUp 2 2`.  A schema derives each exactly
+when it misses the top value there (`derivesFromSchema_noKiteUp1x2_iff`,
+`derivesFromSchema_noDiamondHair_iff`, `derivesFromSchema_noForkUp2x2_iff`),
+so what those three algebras validate is what does not derive them.  Nine
+separations settle their places, the rest following by
+`DerivesFromSchema.trans`:
+
+* the tall fork validates `noKiteUp1x2Form`, `noDiamondHairForm` and Kreisel and
+  Putnam's axiom, none of which therefore derives `noForkUp2x2Form`;
+* the uneven kite validates weak excluded middle and `pierce₁₂OrPierce₂₁Form`,
+  neither of which derives `noKiteUp1x2Form`;
+* the diamond with a hair validates `noKiteUp1x2Form`, Scott's axiom,
+  `pierce₁₂OrPierce₂₁Form` and Kreisel and Putnam's axiom, none of which derives
+  `noDiamondHairForm`. -/
+
+section ThreeRefuters
+
+open HeytingAlgebra PointEmbed
+
+theorem noKiteUp1x2_top_tallFork : ∀ a b : ForkUp 2 2,
+    (noKiteUp1x2Form (.var 0) (.var 1)).eval (valPair a b) = ⊤ := by decide
+
+theorem noDiamondHair_top_tallFork : ∀ a b : ForkUp 2 2,
+    (noDiamondHairForm (.var 0) (.var 1)).eval (valPair a b) = ⊤ := by decide
+
+theorem kreiselPutnam_tallFork : ∀ a b c : ForkUp 2 2,
+    ((neg a ⇨ (b ⊔ c)) ⇨ ((neg a ⇨ b) ⊔ (neg a ⇨ c))) = ⊤ := by decide
+
+theorem weakEm_kite12 : ∀ a : KiteUp 1 2, neg a ⊔ neg (neg a) = ⊤ := by decide
+
+theorem noKiteUp1x2_top_diamondHair : ∀ a b : DiamondHair,
+    (noKiteUp1x2Form (.var 0) (.var 1)).eval (valPair a b) = ⊤ := by decide
+
+theorem scott_top_diamondHair : ∀ a : DiamondHair,
+    (scottForm (.var 0)).eval (fun _ => a) = ⊤ := by decide
+
+theorem pierce₁₂OrPierce₂₁_top_diamondHair : ∀ a b : DiamondHair,
+    (((a ⇨ b) ⇨ a) ⇨ a) ⊔ (((b ⇨ a) ⇨ b) ⇨ b) = ⊤ := by decide
+
+set_option synthInstance.maxSize 1024 in
+set_option synthInstance.maxHeartbeats 400000 in
+theorem kreiselPutnam_diamondHair : ∀ a b c : DiamondHair,
+    ((neg a ⇨ (b ⊔ c)) ⇨ ((neg a ⇨ b) ⊔ (neg a ⇨ c))) = ⊤ := by decide
+
+theorem noKiteUp1x2_nderiv_noForkUp2x2 :
+    ¬ DerivesFromSchema (noKiteUp1x2Form (.var 0) (.var 1))
+      (noForkUp2x2Form (.var 0) (.var 1)) := fun h =>
+  (derivesFromSchema_noForkUp2x2_iff _).mp h fun w => noKiteUp1x2_top_tallFork (w 0) (w 1)
+
+theorem noDiamondHair_nderiv_noForkUp2x2 :
+    ¬ DerivesFromSchema (noDiamondHairForm (.var 0) (.var 1))
+      (noForkUp2x2Form (.var 0) (.var 1)) := fun h =>
+  (derivesFromSchema_noForkUp2x2_iff _).mp h fun w => noDiamondHair_top_tallFork (w 0) (w 1)
+
+theorem kreiselPutnam_nderiv_noForkUp2x2 :
+    ¬ DerivesFromSchema (kreiselPutnamForm (.var 0) (.var 1) (.var 2))
+      (noForkUp2x2Form (.var 0) (.var 1)) := fun h =>
+  (derivesFromSchema_noForkUp2x2_iff _).mp h fun w => kreiselPutnam_tallFork (w 0) (w 1) (w 2)
+
+theorem weakEm_nderiv_noKiteUp1x2 :
+    ¬ DerivesFromSchema (weakEmForm (.var 0)) (noKiteUp1x2Form (.var 0) (.var 1)) := fun h =>
+  (derivesFromSchema_noKiteUp1x2_iff _).mp h fun w => weakEm_kite12 (w 0)
+
+theorem pierce₁₂OrPierce₂₁_nderiv_noKiteUp1x2 :
+    ¬ DerivesFromSchema (pierce₁₂OrPierce₂₁Form (.var 0) (.var 1))
+      (noKiteUp1x2Form (.var 0) (.var 1)) := fun h =>
+  (derivesFromSchema_noKiteUp1x2_iff _).mp h pierce₁₂OrPierce₂₁Form_valid_kite
+
+theorem noKiteUp1x2_nderiv_noDiamondHair :
+    ¬ DerivesFromSchema (noKiteUp1x2Form (.var 0) (.var 1))
+      (noDiamondHairForm (.var 0) (.var 1)) := fun h =>
+  (derivesFromSchema_noDiamondHair_iff _).mp h fun w => noKiteUp1x2_top_diamondHair (w 0) (w 1)
+
+theorem scott_nderiv_noDiamondHair :
+    ¬ DerivesFromSchema (scottForm (.var 0)) (noDiamondHairForm (.var 0) (.var 1)) := fun h =>
+  (derivesFromSchema_noDiamondHair_iff _).mp h fun w => scott_top_diamondHair (w 0)
+
+theorem pierce₁₂OrPierce₂₁_nderiv_noDiamondHair :
+    ¬ DerivesFromSchema (pierce₁₂OrPierce₂₁Form (.var 0) (.var 1))
+      (noDiamondHairForm (.var 0) (.var 1)) := fun h =>
+  (derivesFromSchema_noDiamondHair_iff _).mp h fun w =>
+    pierce₁₂OrPierce₂₁_top_diamondHair (w 0) (w 1)
+
+theorem kreiselPutnam_nderiv_noDiamondHair :
+    ¬ DerivesFromSchema (kreiselPutnamForm (.var 0) (.var 1) (.var 2))
+      (noDiamondHairForm (.var 0) (.var 1)) := fun h =>
+  (derivesFromSchema_noDiamondHair_iff _).mp h fun w =>
+    kreiselPutnam_diamondHair (w 0) (w 1) (w 2)
+
+end ThreeRefuters
