@@ -4,7 +4,9 @@
 A small self-contained order theoretic hierarchy, `PartialOrder → Lattice →
 BoundedLattice`, together with the usual identities: the universal properties of
 `⊓` and `⊔`, idempotence, commutativity, associativity, monotonicity, the two
-absorption laws, and the behaviour of the bounds.
+absorption laws, and the behaviour of the bounds.  For a bounded lattice, the
+elements that no join splits: join irreducible and join prime ones, the same
+elements when the lattice is distributive.
 
 The order is written `⊑` rather than `≤` so that a carrier type may keep its own
 `LE` instance.
@@ -234,6 +236,63 @@ theorem supList_inf_supList_le {α : Type u} [BoundedLattice α] [Distrib α] {z
     · rw [inf_comm]; exact inf_supList_le (h x (List.mem_cons_self ..))
     · rw [inf_comm]
       exact supList_inf_supList_le fun x' hx' y hy => h x' (List.mem_cons_of_mem _ hx') y hy
+
+/-! ## Join irreducible and join prime elements
+
+Two ways for a nonzero element to be indivisible under joins: *irreducible*, not
+the join of two elements different from it, and *prime*, below a join only by
+lying below one of the two.  A prime element is irreducible in every lattice;
+in a distributive one the converse holds too, so there the two coincide
+(`joinPrime_iff_joinIrred`). -/
+
+section JoinIrred
+
+open PartialOrder Lattice BoundedLattice
+
+variable {α : Type u} [BoundedLattice α]
+
+/-- **Join irreducible**: nonzero, and not the join of two elements different
+from it. -/
+def JoinIrred (j : α) : Prop := j ≠ ⊥ ∧ ∀ a b : α, a ⊔ b = j → a = j ∨ b = j
+
+/-- **Join prime**: nonzero, and below a join only by lying below one of the
+two. -/
+def JoinPrime (j : α) : Prop := j ≠ ⊥ ∧ ∀ a b : α, j ⊑ a ⊔ b → j ⊑ a ∨ j ⊑ b
+
+/-- **A join prime is join irreducible**, in any lattice: if `a ⊔ b = j`, then
+`j` lies below `a` or below `b`, and each of them already lies below `j`. -/
+theorem JoinPrime.joinIrred {j : α} (hj : JoinPrime j) : JoinIrred j := by
+  refine ⟨hj.1, fun a b hab => ?_⟩
+  rcases hj.2 a b (le_of_eq hab.symm) with h | h
+  · exact Or.inl (le_antisymm (hab ▸ le_sup_left a b) h)
+  · exact Or.inr (le_antisymm (hab ▸ le_sup_right a b) h)
+
+/-- **In a distributive lattice a join irreducible is join prime.**  Below
+`a ⊔ b`, `j` is the join of its meets with `a` and with `b`, and one of those
+must be `j` itself. -/
+theorem JoinIrred.joinPrime [Distrib α] {j : α} (hj : JoinIrred j) : JoinPrime j := by
+  refine ⟨hj.1, fun a b h => ?_⟩
+  have hle : j ⊑ (j ⊓ a) ⊔ (j ⊓ b) :=
+    le_trans (le_inf le_rfl h) (Distrib.inf_sup_le j a b)
+  have heq : (j ⊓ a) ⊔ (j ⊓ b) = j :=
+    le_antisymm (sup_le (inf_le_left _ _) (inf_le_left _ _)) hle
+  exact (hj.2 _ _ heq).imp inf_eq_left_iff.mp inf_eq_left_iff.mp
+
+/-- **In a distributive lattice the two coincide.** -/
+theorem joinPrime_iff_joinIrred [Distrib α] {j : α} : JoinPrime j ↔ JoinIrred j :=
+  ⟨JoinPrime.joinIrred, JoinIrred.joinPrime⟩
+
+/-- A join prime below the join of a list lies below one of its entries. -/
+theorem JoinPrime.le_supList {j : α} (hj : JoinPrime j) :
+    ∀ {L : List α}, j ⊑ supList L → ∃ x ∈ L, j ⊑ x
+  | [], h => absurd (le_antisymm h (bot_le _)) hj.1
+  | x :: t, h => by
+    rcases hj.2 _ _ h with hx | ht
+    · exact ⟨x, List.mem_cons.mpr (Or.inl rfl), hx⟩
+    · obtain ⟨y, hy, hjy⟩ := hj.le_supList ht
+      exact ⟨y, List.mem_cons_of_mem x hy, hjy⟩
+
+end JoinIrred
 
 /-! ## Products
 

@@ -89,15 +89,10 @@ top value in both the fork and the diamond. -/
 theorem derivesFromSchema_linearity_iff (X : Form) :
     DerivesFromSchema X (linearityForm (.var 0) (.var 1)) ↔
       (¬ ∀ w : Nat → ForkUp 1 1, X.eval w = ⊤) ∧
-        (¬ ∀ w : Nat → KiteUp 1 1, X.eval w = ⊤) := by
-  constructor
-  · intro h
-    exact ⟨fun hv => linearityForm_nvalid_fork (DerivesFromSchema.valid hv h _),
-      fun hv => linearityForm_nvalid_kite (DerivesFromSchema.valid hv h _)⟩
-  · exact fun hX => DerivesFromSchema.of_sh fun α iα hnv =>
-      (sh_fork_or_kite_of_refutes_linearity α iα hnv).elim
-        (fun hs => ⟨ForkUp 1 1, inferInstance, hs, hX.1⟩)
-        (fun hs => ⟨KiteUp 1 1, inferInstance, hs, hX.2⟩)
+        (¬ ∀ w : Nat → KiteUp 1 1, X.eval w = ⊤) :=
+  DerivesFromSchema.iff_of_refuters (fun hv => linearityForm_nvalid_fork (hv _))
+    (fun hv => linearityForm_nvalid_kite (hv _))
+    sh_fork_or_kite_of_refutes_linearity X
 
 /-! # Part two: neither refuter can be shrunk, and neither can be dropped -/
 

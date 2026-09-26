@@ -81,10 +81,8 @@ theorem valid_of_onto {α β : Type u} [HeytingAlgebra α] [HeytingAlgebra β]
     ∀ w : Nat → α, p.eval w = ⊤ := by
   obtain ⟨f, hf⟩ := h
   intro w
-  have hrep : ∀ n, ∃ b, f.toFun b = w n := fun n => hf (w n)
-  have hw : w = fun n => f.toFun (Classical.choose (hrep n)) :=
-    funext (fun n => (Classical.choose_spec (hrep n)).symm)
-  rw [hw, f.eval, hβ, f.map_top]
+  obtain ⟨v, rfl⟩ := exists_lift_valuation hf w
+  rw [f.eval, hβ, f.map_top]
 
 /-! ## The Jankov order -/
 
@@ -273,6 +271,12 @@ theorem sh_of_bijective {α β : Type} [HeytingAlgebra α] [HeytingAlgebra β]
     (f : Hom α β) (hf : Function.Injective f.toFun ∧ Function.Surjective f.toFun) : SH β α :=
   ⟨β, inferInstance, ⟨f, hf.2⟩, embeds_refl β⟩
 
+/-- An isomorphism puts the two algebras below each other. -/
+theorem sh_of_iso {α β : Type} [HeytingAlgebra α] [HeytingAlgebra β]
+    (f : Hom α β) (hf : Function.Injective f.toFun ∧ Function.Surjective f.toFun) :
+    SH α β ∧ SH β α :=
+  ⟨⟨β, inferInstance, onto_refl β, ⟨f, hf.1⟩⟩, sh_of_bijective f hf⟩
+
 /-- Validity need only be checked on the image of an embedding. -/
 theorem valid_of_embeds_of_valid_on {α β : Type u} [HeytingAlgebra α] [HeytingAlgebra β]
     (f : Hom α β) (hf : Function.Injective f.toFun) {p : Form}
@@ -332,10 +336,8 @@ theorem valid_of_collapse {α β : Type u} [HeytingAlgebra α] [HeytingAlgebra �
   have hfc : f.toFun c = ⊤ :=
     (eq_top_iff _).mpr (le_trans (le_of_eq hx.symm) (f.mono (hc _ hxne)))
   intro w
-  have hrep : ∀ n, ∃ x, f.toFun x = w n := fun n => hsurj (w n)
-  have hw : w = fun n => f.toFun (Classical.choose (hrep n)) :=
-    funext (fun n => (Classical.choose_spec (hrep n)).symm)
-  rw [hw, f.eval]
+  obtain ⟨v, rfl⟩ := exists_lift_valuation hsurj w
+  rw [f.eval]
   exact (eq_top_iff _).mpr (le_trans (le_of_eq hfc.symm) (f.mono (hp _)))
 
 /-! ## Lower bounds among refuters

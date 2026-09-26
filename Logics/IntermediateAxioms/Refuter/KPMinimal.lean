@@ -215,8 +215,7 @@ variable {M : Type} [Frame M]
 
 theorem exists_nodup (hM : InKPMin M) : ∃ l : List M, l.Nodup ∧ ∀ p, p ∈ l := by
   obtain ⟨l, hl⟩ := hM.list.finite
-  obtain ⟨l', hnd, hmem⟩ := ListCount.exists_nodup l
-  exact ⟨l', hnd, fun p => (hmem p).mpr (hl p)⟩
+  exact ListCount.exists_nodup_of_mem hl
 
 theorem exists_max_above (hM : InKPMin M) (x : M) : ∃ m, x ≼ m ∧ IsMaxPt m :=
   let ⟨_, hl⟩ := hM.list.finite
@@ -310,7 +309,7 @@ theorem inKPMin_iff {M : Type} [Frame M] :
     obtain ⟨r, a, hs⟩ :=
       (kp_ntop_iff_splits (hasMinimal_of_list _ (Within.mem_cover hl))).mp hkp
     have hr := hroot _ _ (Within.splits_pt hs)
-    exact Upset.ext fun p => ⟨fun _ => trivial, fun _ => U.upward (hr p) r.mem⟩
+    exact Upset.eq_top_of_mem fun p => U.upward (hr p) r.mem
 
 /-- A split at the root: two unrelated minimal points of the region that `a`
 cuts out there. -/
@@ -343,8 +342,7 @@ def swap : RootSplit M :=
 /-- The region's own negation cuts the same region out, and it is the choice
 of defining set that merges keep: whether a point reaches the region. -/
 theorem region_canon : kpRegion S.root (neg S.R) = S.R := by
-  have htop : Upset.up S.root = ⊤ :=
-    Upset.ext fun p => ⟨fun _ => trivial, fun _ => S.isRoot p⟩
+  have htop : Upset.up S.root = ⊤ := Upset.eq_top_of_mem S.isRoot
   show Upset.up S.root ⊓ neg (neg (Upset.up S.root ⊓ neg S.a)) =
     Upset.up S.root ⊓ neg S.a
   have ht : ∀ x : Upset M, ⊤ ⊓ x = x := fun x => by rw [inf_comm, inf_top]

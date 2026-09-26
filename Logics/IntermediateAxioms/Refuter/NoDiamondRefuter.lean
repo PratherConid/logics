@@ -137,9 +137,6 @@ theorem sh_kite_of_refutes_noDiamond (α : Type) (iα : HeytingAlgebra α)
 the top value in the diamond. -/
 theorem derivesFromSchema_noDiamond_iff (X : Form) :
     DerivesFromSchema X (noDiamondForm (.var 0) (.var 1)) ↔
-      ¬ ∀ w : Nat → KiteUp 1 1, X.eval w = ⊤ := by
-  constructor
-  · intro h hv
-    exact noDiamondForm_nvalid_diamond (DerivesFromSchema.valid hv h _)
-  · exact fun hX => DerivesFromSchema.of_sh fun α iα hnv =>
-      ⟨KiteUp 1 1, inferInstance, sh_kite_of_refutes_noDiamond α iα hnv, hX⟩
+      ¬ ∀ w : Nat → KiteUp 1 1, X.eval w = ⊤ :=
+  DerivesFromSchema.iff_of_refuter (fun hv => noDiamondForm_nvalid_diamond (hv _))
+    sh_kite_of_refutes_noDiamond X

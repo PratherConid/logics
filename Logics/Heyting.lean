@@ -335,6 +335,14 @@ instance : HeytingAlgebra (Upset P) where
     · intro h p hp
       exact h p hp.1 p (Frame.le_refl p) hp.2
 
+/-- An upward closed set holding every point is the top. -/
+theorem eq_top_of_mem {U : Upset P} (h : ∀ p, U.mem p) : U = ⊤ :=
+  ext fun p => ⟨fun _ => trivial, fun _ => h p⟩
+
+/-- An upward closed set short of the top misses a point. -/
+theorem exists_not_mem {U : Upset P} (h : U ≠ ⊤) : ∃ p, ¬ U.mem p :=
+  Classical.not_forall.mp fun hall => h (eq_top_of_mem hall)
+
 /-- The upward closed set of everything above a point. -/
 def up (p : P) : Upset P := ⟨fun q => p ≼ q, fun h hp => Frame.le_trans hp h⟩
 
@@ -521,10 +529,14 @@ def Valid (p : Form) : Prop :=
 
 /-- A formula that is not valid in an algebra misses the top value somewhere. -/
 theorem exists_ne_top {α : Type} [HeytingAlgebra α] {p : Form}
-    (h : ¬ ∀ v : Nat → α, p.eval v = ⊤) : ∃ v : Nat → α, p.eval v ≠ ⊤ := by
-  refine Classical.byContradiction fun hne => h ?_
-  intro v
-  exact Classical.byContradiction fun hv => hne ⟨v, hv⟩
+    (h : ¬ ∀ v : Nat → α, p.eval v = ⊤) : ∃ v : Nat → α, p.eval v ≠ ⊤ :=
+  Classical.not_forall.mp h
+
+/-- **Along a surjection every valuation lifts**: it is a valuation pushed
+forward, one preimage chosen for each variable. -/
+theorem exists_lift_valuation {α β : Type u} {f : α → β} (hf : Function.Surjective f)
+    (w : Nat → β) : ∃ v : Nat → α, (fun n => f (v n)) = w :=
+  ⟨fun n => Classical.choose (hf (w n)), funext fun n => Classical.choose_spec (hf (w n))⟩
 
 /-- A context is interpreted by the meet of its members. -/
 def evalCtx {α : Type u} [HeytingAlgebra α] (v : Nat → α) : List Form → α

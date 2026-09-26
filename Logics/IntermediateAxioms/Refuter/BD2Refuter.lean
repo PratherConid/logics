@@ -95,9 +95,6 @@ theorem sh_four_of_refutes_bd2 (α : Type) (iα : HeytingAlgebra α)
 /-- **The criterion.**  A schema derives `bd2Form` exactly when it misses the
 top value in `Fin 4` — one algebra, no conjunction. -/
 theorem derivesFromSchema_bd2_iff (X : Form) :
-    DerivesFromSchema X (bd2Form (.var 0) (.var 1)) ↔ ¬ ∀ w : Nat → Fin 4, X.eval w = ⊤ := by
-  constructor
-  · intro h hv
-    exact bd2Form_nvalid_four (DerivesFromSchema.valid hv h _)
-  · exact fun hX => DerivesFromSchema.of_sh fun α iα hnv =>
-      ⟨Fin 4, inferInstance, sh_four_of_refutes_bd2 α iα hnv, hX⟩
+    DerivesFromSchema X (bd2Form (.var 0) (.var 1)) ↔ ¬ ∀ w : Nat → Fin 4, X.eval w = ⊤ :=
+  DerivesFromSchema.iff_of_refuter (fun hv => bd2Form_nvalid_four (hv _))
+    sh_four_of_refutes_bd2 X

@@ -109,9 +109,6 @@ theorem sh_fork12_of_refutes_scott (α : Type) (iα : HeytingAlgebra α)
 /-- **The criterion.**  A schema derives `scottForm` exactly when it misses the
 top value in the uneven fork. -/
 theorem derivesFromSchema_scott_iff (X : Form) :
-    DerivesFromSchema X (scottForm (.var 0)) ↔ ¬ ∀ w : Nat → ForkUp 1 2, X.eval w = ⊤ := by
-  constructor
-  · intro h hv
-    exact scottForm_nvalid_fork12 (DerivesFromSchema.valid hv h _)
-  · exact fun hX => DerivesFromSchema.of_sh fun α iα hnv =>
-      ⟨ForkUp 1 2, inferInstance, sh_fork12_of_refutes_scott α iα hnv, hX⟩
+    DerivesFromSchema X (scottForm (.var 0)) ↔ ¬ ∀ w : Nat → ForkUp 1 2, X.eval w = ⊤ :=
+  DerivesFromSchema.iff_of_refuter (fun hv => scottForm_nvalid_fork12 (hv _))
+    sh_fork12_of_refutes_scott X

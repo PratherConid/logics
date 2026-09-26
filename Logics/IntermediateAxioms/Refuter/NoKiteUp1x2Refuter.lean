@@ -295,9 +295,6 @@ theorem sh_kite12_of_refutes_noKiteUp1x2 (α : Type) (iα : HeytingAlgebra α)
 the top value in the uneven kite. -/
 theorem derivesFromSchema_noKiteUp1x2_iff (X : Form) :
     DerivesFromSchema X (noKiteUp1x2Form (.var 0) (.var 1)) ↔
-      ¬ ∀ w : Nat → KiteUp 1 2, X.eval w = ⊤ := by
-  constructor
-  · intro h hv
-    exact nvalid fun _ _ => DerivesFromSchema.valid hv h _
-  · exact fun hX => DerivesFromSchema.of_sh fun α iα hnv =>
-      ⟨KiteUp 1 2, inferInstance, sh_kite12_of_refutes_noKiteUp1x2 α iα hnv, hX⟩
+      ¬ ∀ w : Nat → KiteUp 1 2, X.eval w = ⊤ :=
+  DerivesFromSchema.iff_of_refuter (fun hv => nvalid fun _ _ => hv _)
+    sh_kite12_of_refutes_noKiteUp1x2 X

@@ -254,9 +254,7 @@ theorem isChain_of_length (n : Nat) : ∀ {P : Type} [Frame P], Frame.Antisymm P
     intro P _ hA l hl hn m
     rcases Classical.em (∀ x, m.g x = x) with hfix | hfix
     · exact .nil hfix
-    have hm : ∃ x, m.g x ≠ x :=
-      Classical.byContradiction fun hc =>
-        hfix fun x => Classical.byContradiction fun hx => hc ⟨x, hx⟩
+    have hm : ∃ x, m.g x ≠ x := Classical.not_forall.mp hfix
     obtain ⟨x, y, hxy, h⟩ := exists_pair hA l hl m hm
     have hlen : ((pair x y h).cover l).length ≤ n :=
       Nat.le_of_lt_succ (Nat.lt_of_lt_of_le ((pair x y h).length_cover_lt (hl x) (pair_g_ne h)) hn)
@@ -292,9 +290,7 @@ theorem refuterLB_iff_steps (hA : Frame.Antisymm P) (l : List P) (hl : ∀ x, x 
       (∀ U : Upset P, U ≠ ⊤ → ∀ v : Nat → Upset (Within U), p.eval v = ⊤) ∧
       ∀ (x y : P) (h : IsAlpha x y ∨ IsBeta x y), ∀ v : Nat → Upset (Merger.pair x y h).Pt,
         p.eval v = ⊤ := by
-  obtain ⟨l', hnd, hl'⟩ : ∃ l' : List P, l'.Nodup ∧ ∀ x, x ∈ l' := by
-    obtain ⟨l', hnd, hmem⟩ := ListCount.exists_nodup l
-    exact ⟨l', hnd, fun x => (hmem x).mpr (hl x)⟩
+  obtain ⟨l', hnd, hl'⟩ := ListCount.exists_nodup_of_mem hl
   constructor
   · -- a smaller frame refuting the formula would put the algebra below itself
     intro hLB
@@ -305,9 +301,7 @@ theorem refuterLB_iff_steps (hA : Frame.Antisymm P) (l : List P) (hl : ∀ x, x 
     refine ⟨fun U hU => small (Within.mem_cover hl') ?_ (Within.sh U), fun x y h =>
       small (Merger.mem_cover _ hl') (Merger.length_cover_lt _ (hl' x) (Merger.pair_g_ne h))
         (Merger.pair x y h).sh⟩
-    obtain ⟨z, hz⟩ : ∃ z, ¬ U.mem z := Classical.byContradiction fun hc =>
-      hU (Upset.ext fun z => ⟨fun _ => trivial, fun _ =>
-        Classical.byContradiction fun hz => hc ⟨z, hz⟩⟩)
+    obtain ⟨z, hz⟩ := Upset.exists_not_mem hU
     exact Within.length_cover_lt (hl' z) hz
   · rintro ⟨hU, hstep⟩ γ iγ ⟨δ, iδ, ⟨f, hf⟩, ⟨g, hg⟩⟩ hnv
     by_cases hinj : Function.Injective f.toFun

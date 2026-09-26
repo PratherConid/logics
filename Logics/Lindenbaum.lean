@@ -281,12 +281,10 @@ theorem eval_vars (X p : Form) : p.eval (vars X) = mk X p := by
 to choice of representatives, so `X` evaluates to the class of one of its own
 instances, which is at the top. -/
 theorem schema_valid (X : Form) (w : Nat → Lindenbaum X) : X.eval w = ⊤ := by
-  have hrep : ∀ n, ∃ p : Form, mk X p = w n := fun n => Quotient.exists_rep (w n)
-  have hw : w = fun n => mk X (Classical.choose (hrep n)) :=
-    funext (fun n => (Classical.choose_spec (hrep n)).symm)
-  rw [hw, eval_mk]
+  obtain ⟨v, rfl⟩ := exists_lift_valuation (f := mk X) (fun q => Quotient.exists_rep q) w
+  rw [eval_mk]
   exact (mk_eq_top_iff X _).mpr
-    ⟨[X.subst (fun n => Classical.choose (hrep n))],
+    ⟨[X.subst v],
      by intro s hs; simp only [List.mem_singleton] at hs; exact ⟨_, hs⟩,
      Derives.ax (by simp)⟩
 
@@ -369,3 +367,28 @@ theorem DerivesFromSchema.of_sh {X p : Form}
   refine Classical.byContradiction fun hne => ?_
   obtain ⟨A, _, hsh, hA⟩ := h α fun hall => hne (hall v)
   exact hA (valid_of_sh hsh hX)
+
+/-- **A criterion from one refuter.**  If `A` refutes `p` and lies below every
+algebra refuting `p`, a schema derives `p` exactly when it misses the top value
+in `A`: a derivation carries validity in `A` over to `p`, and otherwise `A`
+refutes the schema below every refuter of `p`. -/
+theorem DerivesFromSchema.iff_of_refuter {A : Type} [HeytingAlgebra A] {p : Form}
+    (hA : ¬ ∀ w : Nat → A, p.eval w = ⊤)
+    (hsh : ∀ (α : Type) (iα : HeytingAlgebra α),
+      (¬ ∀ v : Nat → α, p.eval v = ⊤) → @SH A α _ iα) (X : Form) :
+    DerivesFromSchema X p ↔ ¬ ∀ w : Nat → A, X.eval w = ⊤ :=
+  ⟨fun h hX => hA fun w => DerivesFromSchema.valid hX h w,
+   fun hX => DerivesFromSchema.of_sh fun α iα hnv => ⟨A, inferInstance, hsh α iα hnv, hX⟩⟩
+
+/-- **A criterion from two refuters**, one or the other of which lies below
+every algebra refuting `p`. -/
+theorem DerivesFromSchema.iff_of_refuters {A B : Type} [HeytingAlgebra A] [HeytingAlgebra B]
+    {p : Form} (hA : ¬ ∀ w : Nat → A, p.eval w = ⊤) (hB : ¬ ∀ w : Nat → B, p.eval w = ⊤)
+    (hsh : ∀ (α : Type) (iα : HeytingAlgebra α),
+      (¬ ∀ v : Nat → α, p.eval v = ⊤) → @SH A α _ iα ∨ @SH B α _ iα) (X : Form) :
+    DerivesFromSchema X p ↔
+      (¬ ∀ w : Nat → A, X.eval w = ⊤) ∧ (¬ ∀ w : Nat → B, X.eval w = ⊤) :=
+  ⟨fun h => ⟨fun hX => hA fun w => DerivesFromSchema.valid hX h w,
+     fun hX => hB fun w => DerivesFromSchema.valid hX h w⟩,
+   fun hX => DerivesFromSchema.of_sh fun α iα hnv => (hsh α iα hnv).elim
+     (fun hs => ⟨A, inferInstance, hs, hX.1⟩) (fun hs => ⟨B, inferInstance, hs, hX.2⟩)⟩

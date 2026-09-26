@@ -63,6 +63,12 @@ theorem exists_nodup {α : Type u} :
     · refine ⟨x :: t', List.nodup_cons.mpr ⟨hx, hnd⟩, fun a => ?_⟩
       rw [List.mem_cons, List.mem_cons, hmem a]
 
+/-- A list naming every element can be taken without repeats. -/
+theorem exists_nodup_of_mem {α : Type u} {l : List α} (hl : ∀ a, a ∈ l) :
+    ∃ l' : List α, l'.Nodup ∧ ∀ a, a ∈ l' :=
+  let ⟨l', hnd, hmem⟩ := exists_nodup l
+  ⟨l', hnd, fun a => (hmem a).mpr (hl a)⟩
+
 /-- A predicate implying another, and failing at a member where the other
 holds, counts strictly fewer. -/
 theorem countP_lt {α : Type u} {p q : α → Bool} {l : List α}
@@ -389,10 +395,7 @@ holding the root holds everything. -/
 theorem le_coatom (hroot : ∀ x, r ≼ x) (hr : ∀ x, x ≼ r → x = r) (U : Upset P)
     (hU : U ≠ ⊤) : U ⊑ coatom r hr := by
   intro x hx hxr
-  apply hU
-  refine ext fun y => ⟨fun _ => trivial, fun _ => U.upward ?_ hx⟩
-  rw [hxr]
-  exact hroot y
+  exact hU (eq_top_of_mem fun y => U.upward (show x ≼ y from hxr ▸ hroot y) hx)
 
 end Upset
 
@@ -1048,7 +1051,7 @@ theorem sh_iff_of_hom {α : Type} [HeytingAlgebra α] (l : List P) (hl : ∀ x, 
     (f : Hom α (Upset P)) (hf : Function.Injective f.toFun) :
     ∃ m : Merger P, SH α (Upset m.Pt) ∧ SH (Upset m.Pt) α := by
   obtain ⟨m, e, he⟩ := exists_iso_of_hom l hl f hf
-  exact ⟨m, sh_of_embeds ⟨e, he.1⟩, sh_of_bijective e he⟩
+  exact ⟨m, sh_of_iso e he⟩
 
 end Merger
 
@@ -1138,7 +1141,7 @@ theorem sh_iff_of_onto (l : List P) (hl : ∀ x, x ∈ l) (f : Hom (Upset P) α)
     (hf : Function.Surjective f.toFun) :
     ∃ U : Upset P, SH α (Upset (Within U)) ∧ SH (Upset (Within U)) α := by
   obtain ⟨e, he⟩ := exists_iso_of_onto l hl f hf
-  exact ⟨_, sh_of_embeds ⟨e, he.1⟩, sh_of_bijective e he⟩
+  exact ⟨_, sh_of_iso e he⟩
 
 end Within
 

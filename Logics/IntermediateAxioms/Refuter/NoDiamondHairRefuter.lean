@@ -290,9 +290,6 @@ theorem sh_diamondHair_of_refutes_noDiamondHair (α : Type) (iα : HeytingAlgebr
 misses the top value in the diamond with a hair. -/
 theorem derivesFromSchema_noDiamondHair_iff (X : Form) :
     DerivesFromSchema X (noDiamondHairForm (.var 0) (.var 1)) ↔
-      ¬ ∀ w : Nat → DiamondHair, X.eval w = ⊤ := by
-  constructor
-  · intro h hv
-    exact nvalid fun _ _ => DerivesFromSchema.valid hv h _
-  · exact fun hX => DerivesFromSchema.of_sh fun α iα hnv =>
-      ⟨DiamondHair, inferInstance, sh_diamondHair_of_refutes_noDiamondHair α iα hnv, hX⟩
+      ¬ ∀ w : Nat → DiamondHair, X.eval w = ⊤ :=
+  DerivesFromSchema.iff_of_refuter (fun hv => nvalid fun _ _ => hv _)
+    sh_diamondHair_of_refutes_noDiamondHair X

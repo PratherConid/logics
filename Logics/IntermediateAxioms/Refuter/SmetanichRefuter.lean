@@ -266,12 +266,7 @@ there too, against assumption. -/
 theorem derivesFromSchema_smetanich_iff (X : Form) :
     DerivesFromSchema X (smetanichForm (.var 0) (.var 1)) ↔
       (¬ ∀ w : Nat → Fin 4, X.eval w = ⊤) ∧
-        (¬ ∀ w : Nat → ForkUp 1 1, X.eval w = ⊤) := by
-  constructor
-  · intro h
-    exact ⟨fun hv => smetanichForm_nvalid_four (DerivesFromSchema.valid hv h _),
-      fun hv => smetanichForm_nvalid_fork (DerivesFromSchema.valid hv h _)⟩
-  · exact fun hX => DerivesFromSchema.of_sh fun α iα hnv =>
-      (sh_four_or_fork_of_refutes α iα hnv).elim
-        (fun hs => ⟨Fin 4, inferInstance, hs, hX.1⟩)
-        (fun hs => ⟨ForkUp 1 1, inferInstance, hs, hX.2⟩)
+        (¬ ∀ w : Nat → ForkUp 1 1, X.eval w = ⊤) :=
+  DerivesFromSchema.iff_of_refuters (fun hv => smetanichForm_nvalid_four (hv _))
+    (fun hv => smetanichForm_nvalid_fork (hv _))
+    sh_four_or_fork_of_refutes X

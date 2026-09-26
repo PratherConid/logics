@@ -275,9 +275,6 @@ theorem sh_fork22_of_refutes_noForkUp2x2 (α : Type) (iα : HeytingAlgebra α)
 the top value in the tall fork. -/
 theorem derivesFromSchema_noForkUp2x2_iff (X : Form) :
     DerivesFromSchema X (noForkUp2x2Form (.var 0) (.var 1)) ↔
-      ¬ ∀ w : Nat → ForkUp 2 2, X.eval w = ⊤ := by
-  constructor
-  · intro h hv
-    exact nvalid fun _ _ => DerivesFromSchema.valid hv h _
-  · exact fun hX => DerivesFromSchema.of_sh fun α iα hnv =>
-      ⟨ForkUp 2 2, inferInstance, sh_fork22_of_refutes_noForkUp2x2 α iα hnv, hX⟩
+      ¬ ∀ w : Nat → ForkUp 2 2, X.eval w = ⊤ :=
+  DerivesFromSchema.iff_of_refuter (fun hv => nvalid fun _ _ => hv _)
+    sh_fork22_of_refutes_noForkUp2x2 X

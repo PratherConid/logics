@@ -66,9 +66,6 @@ theorem sh_forkUp_of_refutes_weakEm (α : Type) (iα : HeytingAlgebra α)
 /-- **The criterion.**  A schema derives `weakEmForm` exactly when it misses the
 top value in the fork. -/
 theorem derivesFromSchema_weakEm_iff (X : Form) :
-    DerivesFromSchema X (weakEmForm (.var 0)) ↔ ¬ ∀ w : Nat → ForkUp 1 1, X.eval w = ⊤ := by
-  constructor
-  · intro h hv
-    exact weakEmForm_nvalid_fork (DerivesFromSchema.valid hv h _)
-  · exact fun hX => DerivesFromSchema.of_sh fun α iα hnv =>
-      ⟨ForkUp 1 1, inferInstance, sh_forkUp_of_refutes_weakEm α iα hnv, hX⟩
+    DerivesFromSchema X (weakEmForm (.var 0)) ↔ ¬ ∀ w : Nat → ForkUp 1 1, X.eval w = ⊤ :=
+  DerivesFromSchema.iff_of_refuter (fun hv => weakEmForm_nvalid_fork (hv _))
+    sh_forkUp_of_refutes_weakEm X

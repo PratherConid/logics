@@ -20,8 +20,9 @@ other in the Jankov order (`sh_upset`, `sh_of_upset`).
 
 ## Why `rep` is an isomorphism
 
-* **Join irreducibles are join prime** (`JoinIrred.le_or_le`): a join
-  irreducible below `a ⊔ b` is below `a` or below `b`.  This is the one use of
+* **Join irreducibles are join prime** (`JoinIrred.joinPrime`, in
+  `Logics/Lattice.lean`): a join irreducible below `a ⊔ b` is below `a` or
+  below `b`.  This is the one use of
   distributivity, and it makes `rep` keep joins.
 * **Every element is the join of the join irreducibles below it**
   (`le_of_irred`), so `rep` reflects the order.  This is the use of finiteness:
@@ -83,21 +84,6 @@ variable {α : Type} [BoundedLattice α]
 
 /-! ## Join irreducible elements -/
 
-/-- Nonzero, and not the join of two elements different from it. -/
-def JoinIrred (j : α) : Prop := j ≠ ⊥ ∧ ∀ a b : α, a ⊔ b = j → a = j ∨ b = j
-
-/-- **Join irreducibles are join prime.**  Below `a ⊔ b`, `j` is the join of its
-meets with `a` and with `b`, and one of those must be `j` itself. -/
-theorem JoinIrred.le_or_le [Distrib α] {j : α} (hj : JoinIrred j) {a b : α}
-    (h : j ⊑ a ⊔ b) : j ⊑ a ∨ j ⊑ b := by
-  have hle : j ⊑ (j ⊓ a) ⊔ (j ⊓ b) :=
-    le_trans (le_inf le_rfl h) (Distrib.inf_sup_le j a b)
-  have heq : (j ⊓ a) ⊔ (j ⊓ b) = j :=
-    le_antisymm (sup_le (inf_le_left _ _) (inf_le_left _ _)) hle
-  rcases hj.2 _ _ heq with h1 | h1
-  · exact Or.inl (le_trans (le_of_eq h1.symm) (inf_le_right j a))
-  · exact Or.inr (le_trans (le_of_eq h1.symm) (inf_le_right j b))
-
 /-- **Every element is the join of the join irreducibles below it**: anything
 above all of them is above it.  An element neither `⊥` nor join irreducible is
 the join of two strictly smaller ones, which the induction covers. -/
@@ -120,18 +106,6 @@ theorem le_of_irred {l : List α} (hl : ∀ a, a ∈ l) {a x : α}
   rw [← hbc]
   exact sup_le (ih b hba hb x fun j hj hjb => h j hj (le_trans hjb hba))
     (ih c hca hc x fun j hj hjc => h j hj (le_trans hjc hca))
-
-/-! ## Joins of lists -/
-
-/-- A join irreducible below the join of a list lies below one of its entries. -/
-theorem JoinIrred.le_supList [Distrib α] {j : α} (hj : JoinIrred j) :
-    ∀ {L : List α}, j ⊑ supList L → ∃ x ∈ L, j ⊑ x
-  | [], h => absurd (le_antisymm h (bot_le _)) hj.1
-  | x :: t, h => by
-    rcases hj.le_or_le h with hx | ht
-    · exact ⟨x, List.mem_cons.mpr (Or.inl rfl), hx⟩
-    · obtain ⟨y, hy, hjy⟩ := hj.le_supList ht
-      exact ⟨y, List.mem_cons_of_mem x hy, hjy⟩
 
 /-! ## From a lattice to a poset and back -/
 
@@ -170,14 +144,14 @@ def rep (a : α) : Upset (Pt α) := ⟨fun j => j.val ⊑ a, fun hjk hj => le_tr
 theorem rep_bot : rep (⊥ : α) = ⊥ :=
   Upset.ext fun j => ⟨fun h => j.irred.1 (le_antisymm h (bot_le _)), fun h => h.elim⟩
 
-theorem rep_top : rep (⊤ : α) = ⊤ := Upset.ext fun _ => ⟨fun _ => trivial, fun _ => le_top _⟩
+theorem rep_top : rep (⊤ : α) = ⊤ := Upset.eq_top_of_mem fun _ => le_top _
 
 theorem rep_inf (a b : α) : rep (a ⊓ b) = rep a ⊓ rep b :=
   Upset.ext fun _ => le_inf_iff
 
 theorem rep_sup [Distrib α] (a b : α) : rep (a ⊔ b) = rep a ⊔ rep b :=
   Upset.ext fun j =>
-    ⟨fun h => j.irred.le_or_le h,
+    ⟨fun h => j.irred.joinPrime.2 _ _ h,
      fun h => h.elim (fun h => le_trans h (le_sup_left _ _))
        (fun h => le_trans h (le_sup_right _ _))⟩
 
@@ -196,7 +170,7 @@ theorem rep_surjective [Distrib α] {l : List α} (hl : ∀ a, a ∈ l) :
   intro U
   refine ⟨supList (l.filter fun x => truth (∃ h : JoinIrred x, U.mem ⟨x, h⟩)),
     Upset.ext fun j => ⟨fun h => ?_, fun h => ?_⟩⟩
-  · obtain ⟨x, hxL, hjx⟩ := j.irred.le_supList h
+  · obtain ⟨x, hxL, hjx⟩ := j.irred.joinPrime.le_supList h
     obtain ⟨hx, hU⟩ := truth_eq_true.mp (List.mem_filter.mp hxL).2
     exact U.upward (p := ⟨x, hx⟩) hjx hU
   · exact le_supList (List.mem_filter.mpr ⟨hl j.val, truth_eq_true.mpr ⟨j.irred, h⟩⟩)
@@ -248,7 +222,7 @@ theorem ptOf_surjective {l : List P} (hl : ∀ x, x ∈ l) :
     Function.Surjective (ptOf : P → Pt (Upset P)) := by
   intro j
   have hle : j.val ⊑ Upset.gen l j.val.mem := le_of_eq (Upset.gen_mem hl j.val).symm
-  obtain ⟨U, hUL, hjU⟩ := j.irred.le_supList hle
+  obtain ⟨U, hUL, hjU⟩ := j.irred.joinPrime.le_supList hle
   obtain ⟨x, hxj, rfl⟩ := Upset.mem_of_generators hUL
   exact ⟨x, Pt.ext (le_antisymm (fun _ hxy => j.val.upward hxy hxj) hjU)⟩
 
