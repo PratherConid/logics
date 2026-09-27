@@ -56,6 +56,29 @@ def IsBeta (x y : P) : Prop := x ≠ y ∧ ∀ z, (x ≼ z ∧ z ≠ x) ↔ (y �
 theorem IsBeta.symm {x y : P} (h : IsBeta x y) : IsBeta y x :=
   ⟨Ne.symm h.1, fun z => (h.2 z).symm⟩
 
+/-- A point strictly above `x` and not above `y` rules out every pair `x, y`. -/
+theorem pair_absurd {x y : P} (h : IsAlpha x y ∨ IsBeta x y) {z : P} (hxz : x ≼ z)
+    (hzx : z ≠ x) (hyz : ¬ y ≼ z) : False := by
+  rcases h with ⟨_, _, hα⟩ | ⟨_, hβ⟩
+  · exact hyz (hα z hxz hzx)
+  · exact hyz ((hβ z).mp ⟨hxz, hzx⟩).1
+
+/-- An isomorphism carries α- and β-pairs to α- and β-pairs. -/
+theorem FrameIso.map_pair {Q : Type} [Frame Q] (e : FrameIso P Q) {x y : P}
+    (h : IsAlpha x y ∨ IsBeta x y) :
+    IsAlpha (e.toFun x) (e.toFun y) ∨ IsBeta (e.toFun x) (e.toFun y) := by
+  have hne : ∀ {x y : P}, x ≠ y → e.toFun x ≠ e.toFun y := fun hxy h => hxy (e.injective _ _ h)
+  have hne' : ∀ {x z : P}, e.toFun z ≠ e.toFun x → z ≠ x := fun h e' => h (e' ▸ rfl)
+  rcases h with ⟨hxy, hle, hα⟩ | ⟨hxy, hβ⟩
+  · refine Or.inl ⟨hne hxy, (e.le_iff x y).mpr hle, fun w hxw hwx => ?_⟩
+    obtain ⟨z, rfl⟩ := e.surjective w
+    exact (e.le_iff y z).mpr (hα z ((e.le_iff x z).mp hxw) (hne' hwx))
+  · refine Or.inr ⟨hne hxy, fun w => ?_⟩
+    obtain ⟨z, rfl⟩ := e.surjective w
+    rw [e.le_iff, e.le_iff]
+    exact ⟨fun ⟨h₁, h₂⟩ => ⟨((hβ z).mp ⟨h₁, hne' h₂⟩).1, hne ((hβ z).mp ⟨h₁, hne' h₂⟩).2⟩,
+      fun ⟨h₁, h₂⟩ => ⟨((hβ z).mpr ⟨h₁, hne' h₂⟩).1, hne ((hβ z).mpr ⟨h₁, hne' h₂⟩).2⟩⟩
+
 namespace Merger
 
 /-- Collapsing an α- or β-pair onto `y` merges correctly: whatever lies above

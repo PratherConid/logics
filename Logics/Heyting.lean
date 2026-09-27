@@ -356,6 +356,15 @@ theorem exists_not_mem {U : Upset P} (h : U ≠ ⊤) : ∃ p, ¬ U.mem p :=
 /-- The upward closed set of everything above a point. -/
 def up (p : P) : Upset P := ⟨fun q => p ≼ q, fun h hp => Frame.le_trans hp h⟩
 
+/-- **A negation is read on a covering list.**  When every point lies below a
+point of `L`, a point refutes `V` exactly when no point of `L` above it is in
+`V`: a point of `V` above it carries `V` up to a point of `L`. -/
+theorem neg_mem_iff_of_cover (L : List P) (hL : ∀ w, ∃ m ∈ L, w ≼ m) (V : Upset P) (z : P) :
+    (HeytingAlgebra.neg V).mem z ↔ ∀ m ∈ L, z ≼ m → ¬ V.mem m :=
+  ⟨fun h m _ hzm hm => h m hzm hm, fun h w hzw hw => by
+    obtain ⟨m, hmL, hwm⟩ := hL w
+    exact h m hmL (Frame.le_trans hzw hwm) (V.upward hwm hw)⟩
+
 /-- A point is in the join of a list exactly when it is in one of its entries. -/
 theorem mem_supList : ∀ {L : List (Upset P)} {p : P},
     (supList L).mem p ↔ ∃ U ∈ L, U.mem p
@@ -480,6 +489,14 @@ def Principal (V : Upset P) : Prop := ∀ p, V.mem p → ∃ m, V.Least m
 /-- `V` is entered at two unrelated points. -/
 def Splits (V : Upset P) : Prop :=
   ∃ m m', V.Minimal m ∧ V.Minimal m' ∧ ¬ m ≼ m' ∧ ¬ m' ≼ m
+
+/-- A set with a least point is entered there. -/
+theorem principal_of_least {V : Upset P} {m : P} (h : V.Least m) : V.Principal :=
+  fun _ _ => ⟨m, h⟩
+
+/-- An empty set is entered at no point, which counts as one entrance. -/
+theorem principal_of_empty {V : Upset P} (h : ∀ z, ¬ V.mem z) : V.Principal :=
+  fun z hz => absurd hz (h z)
 
 /-- Where minimal points exist the two are exact opposites. -/
 theorem not_principal_iff_splits (hm : HasMinimal P) (V : Upset P) :

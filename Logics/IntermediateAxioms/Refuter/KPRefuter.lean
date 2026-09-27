@@ -186,6 +186,62 @@ theorem kp_ntop_iff_splits {P : Type} [Frame P] (hm : HasMinimal P) :
   · rintro ⟨r, a, hsp⟩
     exact kp_ntop_of_splits hsp
 
+/-! ## Small regions, and regions entered once up to two points
+
+Two tools for particular frames.  A region entered at two unrelated points
+needs four points above the point it is cut out at: that point, a point above
+it in the set, and the two entrances (`not_splits_of_few`).  And a region
+containing `p` and lying above `p` or `q` settles the disjunct for sets that
+never separate `p` from `q` (`kp_top_of_pair`), which is what happens after
+merging the two. -/
+
+/-- **A split needs four points** above the point it is cut out at. -/
+theorem not_splits_of_few {P : Type} [Frame P] {r : P} {a : Upset P} (L : List P)
+    (hL : ∀ z, r ≼ z → z ∈ L) (hlen : L.length < 4) : ¬ (kpRegion r a).Splits := by
+  rintro ⟨m, m', ⟨hm, hmin⟩, ⟨hm', _⟩, hmm', hm'm⟩
+  have hr : ¬ (kpRegion r a).mem r := fun hr => hmm' (Frame.le_trans (hmin r hr hm.1) hm'.1)
+  obtain ⟨w, hrw, haw⟩ : ∃ w, r ≼ w ∧ a.mem w := Classical.byContradiction fun hc =>
+    hr ⟨Frame.le_refl r, fun w hrw haw => hc ⟨w, hrw, haw⟩⟩
+  have hwR : ∀ {z}, (kpRegion r a).mem z → z ≠ w := fun hz e => hz.2 _ (Frame.le_refl _) (e ▸ haw)
+  have hnd : [r, m, m', w].Nodup := by
+    simp only [List.nodup_cons, List.mem_cons, List.not_mem_nil, or_false, List.nodup_nil,
+      and_true]
+    refine ⟨?_, ?_, ?_⟩
+    · rintro (e | e | e)
+      · exact hr (e ▸ hm)
+      · exact hr (e ▸ hm')
+      · subst e
+        exact hm.2 m (Frame.le_refl m) (a.upward hm.1 haw)
+    · rintro (e | e)
+      · exact hmm' (e ▸ Frame.le_refl m)
+      · exact hwR hm e
+    · exact ⟨hwR hm', fun h => h⟩
+  have := List.Nodup.length_le_of_subset hnd fun z hz => by
+    simp only [List.mem_cons, List.not_mem_nil, or_false] at hz
+    rcases hz with rfl | rfl | rfl | rfl
+    · exact hL _ (Frame.le_refl _)
+    · exact hL _ hm.1
+    · exact hL _ hm'.1
+    · exact hL _ hrw
+  simp at this
+  omega
+
+/-- **One entrance up to two points is enough**, for sets never separating
+them: whichever disjunct holds at `p` holds at `q`, and so on the region. -/
+theorem kp_top_of_pair {P : Type} [Frame P] {p q : P} {a b c : Upset P}
+    (hb : b.mem p ↔ b.mem q) (hc : c.mem p ↔ c.mem q)
+    (h : ∀ r, (kpRegion r a).Principal ∨
+      ((kpRegion r a).mem p ∧ ∀ z, (kpRegion r a).mem z → p ≼ z ∨ q ≼ z)) :
+    kpAt a b c = ⊤ := by
+  refine (BoundedLattice.eq_top_iff _).mpr fun x _ r _ hr => ?_
+  rcases h r with hP | ⟨hp, hcov⟩
+  · exact kp_step_of_principal hP b c hr
+  · rcases hr p hp.1 hp.2 with hbp | hcp
+    · exact Or.inl fun z hrz hz => (hcov z ⟨hrz, hz⟩).elim (fun h => b.upward h hbp)
+        (fun h => b.upward h (hb.mp hbp))
+    · exact Or.inr fun z hrz hz => (hcov z ⟨hrz, hz⟩).elim (fun h => c.upward h hcp)
+        (fun h => c.upward h (hc.mp hcp))
+
 /-! ## The points of an upward closed set
 
 On the points of an upward closed set `U` (`Within U`), the region at one of

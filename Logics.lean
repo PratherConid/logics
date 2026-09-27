@@ -6,6 +6,7 @@ import Logics.Lindenbaum
 import Logics.Homomorphism
 import Logics.FiniteFrame
 import Logics.Reduction
+import Logics.Ladder
 import Logics.Birkhoff
 import Logics.ConcreteEmbed
 import Logics.Filter

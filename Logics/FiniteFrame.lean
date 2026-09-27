@@ -36,7 +36,9 @@ original in the Jankov order, and the count that makes "smaller" bite.
 Finiteness is a list naming every point.  Minimal points exist in a finite
 frame, and so, turning the order round (`Op`), do maximal ones
 (`hasMaximal_of_list`).  Also here: the upward closed set a finite set of points
-generates, as a finite join (`Upset.gen`).
+generates, as a finite join (`Upset.gen`); isomorphisms of frames (`FrameIso`),
+between which finite frames have equally many points (`FrameIso.length_eq`);
+and a pigeonhole count on lists (`ListCount.countP_le_of_inj`).
 -/
 
 open PartialOrder Lattice BoundedLattice HeytingAlgebra
@@ -109,6 +111,63 @@ theorem countP_succ {α : Type u} {p q : α → Bool} {x : α} {l : List α}
       have ih' := ih hnd.2 hxt (fun y hy hyx => hsame y (List.mem_cons_of_mem _ hy) hyx)
       rw [hsame a (List.mem_cons.mpr (Or.inl rfl)) hax]
       omega
+
+/-- **Pigeonhole.**  Carried one to one into the entries of `w`, the members
+satisfying `p` are at most as many as those entries. -/
+theorem countP_le_of_inj {α : Type u} {l : List α} (hnd : l.Nodup) {p : α → Bool}
+    {f : α → Nat} {w : List Nat}
+    (hinj : ∀ x ∈ l, ∀ y ∈ l, p x = true → p y = true → f x = f y → x = y)
+    (hw : ∀ x ∈ l, p x = true → f x ∈ w) : l.countP p ≤ w.length := by
+  rw [List.countP_eq_length_filter, ← List.length_map (f := f)]
+  refine List.Nodup.length_le_of_subset ?_ ?_
+  · refine List.pairwise_map.mpr (List.Pairwise.imp_of_mem ?_ (hnd.sublist List.filter_sublist))
+    intro a b ha hb hab hfab
+    rw [List.mem_filter] at ha hb
+    exact hab (hinj a ha.1 b hb.1 ha.2 hb.2 hfab)
+  · intro v hv
+    obtain ⟨x, hx, rfl⟩ := List.mem_map.mp hv
+    rw [List.mem_filter] at hx
+    exact hw x hx.1 hx.2
+
+/-- A member satisfying a property on which a value is largest. -/
+theorem exists_max {α : Type u} {l : List α} (hl : ∀ x, x ∈ l) (P : α → Prop) (f : α → Nat)
+    (h : ∃ x, P x) : ∃ x, P x ∧ ∀ y, P y → f y ≤ f x := by
+  have key : ∀ l : List α, (∃ x ∈ l, P x) → ∃ x, P x ∧ ∀ y ∈ l, P y → f y ≤ f x := by
+    intro l
+    induction l with
+    | nil => rintro ⟨_, hx, _⟩; cases hx
+    | cons a t ih =>
+      intro hex
+      by_cases ht : ∃ x ∈ t, P x
+      · obtain ⟨m, hm, hmax⟩ := ih ht
+        by_cases hPa : P a ∧ f m ≤ f a
+        · refine ⟨a, hPa.1, fun y hy hPy => ?_⟩
+          rcases List.mem_cons.mp hy with rfl | hyt
+          · exact Nat.le_refl _
+          · exact Nat.le_trans (hmax y hyt hPy) hPa.2
+        · refine ⟨m, hm, fun y hy hPy => ?_⟩
+          rcases List.mem_cons.mp hy with rfl | hyt
+          · exact Nat.le_of_lt (Nat.lt_of_not_le fun h => hPa ⟨hPy, h⟩)
+          · exact hmax y hyt hPy
+      · obtain ⟨x, hx, hPx⟩ := hex
+        have hPa : P a := by
+          rcases List.mem_cons.mp hx with rfl | hxt
+          · exact hPx
+          · exact absurd ⟨x, hxt, hPx⟩ ht
+        refine ⟨a, hPa, fun y hy hPy => ?_⟩
+        rcases List.mem_cons.mp hy with rfl | hyt
+        · exact Nat.le_refl _
+        · exact absurd ⟨y, hyt, hPy⟩ ht
+  obtain ⟨x, hx⟩ := h
+  obtain ⟨m, hm, hmax⟩ := key l ⟨x, hl x, hx⟩
+  exact ⟨m, hm, fun y hy => hmax y (hl y) hy⟩
+
+/-- A list without repeats, carried along a map that is one to one on it,
+still has none. -/
+theorem nodup_pmap {α β : Type u} {S : α → Prop} {f : ∀ a, S a → β} {l : List α}
+    {H : ∀ a ∈ l, S a} (hnd : l.Nodup) (hf : ∀ a b ha hb, f a ha = f b hb → a = b) :
+    (l.pmap f H).Nodup :=
+  (List.pairwise_pmap H).mpr (hnd.imp fun hab _ _ e => hab (hf _ _ _ _ e))
 
 open Classical in
 /-- The entries of `l` satisfying `S`, each carried into `β` by `mk`: a list
@@ -345,6 +404,73 @@ theorem exists_ne_above {P : Type u} [Frame P] {x : P} (hx : ¬ IsMaxPt x) :
     ∃ p, x ≼ p ∧ p ≠ x :=
   Classical.byContradiction fun hc => hx fun p hxp =>
     Classical.byContradiction fun hne => hc ⟨p, hxp, hne⟩
+
+/-- Above a maximal point lies only that point. -/
+theorem IsMaxPt.le_iff {P : Type u} [Frame P] {m : P} (h : IsMaxPt m) {z : P} :
+    m ≼ z ↔ z = m :=
+  ⟨h z, fun e => e ▸ Frame.le_refl m⟩
+
+/-- In a poset, below a point below everything lies only that point. -/
+theorem le_root_iff {P : Type u} [Frame P] (antisymm : Frame.Antisymm P) {r : P}
+    (hr : ∀ p, r ≼ p) {z : P} : z ≼ r ↔ z = r :=
+  ⟨fun h => antisymm _ _ h (hr z), fun e => e ▸ Frame.le_refl r⟩
+
+/-! ## Isomorphisms of frames -/
+
+/-- An isomorphism of frames: a bijection keeping and reflecting the order. -/
+structure FrameIso (P Q : Type) [Frame P] [Frame Q] where
+  toFun : P → Q
+  injective : ∀ x y, toFun x = toFun y → x = y
+  surjective : ∀ y, ∃ x, toFun x = y
+  le_iff : ∀ x y, toFun x ≼ toFun y ↔ x ≼ y
+
+namespace FrameIso
+
+variable {P Q R : Type} [Frame P] [Frame Q] [Frame R]
+
+/-- On a poset, keeping and reflecting the order already makes a map one to
+one. -/
+def ofLeIff (hP : Frame.Antisymm P) (f : P → Q) (hs : ∀ y, ∃ x, f x = y)
+    (hle : ∀ x y, f x ≼ f y ↔ x ≼ y) : FrameIso P Q where
+  toFun := f
+  injective x y h := hP x y ((hle x y).mp (h ▸ Frame.le_refl _))
+    ((hle y x).mp (h ▸ Frame.le_refl _))
+  surjective := hs
+  le_iff := hle
+
+/-- A map with an inverse, keeping and reflecting the order. -/
+def ofInverse (f : P → Q) (g : Q → P) (hgf : ∀ x, g (f x) = x) (hfg : ∀ y, f (g y) = y)
+    (hle : ∀ x y, f x ≼ f y ↔ x ≼ y) : FrameIso P Q where
+  toFun := f
+  injective x y h := by rw [← hgf x, ← hgf y, h]
+  surjective y := ⟨g y, hfg y⟩
+  le_iff := hle
+
+def trans (e : FrameIso P Q) (e' : FrameIso Q R) : FrameIso P R where
+  toFun x := e'.toFun (e.toFun x)
+  injective x y h := e.injective x y (e'.injective _ _ h)
+  surjective z := by
+    obtain ⟨y, rfl⟩ := e'.surjective z
+    obtain ⟨x, rfl⟩ := e.surjective y
+    exact ⟨x, rfl⟩
+  le_iff x y := (e'.le_iff _ _).trans (e.le_iff x y)
+
+/-- **Isomorphic frames have equally many points.** -/
+theorem length_eq (e : FrameIso P Q) {lP : List P} {lQ : List Q} (hP : lP.Nodup)
+    (hlP : ∀ x, x ∈ lP) (hQ : lQ.Nodup) (hlQ : ∀ y, y ∈ lQ) : lP.length = lQ.length := by
+  have inv : ∀ y, e.toFun (Classical.choose (e.surjective y)) = y :=
+    fun y => Classical.choose_spec (e.surjective y)
+  refine Nat.le_antisymm ?_ ?_
+  · rw [← List.length_map (f := e.toFun)]
+    exact List.Nodup.length_le_of_subset
+      (List.pairwise_map.mpr (hP.imp fun hxy h => hxy (e.injective _ _ h)))
+      (fun y _ => hlQ y)
+  · rw [← List.length_map (f := fun y => Classical.choose (e.surjective y))]
+    exact List.Nodup.length_le_of_subset
+      (List.pairwise_map.mpr (hQ.imp fun {a b} hab h => hab (by rw [← inv a, ← inv b, h])))
+      (fun x _ => hlP x)
+
+end FrameIso
 
 /-! ## Upward closed sets generated by points
 

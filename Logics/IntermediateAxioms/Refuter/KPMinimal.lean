@@ -1,5 +1,5 @@
 import Logics.IntermediateAxioms.Refuter.KPRefuter
-import Logics.Reduction
+import Logics.Ladder
 
 /-!
 # The minimal refuters of Kreisel and Putnam's axiom
@@ -11,8 +11,9 @@ closed sets as the poset of its equivalence classes, and it is needed, since
 duplicating a point changes the frame without changing the algebra.
 
 Three results, in turn: the shape every member has; an exact description of the
-members in the one regime that grows; and a ladder of members, one of each size
-from seven points up, so that `𝓜` is infinite.
+members in the one regime that grows, with a family of frames of that regime
+all of which are members; and among them a ladder, one of each size from seven
+points up, so that `𝓜` is infinite.
 
 ## The method
 
@@ -83,32 +84,29 @@ entrances are exactly the reduced finite posets of the shape
   two of `u`, `v`, `B`, leave no triple of sets that splits that region
   (`RegimeB.kp_top_of`).
 
+The wiring off the root falls into three parts (`RegimeB.cases_pt`): the
+points seeing neither entrance (`RegimeB.Neither`), and the two sides, the
+points seeing `u` (`RegimeB.SideU`) and those seeing `v`.
+
+## The frames of the second regime
+
+`BPt c σu σv` has the second regime's shape (`BPt.regimeB`): a root; `A`; `u`
+and `v` covered by `B`; when `c`, a point `c0` below `A` and `B` alone; and
+below each entrance a side of the Rieger--Nishimura ladder whose top rung is
+`c0` (`Side`).  The rung `i` of a side lies below its entrance, `A` and `B`,
+below `c0` when `2 ≤ i`, and below the rung `j` of its side when `j + 2 ≤ i`.
+
+Such a frame is reduced as soon as, without `c0`, each side has at most the
+rung `1` (`BPt.Valid`, `BPt.reduced`), and so it is a member (`BPt.inKPMin`).
+Two rungs of a side are told apart by the rung just under the upper one or by
+`c0` (`BPt.not_pair_wu`), and any other two points of the wiring by an entrance.
+
 ## `𝓜` is infinite
 
-`kpMin_infinite`: the ladder frames `LPt n` are all members, and no two of them
-lie below each other both ways.
-
-`LPt n` has a root; two maximal points `A` and `B`; `u` and `v`, each covered by
-`B` alone; a point `c0` covered by `A` and `B`; and a Rieger--Nishimura ladder
-`w 0, …, w n` on the side of `u`.  Every rung sees `u`, `A` and `B` but not `v`;
-rung `i` sees rung `j` exactly when `j + 2 ≤ i`; and every rung but the bottom
-one sees `c0`.  There are `n + 7` points (`length_all`), and the ladder has the
-second regime's shape (`LPt.regimeB`).
-
-So it is a member once it is reduced (`LPt.reduced`), and that is where the
-ladder's shape is used.  The wiring is `c0` and the rungs.  `c0` sees neither
-entrance and the rungs see `u`, so `c0` pairs with no rung; two rungs differ in
-what lies strictly above them (`not_beta_w`); and no rung collapses into
-another, which would have to lie below `c0` and below the rungs two and three
-beneath the first.
-
-Two ladders of different lengths are told apart by counting points
-(`le_of_sh`).
-
-## What is not here
-
-That the three frames of the first regime pass the test of `inKPMin_iff` is
-checked by machine but not formalised.
+`kpMin_infinite`: the ladder frames `LPt n`, with `c0`, the rungs `1, …, n + 1`
+below `u` and nothing below `v`, are all members, and no two of them lie below
+each other both ways.  They have `n + 7` points (`LPt.length_all`), and two
+ladders of different lengths are told apart by counting points (`le_of_sh`).
 -/
 
 open PartialOrder Lattice BoundedLattice HeytingAlgebra
@@ -827,13 +825,106 @@ theorem le_A_or_B (z : M) : z ≼ S.A ∨ z ≼ S.B := by
 /-- A negation is fixed by which of the two maximal points the set holds. -/
 theorem mem_neg_iff (a : Upset M) (z : M) :
     (neg a).mem z ↔ (z ≼ S.A → ¬ a.mem S.A) ∧ (z ≼ S.B → ¬ a.mem S.B) := by
-  constructor
-  · intro h
-    exact ⟨fun hz ha => h _ hz ha, fun hz hb => h _ hz hb⟩
-  · rintro ⟨hA, hB⟩ y hzy hay
-    rcases S.le_A_or_B y with hy | hy
-    · exact hA (Frame.le_trans hzy hy) (a.upward hy hay)
-    · exact hB (Frame.le_trans hzy hy) (a.upward hy hay)
+  rw [Upset.neg_mem_iff_of_cover [S.A, S.B]
+    (fun w => (S.le_A_or_B w).elim (fun h => ⟨_, by simp, h⟩) (fun h => ⟨_, by simp, h⟩))]
+  simp only [List.mem_cons, List.mem_nil_iff, or_false, forall_eq_or_imp, forall_eq]
+
+theorem u_ne_r : S.u ≠ S.r := fun h => S.not_uv (by rw [h]; exact S.root _)
+
+theorem A_ne_B : S.A ≠ S.B := fun e => S.not_A_le_B (e ▸ Frame.le_refl _)
+
+theorem A_ne_u : S.A ≠ S.u := fun e => S.not_u_le_A (e ▸ Frame.le_refl _)
+
+theorem r_ne_A : S.r ≠ S.A := fun e => S.A_ne_u (S.A_max _ (e ▸ S.root S.u)).symm
+
+theorem r_ne_B : S.r ≠ S.B := fun e => S.u_ne_B (S.B_max _ (e ▸ S.root S.u))
+
+theorem u_ne_v : S.u ≠ S.v := fun e => S.not_uv (e ▸ Frame.le_refl _)
+
+/-- **The named points are distinct**, read both ways. -/
+theorem named_ne : S.A ≠ S.B ∧ S.B ≠ S.A ∧ S.A ≠ S.u ∧ S.u ≠ S.A ∧ S.A ≠ S.v ∧ S.v ≠ S.A ∧
+    S.A ≠ S.r ∧ S.r ≠ S.A ∧ S.B ≠ S.u ∧ S.u ≠ S.B ∧ S.B ≠ S.v ∧ S.v ≠ S.B ∧ S.B ≠ S.r ∧
+    S.r ≠ S.B ∧ S.u ≠ S.v ∧ S.v ≠ S.u ∧ S.u ≠ S.r ∧ S.r ≠ S.u ∧ S.v ≠ S.r ∧ S.r ≠ S.v :=
+  ⟨S.A_ne_B, S.A_ne_B.symm, S.A_ne_u, S.A_ne_u.symm, S.swap.A_ne_u, S.swap.A_ne_u.symm,
+    S.r_ne_A.symm, S.r_ne_A, S.u_ne_B.symm, S.u_ne_B, S.swap.u_ne_B.symm, S.swap.u_ne_B,
+    S.r_ne_B.symm, S.r_ne_B, S.u_ne_v, S.u_ne_v.symm, S.u_ne_r, S.u_ne_r.symm,
+    S.swap.u_ne_r, S.swap.u_ne_r.symm⟩
+
+/-- **What lies above the named points**, and below the root. -/
+theorem le_named (hA : Frame.Antisymm M) : (∀ z, S.r ≼ z) ∧ (∀ z, z ≼ S.r ↔ z = S.r) ∧
+    (∀ z, S.A ≼ z ↔ z = S.A) ∧ (∀ z, S.B ≼ z ↔ z = S.B) ∧
+    (∀ z, S.u ≼ z ↔ z = S.u ∨ z = S.B) ∧ (∀ z, S.v ≼ z ↔ z = S.v ∨ z = S.B) :=
+  ⟨S.root, fun _ => le_root_iff hA S.root, fun _ => IsMaxPt.le_iff S.A_max,
+    fun _ => IsMaxPt.le_iff S.B_max, S.u_le, S.v_le⟩
+
+/-! ### The parts of the wiring
+
+Off the root, a wiring point lies below `A` and `B` and sees at most one
+entrance.  So the wiring off the root falls into the points seeing neither
+entrance (`Neither`) and two sides: the points seeing `u` (`SideU`), and the
+points seeing `v`, the side of `u` once the entrances are exchanged. -/
+
+/-- A wiring point other than the root seeing neither entrance. -/
+def Neither (x : M) : Prop := S.Wiring x ∧ x ≠ S.r ∧ ¬ x ≼ S.u ∧ ¬ x ≼ S.v
+
+/-- A wiring point other than the root on the side of `u`. -/
+def SideU (x : M) : Prop := S.Wiring x ∧ x ≠ S.r ∧ x ≼ S.u
+
+/-- A colour on the side of `u`: lying below a point seeing neither
+entrance. -/
+def ColU (x : M) : Prop := ∃ c, S.Neither c ∧ x ≼ c
+
+theorem neither_swap {x : M} : S.swap.Neither x ↔ S.Neither x :=
+  ⟨fun ⟨⟨h₁, h₂, h₃, h₄⟩, h₅, h₆, h₇⟩ => ⟨⟨h₁, h₂, h₄, h₃⟩, h₅, h₇, h₆⟩,
+   fun ⟨⟨h₁, h₂, h₃, h₄⟩, h₅, h₆, h₇⟩ => ⟨⟨h₁, h₂, h₄, h₃⟩, h₅, h₇, h₆⟩⟩
+
+/-- Every point is the root, `A`, `B`, an entrance, or in one of the three
+parts of the wiring. -/
+theorem cases_pt (x : M) : x = S.r ∨ x = S.A ∨ x = S.B ∨ x = S.u ∨ x = S.v ∨
+    S.Neither x ∨ S.SideU x ∨ S.swap.SideU x := by
+  by_cases hr : x = S.r
+  · exact Or.inl hr
+  by_cases hA : x = S.A
+  · exact Or.inr (Or.inl hA)
+  by_cases hB : x = S.B
+  · exact Or.inr (Or.inr (Or.inl hB))
+  by_cases hu : x = S.u
+  · exact Or.inr (Or.inr (Or.inr (Or.inl hu)))
+  by_cases hv : x = S.v
+  · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inl hv))))
+  refine Or.inr (Or.inr (Or.inr (Or.inr (Or.inr ?_))))
+  by_cases hxu : x ≼ S.u
+  · exact Or.inr (Or.inl ⟨⟨hA, hB, hu, hv⟩, hr, hxu⟩)
+  by_cases hxv : x ≼ S.v
+  · exact Or.inr (Or.inr ⟨⟨hA, hB, hv, hu⟩, hr, hxv⟩)
+  · exact Or.inl ⟨⟨hA, hB, hu, hv⟩, hr, hxu, hxv⟩
+
+theorem wiring_le_A {x : M} (hx : S.Wiring x) : x ≼ S.A :=
+  Classical.byContradiction fun h => by
+    rcases (S.not_le_A x).mp h with e | e | e
+    · exact hx.2.2.1 e
+    · exact hx.2.2.2 e
+    · exact hx.2.1 e
+
+theorem wiring_le_B {x : M} (hx : S.Wiring x) : x ≼ S.B := S.le_B_of_ne hx.1
+
+theorem not_le_r (hA : Frame.Antisymm M) {x : M} (hx : x ≠ S.r) : ¬ x ≼ S.r :=
+  fun h => hx ((le_root_iff hA S.root).mp h)
+
+theorem sideU_not_le_v {x : M} (hx : S.SideU x) : ¬ x ≼ S.v :=
+  fun h => hx.2.1 (S.le_both x hx.2.2 h)
+
+/-- What is known of a point seeing neither entrance. -/
+theorem neither_facts {x : M} (hx : S.Neither x) : x ≠ S.A ∧ x ≠ S.B ∧ x ≠ S.u ∧ x ≠ S.v ∧
+    x ≠ S.r ∧ x ≼ S.A ∧ x ≼ S.B ∧ ¬ x ≼ S.u ∧ ¬ x ≼ S.v :=
+  ⟨hx.1.1, hx.1.2.1, hx.1.2.2.1, hx.1.2.2.2, hx.2.1, S.wiring_le_A hx.1, S.wiring_le_B hx.1,
+    hx.2.2.1, hx.2.2.2⟩
+
+/-- What is known of a point on the side of `u`. -/
+theorem sideU_facts {x : M} (hx : S.SideU x) : x ≠ S.A ∧ x ≠ S.B ∧ x ≠ S.u ∧ x ≠ S.v ∧
+    x ≠ S.r ∧ x ≼ S.A ∧ x ≼ S.B ∧ x ≼ S.u ∧ ¬ x ≼ S.v :=
+  ⟨hx.1.1, hx.1.2.1, hx.1.2.2.1, hx.1.2.2.2, hx.2.1, S.wiring_le_A hx.1, S.wiring_le_B hx.1,
+    hx.2.2, S.sideU_not_le_v hx⟩
 
 /-! ### The split at the root -/
 
@@ -1050,8 +1141,6 @@ theorem not_wiring_of_core {x y : M}
       S.not_wiring (by rcases hz with e | e | e <;> simp [e])
     exact ⟨core hx, core hy⟩
 
-theorem u_ne_r : S.u ≠ S.r := fun h => S.not_uv (by rw [h]; exact S.root _)
-
 /-- The root takes part in no pair: everything lies above it, and it is the only
 point below both entrances. -/
 theorem not_pair_from_r {y : M} (h : IsAlpha S.r y ∨ IsBeta S.r y) : False := by
@@ -1232,190 +1321,241 @@ theorem inKPMin_regimeB_iff {M : Type} [Frame M] :
   · rintro ⟨hfin, hA, T, hT⟩
     exact ⟨T.inKPMin_of_reduced hfin hA hT, T.split, fun h => T.u_ne_B (h _ T.u_le_B).symm⟩
 
-/-! ## The ladder -/
+/-! ## The frames of the second regime -/
 
-/-- The points of the ladder frame. -/
-inductive LPt (n : Nat) where
-  | root | A | B | u | v | c0
-  | w : Fin (n + 1) → LPt n
+/-- The points of a frame of the second regime: a root; maximal points `A` and
+`B`; entrances `u` and `v`; when `c`, a point `c0`; and the rungs of a side of
+the ladder below each entrance. -/
+inductive BPt (c : Bool) (σu σv : Side) where
+  | root | A | B | u | v
+  | c0 (h : c = true)
+  | wu (i : Nat) (h : σu.mem i = true)
+  | wv (i : Nat) (h : σv.mem i = true)
   deriving DecidableEq
 
-namespace LPt
+namespace BPt
 
-variable {n : Nat}
+variable {c : Bool} {σu σv : Side}
 
-def le : LPt n → LPt n → Prop
-  | .root, _ => True
-  | .A, y => y = .A
-  | .B, y => y = .B
-  | .u, y => y = .u ∨ y = .B
-  | .v, y => y = .v ∨ y = .B
-  | .c0, y => y = .c0 ∨ y = .A ∨ y = .B
-  | .w _, .u => True
-  | .w _, .A => True
-  | .w _, .B => True
-  | .w i, .c0 => 1 ≤ i.val
-  | .w i, .w j => j.val = i.val ∨ j.val + 2 ≤ i.val
-  | .w _, _ => False
+/-- The order, as a test. -/
+def leb : BPt c σu σv → BPt c σu σv → Bool
+  | root, _ => true
+  | A, A => true
+  | B, B => true
+  | u, u => true
+  | u, B => true
+  | v, v => true
+  | v, B => true
+  | c0 _, c0 _ => true
+  | c0 _, A => true
+  | c0 _, B => true
+  | wu _ _, u => true
+  | wu _ _, A => true
+  | wu _ _, B => true
+  | wu i _, c0 _ => decide (2 ≤ i)
+  | wu i _, wu j _ => decide (j = i ∨ j + 2 ≤ i)
+  | wv _ _, v => true
+  | wv _ _, A => true
+  | wv _ _, B => true
+  | wv i _, c0 _ => decide (2 ≤ i)
+  | wv i _, wv j _ => decide (j = i ∨ j + 2 ≤ i)
+  | _, _ => false
 
-instance : Frame (LPt n) where
-  le := le
-  le_refl x := by cases x <;> simp [le]
+instance : Frame (BPt c σu σv) where
+  le x y := leb x y = true
+  le_refl x := by cases x <;> simp [leb]
   le_trans {x y z} h₁ h₂ := by
-    cases x <;> cases y <;> cases z <;> simp_all [le] <;> omega
+    cases x <;> cases y <;> cases z <;> simp_all [leb] <;> omega
 
-theorem antisymm : Frame.Antisymm (LPt n) := by
+theorem antisymm : Frame.Antisymm (BPt c σu σv) := by
   intro x y h₁ h₂
-  cases x <;> cases y <;> simp_all [Frame.le, le] <;> (try apply Fin.ext) <;> omega
+  cases x <;> cases y <;> simp_all [Frame.le, leb] <;> omega
 
-/-! ### Facts about the order -/
+theorem wu_le_wu {i j : Nat} {hi : σu.mem i = true} {hj : σu.mem j = true} :
+    (wu i hi : BPt c σu σv) ≼ wu j hj ↔ j = i ∨ j + 2 ≤ i := by
+  simp [Frame.le, leb]
 
-theorem root_le (x : LPt n) : LPt.root ≼ x := trivial
+theorem wu_le_c0 {i : Nat} {hi : σu.mem i = true} {h : c = true} :
+    (wu i hi : BPt c σu σv) ≼ c0 h ↔ 2 ≤ i := by
+  simp [Frame.le, leb]
 
-theorem eq_A_of_A_le {y : LPt n} (h : LPt.A ≼ y) : y = .A := h
-
-theorem not_le_A_iff (x : LPt n) : ¬ x ≼ .A ↔ x = .u ∨ x = .v ∨ x = .B := by
-  cases x <;> simp [Frame.le, le]
-
-theorem eq_root_of_le_uv {x : LPt n} (hu : x ≼ .u) (hv : x ≼ .v) : x = .root := by
-  cases x <;> simp_all [Frame.le, le]
-
-theorem u_le_iff (y : LPt n) : LPt.u ≼ y ↔ y = .u ∨ y = .B := Iff.rfl
-theorem v_le_iff (y : LPt n) : LPt.v ≼ y ↔ y = .v ∨ y = .B := Iff.rfl
-
-theorem above_B {y : LPt n} (h : LPt.B ≼ y) : y = .B := h
-
-/-! ### The list of points -/
+theorem wu_ne {i j : Nat} {hi : σu.mem i = true} {hj : σu.mem j = true} (h : i ≠ j) :
+    (wu i hi : BPt c σu σv) ≠ wu j hj := fun e => h (by cases e; rfl)
 
 /-- Every point, each once. -/
-def all (n : Nat) : List (LPt n) :=
-  [.root, .A, .B, .u, .v, .c0] ++ (List.finRange (n + 1)).map .w
+def all (c : Bool) (σu σv : Side) : List (BPt c σu σv) :=
+  [root, A, B, u, v] ++ ((if h : c = true then [c0 h] else []) ++
+    (σu.rungs.pmap (fun i hi => wu i ((σu.mem_rungs i).mp hi)) (fun _ h => h) ++
+      σv.rungs.pmap (fun i hi => wv i ((σv.mem_rungs i).mp hi)) (fun _ h => h)))
 
-theorem mem_all (x : LPt n) : x ∈ all n := by
-  cases x <;> simp [all, List.mem_finRange]
-
-theorem length_all : (all n).length = n + 7 := by
-  simp [all]
-
-theorem nodup_all : (all n).Nodup := by
-  rw [all, List.nodup_append]
-  refine ⟨by simp, List.Pairwise.map LPt.w (fun _ _ hab h => hab (LPt.w.inj h))
-    (List.nodup_finRange _), ?_⟩
-  intro a ha b hb
-  simp only [List.mem_map] at hb
-  obtain ⟨j, _, rfl⟩ := hb
-  simp at ha
-  rcases ha with rfl | rfl | rfl | rfl | rfl | rfl <;> simp
-
-end LPt
-
-namespace LPt
-
-variable {n : Nat}
-
-/-! ### The ladder has the second regime's shape -/
-
-/-- The ladder frame, as a frame of the second regime's shape. -/
-abbrev regimeB : RegimeB (LPt n) where
-  r := .root
-  A := .A
-  B := .B
-  u := .u
-  v := .v
-  root := root_le
-  A_max _ h := eq_A_of_A_le h
-  B_max _ h := above_B h
-  not_le_A := not_le_A_iff
-  not_le_B z := by cases z <;> simp [Frame.le, le]
-  u_le := u_le_iff
-  v_le := v_le_iff
-  le_both _ hu hv := eq_root_of_le_uv hu hv
-  not_uv := by simp [Frame.le, le]
-  not_vu := by simp [Frame.le, le]
-
-end LPt
-
-namespace LPt
-
-variable {n : Nat}
-
-/-! ### The ladder is reduced -/
-
-theorem w_ne {j k : Fin (n + 1)} (h : j.val ≠ k.val) : (LPt.w j : LPt n) ≠ .w k :=
-  fun e => h (congrArg Fin.val (LPt.w.inj e))
-
-/-- **Two rungs differ in what lies strictly above them.**  With `j` below `k`:
-rung `j` lies strictly above rung `k` when `j + 2 ≤ k`; otherwise `k = j + 1`,
-and rung `k` sees `c0` where rung `0` does not, or sees rung `j - 1`, which rung
-`j` does not. -/
-theorem not_beta_w {j k : Fin (n + 1)} (hjk : j.val < k.val) :
-    ¬ IsBeta (LPt.w j : LPt n) (.w k) := by
-  rintro ⟨-, hβ⟩
-  by_cases h2 : j.val + 2 ≤ k.val
-  · exact ((hβ (.w j)).mpr ⟨by simp only [Frame.le, le]; omega, w_ne (by omega)⟩).2 rfl
-  by_cases hj : j.val = 0
-  · have := ((hβ .c0).mpr ⟨by simp only [Frame.le, le]; omega, nofun⟩).1
-    simp only [Frame.le, le] at this
-    omega
-  · have := ((hβ (.w ⟨j.val - 1, by omega⟩)).mpr
-      ⟨by simp only [Frame.le, le]; omega, w_ne (by show j.val - 1 ≠ k.val; omega)⟩).1
-    simp only [Frame.le, le] at this
-    omega
-
-theorem wiring_cases {x : LPt n} (hx : regimeB.Wiring x) (hxr : x ≠ .root) :
-    x = .c0 ∨ ∃ k, x = .w k := by
-  obtain ⟨hA, hB, hu, hv⟩ := hx
+theorem mem_all (x : BPt c σu σv) : x ∈ all c σu σv := by
   cases x with
-  | c0 => exact Or.inl rfl
-  | w k => exact Or.inr ⟨k, rfl⟩
-  | root => exact absurd rfl hxr
-  | A => exact absurd rfl hA
-  | B => exact absurd rfl hB
-  | u => exact absurd rfl hu
-  | v => exact absurd rfl hv
+  | c0 h => simp [all, h]
+  | wu i h => simp [all, List.mem_pmap, Side.mem_rungs, h]
+  | wv i h => simp [all, List.mem_pmap, Side.mem_rungs, h]
+  | _ => simp [all]
 
-/-- **The ladder is reduced.**  The wiring is `c0` and the rungs.  `c0` sees
-neither entrance and the rungs see `u`, so `c0` pairs with no rung.  Two rungs
-differ in what lies strictly above them (`not_beta_w`).  And no rung collapses
-into another: that one would lie below `c0`, so be rung `1` or higher, and
-below the rungs two and three beneath the first, which no rung does. -/
-theorem reduced : (regimeB : RegimeB (LPt n)).Reduced := by
+theorem length_all :
+    (all c σu σv).length = 5 + (if c = true then 1 else 0) + σu.size + σv.size := by
+  cases c <;> simp [all, Side.length_rungs] <;> omega
+
+theorem nodup_all : (all c σu σv).Nodup := by
+  refine List.nodup_append.mpr ⟨by simp, List.nodup_append.mpr ⟨by split <;> simp,
+    List.nodup_append.mpr ⟨ListCount.nodup_pmap σu.nodup_rungs fun _ _ _ _ e => by cases e; rfl,
+      ListCount.nodup_pmap σv.nodup_rungs fun _ _ _ _ e => by cases e; rfl, ?_⟩, ?_⟩, ?_⟩
+  · intro a ha b hb
+    simp only [List.mem_pmap] at ha hb
+    obtain ⟨_, _, rfl⟩ := ha
+    obtain ⟨_, _, rfl⟩ := hb
+    exact nofun
+  · intro a ha b hb
+    split at ha
+    · simp only [List.mem_singleton] at ha
+      subst ha
+      simp only [List.mem_append, List.mem_pmap] at hb
+      rcases hb with ⟨_, _, rfl⟩ | ⟨_, _, rfl⟩ <;> exact nofun
+    · cases ha
+  · intro a ha b hb
+    simp only [List.mem_cons, List.mem_nil_iff, or_false] at ha
+    simp only [List.mem_append, List.mem_pmap] at hb
+    rcases hb with hb | ⟨_, _, rfl⟩ | ⟨_, _, rfl⟩
+    · split at hb
+      · simp only [List.mem_singleton] at hb
+        subst hb
+        rcases ha with rfl | rfl | rfl | rfl | rfl <;> exact nofun
+      · cases hb
+    all_goals rcases ha with rfl | rfl | rfl | rfl | rfl <;> exact nofun
+
+/-- Exchanging the entrances and their sides. -/
+def swap : BPt c σu σv → BPt c σv σu
+  | root => root
+  | A => A
+  | B => B
+  | u => v
+  | v => u
+  | c0 h => c0 h
+  | wu i h => wv i h
+  | wv i h => wu i h
+
+theorem swap_swap (x : BPt c σu σv) : swap (swap x) = x := by
+  cases x <;> rfl
+
+def swapIso : FrameIso (BPt c σu σv) (BPt c σv σu) :=
+  .ofInverse swap swap swap_swap swap_swap fun x y => by
+    cases x <;> cases y <;> simp [Frame.le, leb, swap]
+
+/-! ### The shape, and reducedness -/
+
+/-- The frame has the second regime's shape. -/
+def regimeB : RegimeB (BPt c σu σv) where
+  r := root
+  A := A
+  B := B
+  u := u
+  v := v
+  root _ := rfl
+  A_max p h := by cases p <;> simp_all [Frame.le, leb]
+  B_max p h := by cases p <;> simp_all [Frame.le, leb]
+  not_le_A z := by cases z <;> simp [Frame.le, leb]
+  not_le_B z := by cases z <;> simp [Frame.le, leb]
+  u_le y := by cases y <;> simp [Frame.le, leb]
+  v_le y := by cases y <;> simp [Frame.le, leb]
+  le_both x hu hv := by cases x <;> simp_all [Frame.le, leb]
+  not_uv := by simp [Frame.le, leb]
+  not_vu := by simp [Frame.le, leb]
+
+/-- The codes whose frame is reduced: without `c0` each side has at most the
+rung `1`. -/
+def Valid (c : Bool) (σu σv : Side) : Prop :=
+  c = false → (∀ i, σu.mem i = true → i = 1) ∧ (∀ i, σv.mem i = true → i = 1)
+
+theorem Valid.swap (hV : Valid c σu σv) : Valid c σv σu := fun hc => (hV hc).symm
+
+/-- **Two rungs of a side form no pair.**  One strictly above the other has,
+strictly above it, the rung just under the upper one, or `c0`; and two next to
+each other differ in the rung below both, or in `c0`. -/
+theorem not_pair_wu (hV : Valid c σu σv) {i j : Nat} {hi : σu.mem i = true}
+    {hj : σu.mem j = true} : ¬ (IsAlpha (wu i hi : BPt c σu σv) (wu j hj) ∨
+      IsBeta (wu i hi : BPt c σu σv) (wu j hj)) := by
+  intro h
+  have hij : i ≠ j := fun e => by
+    subst e
+    exact h.elim (fun h => h.1 rfl) (fun h => h.1 rfl)
+  have hi1 := Side.one_le hi
+  have hj1 := Side.one_le hj
+  cases hc : c with
+  | false => exact hij (((hV hc).1 i hi).trans ((hV hc).1 j hj).symm)
+  | true =>
+    rcases h with hα | hβ
+    · have hle := wu_le_wu.mp hα.2.1
+      by_cases hj2 : 2 ≤ j
+      · exact pair_absurd (Or.inl hα)
+          (z := wu (j - 1) (Side.mem_of_le hi (by omega) (by omega)))
+          (wu_le_wu.mpr (by omega)) (wu_ne (by omega)) (fun h => by rw [wu_le_wu] at h; omega)
+      · exact pair_absurd (Or.inl hα) (z := c0 hc) (wu_le_c0.mpr (by omega)) nofun
+          (fun h => by rw [wu_le_c0] at h; omega)
+    · have key : ∀ {k k' : Nat} {hk : σu.mem k = true} {hk' : σu.mem k' = true}, k < k' →
+          IsBeta (wu k hk : BPt c σu σv) (wu k' hk') → False := by
+        intro k k' hk hk' hlt hβ
+        have hk1 := Side.one_le hk
+        by_cases h2 : k + 2 ≤ k'
+        · exact Merger.not_le_of_pair antisymm (Or.inr hβ) (wu_le_wu.mpr (Or.inr h2))
+        by_cases hk2 : k = 1
+        · exact pair_absurd (Or.inr hβ.symm) (z := c0 hc) (wu_le_c0.mpr (by omega)) nofun
+            (fun h => by rw [wu_le_c0] at h; omega)
+        · exact pair_absurd (Or.inr hβ.symm)
+            (z := wu (k - 1) (Side.mem_of_le hk' (by omega) (by omega)))
+            (wu_le_wu.mpr (by omega)) (wu_ne (by omega)) (fun h => by rw [wu_le_wu] at h; omega)
+      rcases Nat.lt_or_gt_of_ne hij with hlt | hlt
+      · exact key hlt hβ
+      · exact key hlt hβ.symm
+
+/-- **The frame is reduced.**  Two rungs of a side form no pair
+(`not_pair_wu`), and every other pair of points off `A`, `B`, the entrances and
+the root is told apart by an entrance. -/
+theorem reduced (hV : Valid c σu σv) : (regimeB : RegimeB (BPt c σu σv)).Reduced := by
   refine RegimeB.reduced_of _ fun x y hp hx hy hxr hyr => ?_
-  rcases wiring_cases hx hxr with rfl | ⟨k, rfl⟩ <;>
-    rcases wiring_cases hy hyr with rfl | ⟨j, rfl⟩
-  · exact hp.elim (fun h => h.1 rfl) (fun h => h.1 rfl)
-  · rcases hp with ⟨-, hc, -⟩ | ⟨-, hβ⟩
-    · simp [Frame.le, le] at hc
-    · have := ((hβ .u).mpr ⟨trivial, nofun⟩).1
-      simp [Frame.le, le] at this
-  · rcases hp with ⟨-, -, hα⟩ | ⟨-, hβ⟩
-    · have := hα .u trivial nofun
-      simp [Frame.le, le] at this
-    · have := ((hβ .u).mp ⟨trivial, nofun⟩).1
-      simp [Frame.le, le] at this
-  · have hkj : k.val ≠ j.val := fun e =>
-      hp.elim (fun h => h.1 (by rw [Fin.ext e])) (fun h => h.1 (by rw [Fin.ext e]))
-    rcases hp with ⟨-, hle, hα⟩ | hβ
-    · simp only [Frame.le, le] at hle
-      have hc := hα .c0 (by simp only [Frame.le, le]; omega) nofun
-      have h2 := hα (.w ⟨k.val - 2, by omega⟩) (by simp only [Frame.le, le]; omega)
-        (w_ne (by show k.val - 2 ≠ k.val; omega))
-      simp only [Frame.le, le] at hc h2
-      have h3 := hα (.w ⟨k.val - 3, by omega⟩) (by simp only [Frame.le, le]; omega)
-        (w_ne (by show k.val - 3 ≠ k.val; omega))
-      simp only [Frame.le, le] at h3
-      omega
-    · rcases Nat.lt_or_gt_of_ne hkj with h | h
-      · exact not_beta_w h hβ
-      · exact not_beta_w h hβ.symm
+  obtain ⟨hxA, hxB, hxu, hxv⟩ := hx
+  obtain ⟨hyA, hyB, hyu, hyv⟩ := hy
+  cases x <;> cases y <;> first
+    | exact absurd rfl hxA | exact absurd rfl hxB | exact absurd rfl hxu | exact absurd rfl hxv
+    | exact absurd rfl hxr | exact absurd rfl hyA | exact absurd rfl hyB | exact absurd rfl hyu
+    | exact absurd rfl hyv | exact absurd rfl hyr
+    | exact hp.elim (fun h => h.1 rfl) (fun h => h.1 rfl)
+    | exact not_pair_wu hV hp
+    | exact not_pair_wu hV.swap (swapIso.map_pair hp)
+    | exact pair_absurd hp (z := u) rfl nofun (by simp [Frame.le, leb])
+    | exact pair_absurd hp (z := v) rfl nofun (by simp [Frame.le, leb])
+    | exact hp.elim (fun h => absurd h.2.1 (by simp [Frame.le, leb]))
+        (fun h => pair_absurd (Or.inr h.symm) (z := u) rfl nofun (by simp [Frame.le, leb]))
+    | exact hp.elim (fun h => absurd h.2.1 (by simp [Frame.le, leb]))
+        (fun h => pair_absurd (Or.inr h.symm) (z := v) rfl nofun (by simp [Frame.le, leb]))
+
+/-- **Every valid code gives a minimal refuter.** -/
+theorem inKPMin (hV : Valid c σu σv) : InKPMin (BPt c σu σv) :=
+  regimeB.inKPMin_of_reduced ⟨all c σu σv, mem_all⟩ antisymm (reduced hV)
+
+end BPt
+
+/-! ## `𝓜` is infinite -/
+
+/-- **The ladder frames**: `c0`, the rungs `1, …, n + 1` below `u`, and nothing
+below `v`. -/
+abbrev LPt (n : Nat) := BPt true (.I (n + 1)) (.I 0)
+
+namespace LPt
 
 /-- **Every ladder frame is a minimal refuter.** -/
-theorem inKPMin (n : Nat) : InKPMin (LPt n) :=
-  regimeB.inKPMin_of_reduced ⟨all n, mem_all⟩ antisymm reduced
+theorem inKPMin (n : Nat) : InKPMin (LPt n) := BPt.inKPMin nofun
+
+theorem length_all (n : Nat) : (BPt.all true (.I (n + 1)) (.I 0)).length = n + 7 := by
+  rw [BPt.length_all]
+  simp only [ite_true, Side.size]
+  omega
 
 /-- A ladder frame lies below another only if it has no more rungs. -/
 theorem le_of_sh {n m : Nat} (h : SH (Upset (LPt m)) (Upset (LPt n))) : m ≤ n := by
-  have := length_le_of_sh antisymm nodup_all mem_all mem_all h
+  have := length_le_of_sh BPt.antisymm BPt.nodup_all BPt.mem_all BPt.mem_all h
   rw [length_all, length_all] at this
   omega
 
